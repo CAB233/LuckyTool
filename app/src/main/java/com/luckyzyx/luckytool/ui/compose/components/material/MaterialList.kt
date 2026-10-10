@@ -82,6 +82,42 @@ private val SegmentedInnerRadius = DesignTokens.ItemInnerRadius
 private const val SegmentedSpringStiffness = 800f
 private const val SegmentedSpringDamping = 0.9f
 
+/**
+ * 把形状包成非 [androidx.compose.foundation.shape.CornerBasedShape]，让 material3 的 ListItem 不对它做形状动画。
+ *
+ * material3 1.5.0-beta01 内部的 AnimatedShapeState 用 Interpolatable.lerp 插值圆角、且完全不钳制：
+ * 阻尼比 0.9 的 FastSpatial 弹簧在「按压形状 16dp → 我们的分段形状（内边 [SegmentedInnerRadius] = 0dp）」
+ * 之间过渡时会过冲，把圆角插成负值（16dp→0dp 过冲约 2.45% = -0.39dp，@3x 即 -1.1742859px），
+ * BackgroundNode 取 outline 时抛 "Corner size in Px can't be negative"。
+ * 条目短按后会立刻导航/销毁，长按则留在组合里，所以长按更容易命中这个过冲帧。
+ *
+ * ListItemDefaults.shapeForInteraction 只在六个变体全是 RoundedCornerShape / CornerBasedShape 时才调
+ * rememberAnimatedShape，因此这里把六个变体统一换成非 CornerBasedShape 的包装形状：M3 会直接使用它、
+ * 完全不做插值；圆角动画仍由本文件自己的 animateDpAsState + 钳制负责。
+ */
+internal class StaticShape(private val delegate: Shape) : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline =
+        delegate.createOutline(size, layoutDirection, density)
+
+    override fun equals(other: Any?): Boolean =
+        this === other || (other is StaticShape && delegate == other.delegate)
+
+    override fun hashCode(): Int = delegate.hashCode()
+}
+
+/** 六个状态统一为 [shapeOverride]（默认取当前 [ListItemShapes.shape]）的静态形状，见 [StaticShape] */
+internal fun ListItemShapes.withoutShapeAnimation(shapeOverride: Shape = shape): ListItemShapes {
+    val static = StaticShape(shapeOverride)
+    return copy(
+        shape = static,
+        selectedShape = static,
+        pressedShape = static,
+        focusedShape = static,
+        hoveredShape = static,
+        draggedShape = static,
+    )
+}
+
 @DslMarker
 annotation class MaterialGroupDsl
 
@@ -105,21 +141,24 @@ fun materialGroupColors(
  * 分组内条目形状：单条卡片保持原有整块圆角；分组内相邻边取 [SegmentedInnerRadius]
  * （0dp，与 Miuix 线 [com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefItemShape] 一致），
  * 使同一分组的条目拼成一张连续卡片，而不是各自成卡。
+ *
+ * 六个状态统一为该形状、不走 material3 的形状动画（见 [StaticShape]）：内边 0dp 与 M3 的按压形状
+ * （16dp）之间做过冲插值会算出负圆角并崩溃。
  */
 @Composable
 private fun defaultSingleSegmentedShape(index: Int, count: Int): ListItemShapes {
     val base = ListItemDefaults.segmentedShapes(index, count)
-    if (count <= 1) {
-        return base.copy(shape = MaterialTheme.shapes.large)
-    }
-    return base.copy(
-        shape = RoundedCornerShape(
+    val shape = if (count <= 1) {
+        MaterialTheme.shapes.large
+    } else {
+        RoundedCornerShape(
             topStart = if (index <= 0) SegmentedOuterRadius else SegmentedInnerRadius,
             topEnd = if (index <= 0) SegmentedOuterRadius else SegmentedInnerRadius,
             bottomStart = if (index >= count - 1) SegmentedOuterRadius else SegmentedInnerRadius,
             bottomEnd = if (index >= count - 1) SegmentedOuterRadius else SegmentedInnerRadius,
-        ),
-    )
+        )
+    }
+    return base.withoutShapeAnimation(shape)
 }
 
 /** 静态分段列：传入已确定的条目内容列表（不可增删时使用） */
@@ -257,7 +296,7 @@ fun MaterialGroup(
                                 },
                         ) {
                             CompositionLocalProvider(
-                                LocalListItemShapes provides ListItemDefaults.segmentedShapes(0, 1).copy(shape = shape),
+                                LocalListItemShapes provides ListItemDefaults.segmentedShapes(0, 1).withoutShapeAnimation(shape),
                             ) {
                                 Column(modifier = Modifier.padding(top = gap)) {
                                     entry.content()
@@ -302,7 +341,7 @@ fun MaterialItemContainer(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val shapes = LocalListItemShapes.current ?: ListItemDefaults.segmentedShapes(0, 1)
+    val shapes = LocalListItemShapes.current ?: ListItemDefaults.segmentedShapes(0, 1).withoutShapeAnimation()
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = colorScheme.surfaceBright,
@@ -334,7 +373,7 @@ fun MaterialListItem(
         enabled = enabled,
         colors = colors,
         interactionSource = interactionSource,
-        shapes = LocalListItemShapes.current ?: ListItemDefaults.segmentedShapes(0, 1),
+        shapes = LocalListItemShapes.current ?: ListItemDefaults.segmentedShapes(0, 1).withoutShapeAnimation(),
         modifier = modifier,
         leadingContent = leadingContent,
         trailingContent = trailingContent,
@@ -487,7 +526,7 @@ fun MaterialRadioItem(
             haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
             onClick()
         },
-        shapes = LocalListItemShapes.current ?: ListItemDefaults.segmentedShapes(0, 1),
+        shapes = LocalListItemShapes.current ?: ListItemDefaults.segmentedShapes(0, 1).withoutShapeAnimation(),
         enabled = enabled,
         colors = colors,
         content = { Text(title) },
