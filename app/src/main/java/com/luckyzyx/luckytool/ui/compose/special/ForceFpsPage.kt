@@ -50,8 +50,9 @@ import top.yukonga.miuix.kmp.basic.Text as MiuixText
  * ## 状态模型
  * - [IRefreshRateController] 是唯一的「数据源」；`supportModes` / `refreshRateDisplay`
  *   都是**同步** root IPC，因此每次 load 只读一次落到 Compose 状态，不在组合期重复读；
- * - 持久化只属于本页：`keyFpsCur`（模式 id，同时被 AutoStartControllerService 拼进
- *   `service call SurfaceFlinger 1035 i32 <id>`）、`keyFpsAutoStart`；
+ * - 持久化只属于本页：`keyFpsCur`（模式位置，即列表 index —— 旧 fpsIds.add(index) 存的
+ *   就是 index，同时被 AutoStartControllerService 拼进 `service call SurfaceFlinger 1035 i32 <index>`）、
+ *   `keyFpsAutoStart`；
  * - 进程级控制器缓存做种子，让「本来已绑定」的常见路径瞬时还原内容。
  *
  * ## 加载时机（三处触发，同一个幂等 load()）
@@ -156,30 +157,31 @@ object ForceFpsPage {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 // FPS 数据卡：displayMode 模式列表置顶，独立一张卡片
-                // （旧 ListView CHOICE_MODE_SINGLE；选中/设置均以 mode.id 为准，
-                // 与 RefreshRateService.setRefreshRateMode(modeId) 及 keyFpsCur 的持久化语义一致）
+                // （旧 ListView CHOICE_MODE_SINGLE：单选以列表位置 index 为准 —— 旧 fpsIds.add(index)、
+                //  setItemChecked(indexOf(fpsCur))、点击存 index；mode.id 仅用于展示文本，
+                //  选中/设置/持久化都用 index，保证恰一项选中且与 keyFpsCur 自启语义一致）
                 PrefGroup {
                     if (!isUnsupport) {
-                        modes.forEach { mode ->
+                        modes.forEachIndexed { index, mode ->
                             item {
                                 val title =
                                     "${mode.id}   ${mode.width} x ${mode.height}   ${mode.refreshRate}"
                                 val onSelect: () -> Unit = {
                                     // 先落系统再落 prefs：IPC 抛错时不留「已持久化但未生效」的脏状态
-                                    controller?.setRefreshRateMode(mode.id)
-                                    state.set(keyFpsCur, mode.id)
+                                    controller?.setRefreshRateMode(index)
+                                    state.set(keyFpsCur, index)
                                 }
                                 if (miuix) {
                                     // Miuix 线等价件（库内 RadioButtonPreference）
                                     MiuixRadioItem(
                                         title = title,
-                                        selected = mode.id == fpsCur,
+                                        selected = index == fpsCur,
                                         onClick = onSelect,
                                     )
                                 } else {
                                     MaterialRadioItem(
                                         title = title,
-                                        selected = mode.id == fpsCur,
+                                        selected = index == fpsCur,
                                         onClick = onSelect,
                                     )
                                 }
