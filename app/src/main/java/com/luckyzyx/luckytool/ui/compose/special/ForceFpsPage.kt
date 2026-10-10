@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -196,7 +197,7 @@ object ForceFpsPage {
                     else -> R.string.fps_no_data
                 }
                 if (hint != null) {
-                    val text = c.getString(hint)
+                    val text = stringResource(hint)
                     if (miuix) {
                         MiuixText(
                             text = text,
@@ -219,7 +220,7 @@ object ForceFpsPage {
                 PrefGroup {
                     item {
                         PrefSwitchRow(
-                            title = c.getString(R.string.fps_autostart),
+                            title = stringResource(R.string.fps_autostart),
                             checked = fpsAutostart,
                             enabled = controller != null && !isUnsupport && fpsCur != -1,
                             onCheckedChange = { v -> state.set(keyFpsAutoStart, v) },
@@ -227,7 +228,7 @@ object ForceFpsPage {
                     }
                     item {
                         PrefSwitchRow(
-                            title = c.getString(R.string.display_refresh_rate),
+                            title = stringResource(R.string.display_refresh_rate),
                             checked = displayRefreshRate,
                             enabled = controller != null,
                             onCheckedChange = { v ->
@@ -246,7 +247,7 @@ object ForceFpsPage {
                         },
                         enabled = controller != null,
                         modifier = Modifier.fillMaxWidth(),
-                    ) { MiuixText(text = c.getString(R.string.restore_default_refresh_rate)) }
+                    ) { MiuixText(text = stringResource(R.string.restore_default_refresh_rate)) }
                 } else {
                     Button(
                         onClick = {
@@ -255,11 +256,11 @@ object ForceFpsPage {
                         },
                         enabled = controller != null,
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text(c.getString(R.string.restore_default_refresh_rate)) }
+                    ) { Text(stringResource(R.string.restore_default_refresh_rate)) }
                 }
                 if (miuix) {
                     MiuixText(
-                        text = c.getString(R.string.fps_tips),
+                        text = stringResource(R.string.fps_tips),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 10.dp),
@@ -267,7 +268,7 @@ object ForceFpsPage {
                     )
                 } else {
                     Text(
-                        c.getString(R.string.fps_tips),
+                        stringResource(R.string.fps_tips),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 10.dp),

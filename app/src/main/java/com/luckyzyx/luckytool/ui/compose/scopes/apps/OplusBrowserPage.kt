@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.compose.components.PrefRow
@@ -31,7 +32,7 @@ object OplusBrowserPage {
             custom(title = c.getString(R.string.browser_concise_mode)) {
                 PrefRowInset {
                     PrefRow(
-                        title = c.getString(R.string.browser_concise_mode),
+                        title = stringResource(R.string.browser_concise_mode),
                         onClick = {
                             try {
                                 Intent().apply {

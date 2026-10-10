@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
@@ -76,9 +77,9 @@ object OplusGesturePage {
                 var show by remember { mutableStateOf(false) }
                 PrefRowInset {
                     PrefRow(
-                        title = c.getString(R.string.custom_aon_gesture_scroll_page_whitelist),
+                        title = stringResource(R.string.custom_aon_gesture_scroll_page_whitelist),
                         summary = arraySummaryLine(
-                            c.getString(R.string.custom_aon_gesture_whitelist_tips),
+                            stringResource(R.string.custom_aon_gesture_whitelist_tips),
                             saved.toString(),
                         ),
                         onClick = { show = true },
@@ -87,7 +88,7 @@ object OplusGesturePage {
                 }
                 if (show) {
                     AppPickerDialog(
-                        title = c.getString(R.string.custom_aon_gesture_scroll_page_whitelist),
+                        title = stringResource(R.string.custom_aon_gesture_scroll_page_whitelist),
                         multiMode = true,
                         enabledList = saved,
                         onDismiss = { show = false },
@@ -151,7 +152,7 @@ object OplusGesturePage {
                 }
                 PrefRowInset {
                     PrefRow(
-                        title = c.getString(R.string.replace_side_slider_icon_on_left),
+                        title = stringResource(R.string.replace_side_slider_icon_on_left),
                         summary = path.ifBlank { "Null" },
                         onClick = { pickMedia.launch("image/*") },
                     )
@@ -177,7 +178,7 @@ object OplusGesturePage {
                 }
                 PrefRowInset {
                     PrefRow(
-                        title = c.getString(R.string.replace_side_slider_icon_on_right),
+                        title = stringResource(R.string.replace_side_slider_icon_on_right),
                         summary = path.ifBlank { "Null" },
                         onClick = { pickMedia.launch("image/*") },
                     )

@@ -306,15 +306,17 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
     }
 
     if (showDonateList) {
+        // 点击回调（clickable / onClick）内没有 Composer，取一次给 lambda 捕获
+        val donationListTitle = stringResource(R.string.donation_list)
         val donateList = arrayListOf(
-            context.getString(R.string.qq),
-            context.getString(R.string.wechat),
-            context.getString(R.string.alipay),
-            context.getString(R.string.donation_list),
+            stringResource(R.string.qq),
+            stringResource(R.string.wechat),
+            stringResource(R.string.alipay),
+            donationListTitle,
         )
         if (!zh) {
-            donateList.add(3, context.getString(R.string.patreon))
-            donateList.add(4, context.getString(R.string.paypal))
+            donateList.add(3, stringResource(R.string.patreon))
+            donateList.add(4, stringResource(R.string.paypal))
         }
         when (LocalUiMode.current) {
             UiMode.Miuix -> OverlayDialog(
@@ -333,7 +335,7 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                                     3 -> if (zh) {
                                         activity.requestFunctionNavigation(
                                             "donate",
-                                            context.getString(R.string.donation_list),
+                                            donationListTitle,
                                         )
                                     } else {
                                         context.openUrl("https://www.patreon.com/LuckyTool")
@@ -342,7 +344,7 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                                     4 -> context.openUrl("https://paypal.me/luckyzyx")
                                     5 -> activity.requestFunctionNavigation(
                                         "donate",
-                                        context.getString(R.string.donation_list),
+                                        donationListTitle,
                                     )
                                 }
                             },
@@ -367,7 +369,7 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                                             3 -> if (zh) {
                                                 activity.requestFunctionNavigation(
                                                     "donate",
-                                                    context.getString(R.string.donation_list),
+                                                    donationListTitle,
                                                 )
                                             } else {
                                                 context.openUrl("https://www.patreon.com/LuckyTool")
@@ -376,7 +378,7 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                                             4 -> context.openUrl("https://paypal.me/luckyzyx")
                                             5 -> activity.requestFunctionNavigation(
                                                 "donate",
-                                                context.getString(R.string.donation_list),
+                                                donationListTitle,
                                             )
                                         }
                                     }
@@ -450,12 +452,12 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
 
     if (showFeedbackDialog) {
         val items = arrayOf(
-            context.getString(R.string.coolmarket),
-            context.getString(R.string.module_doc),
-            context.getString(R.string.qq_chat_group),
-            context.getString(R.string.qq_channel),
-            context.getString(R.string.telegram_channel),
-            context.getString(R.string.lsposed_repo),
+            stringResource(R.string.coolmarket),
+            stringResource(R.string.module_doc),
+            stringResource(R.string.qq_chat_group),
+            stringResource(R.string.qq_channel),
+            stringResource(R.string.telegram_channel),
+            stringResource(R.string.lsposed_repo),
         )
         when (LocalUiMode.current) {
             UiMode.Miuix -> OverlayDialog(

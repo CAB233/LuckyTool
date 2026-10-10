@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.drake.net.utils.scopeLife
@@ -47,7 +48,7 @@ object OplusOTAPage {
         // shell 调用只在渲染期执行：headless 索引构建不得执行任何 IO
         val verifyTitle = c.getString(R.string.get_ota_verify_result)
         custom(key = "get_ota_verify_result", title = verifyTitle) {
-            val verifySummary = c.getString(
+            val verifySummary = stringResource(
                 R.string.get_ota_verify_result_summary,
                 formatStringAuto(
                     runCatching {
@@ -73,8 +74,8 @@ object OplusOTAPage {
             val lifecycleOwner = LocalLifecycleOwner.current
             PrefRowInset {
                 PrefRow(
-                    title = c.getString(R.string.unlock_local_upgrade),
-                    summary = c.getString(R.string.unlock_local_upgrade_summary),
+                    title = stringResource(R.string.unlock_local_upgrade),
+                    summary = stringResource(R.string.unlock_local_upgrade_summary),
                     onClick = {
                         lifecycleOwner.scopeLife {
                             val command = arrayOf(

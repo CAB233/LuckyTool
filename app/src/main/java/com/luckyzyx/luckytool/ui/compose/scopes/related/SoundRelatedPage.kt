@@ -9,6 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -132,8 +133,8 @@ object SoundRelatedPage {
                 var showPicker by remember { mutableStateOf(false) }
                 PrefRowInset {
                     PrefRow(
-                        title = c.getString(R.string.custom_volume_bar_percent_color),
-                        summary = c.getString(R.string.current_color, hex),
+                        title = stringResource(R.string.custom_volume_bar_percent_color),
+                        summary = stringResource(R.string.current_color, hex),
                         trailing = {
                             ColorDot(
                                 color = color,

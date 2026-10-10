@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
@@ -72,9 +73,9 @@ object StatusBarNotifyPage {
                     var showPicker by remember { mutableStateOf(false) }
                     PrefRowInset {
                         PrefRow(
-                            title = c.getString(R.string.set_small_window_reply_blacklist),
+                            title = stringResource(R.string.set_small_window_reply_blacklist),
                             summary = arraySummaryLine(
-                                c.getString(R.string.set_small_window_reply_blacklist_message),
+                                stringResource(R.string.set_small_window_reply_blacklist_message),
                                 blacklist.toString(),
                             ),
                             onClick = { showPicker = true },
@@ -82,7 +83,7 @@ object StatusBarNotifyPage {
                     }
                     if (showPicker) {
                         AppPickerDialog(
-                            title = c.getString(R.string.set_small_window_reply_blacklist),
+                            title = stringResource(R.string.set_small_window_reply_blacklist),
                             multiMode = true,
                             showSystemApps = true,
                             enabledList = blacklist,

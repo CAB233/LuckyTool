@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
@@ -99,7 +100,7 @@ object StatusBarRelatedPage {
                     var showPicker by remember { mutableStateOf(false) }
                     if (LocalUiMode.current == UiMode.Miuix) {
                         MiuixListItem(
-                            title = c.getString(R.string.set_custom_music_fluid_cloud_whitelist),
+                            title = stringResource(R.string.set_custom_music_fluid_cloud_whitelist),
                             summary = whitelist.toString(),
                             onClick = { if (enabled) showPicker = true },
                             enabled = enabled,
@@ -112,14 +113,14 @@ object StatusBarRelatedPage {
                                 enabled = enabled,
                                 colors = itemColors(slot),
                                 headlineContent = {
-                                    Text(c.getString(R.string.set_custom_music_fluid_cloud_whitelist))
+                                    Text(stringResource(R.string.set_custom_music_fluid_cloud_whitelist))
                                 },
                             )
                         }
                     }
                     if (showPicker) {
                         AppPickerDialog(
-                            title = c.getString(R.string.set_custom_music_fluid_cloud_whitelist),
+                            title = stringResource(R.string.set_custom_music_fluid_cloud_whitelist),
                             multiMode = true,
                             enabledList = whitelist,
                             onDismiss = { showPicker = false },

@@ -464,11 +464,11 @@ fun HomePage(activity: MainActivity) {
 
     if (showDonateList) {
         val donateList = arrayListOf(
-            context.getString(R.string.qq),
-            context.getString(R.string.wechat),
-            context.getString(R.string.alipay),
+            stringResource(R.string.qq),
+            stringResource(R.string.wechat),
+            stringResource(R.string.alipay),
         )
-        if (!zh) donateList.add(3, context.getString(R.string.patreon))
+        if (!zh) donateList.add(3, stringResource(R.string.patreon))
         when (LocalUiMode.current) {
             UiMode.Miuix -> OverlayDialog(
                 show = true,

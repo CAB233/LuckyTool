@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
@@ -59,7 +60,7 @@ object OplusGamesPage {
             custom(title = c.getString(R.string.game_assistant_page)) {
                 PrefRowInset {
                     PrefRow(
-                        title = c.getString(R.string.game_assistant_page),
+                        title = stringResource(R.string.game_assistant_page),
                         summary = "(${appUtils.getAppLabel("com.oplus.games")})",
                         onClick = {
                             launchShell(
@@ -81,7 +82,7 @@ object OplusGamesPage {
             custom(title = c.getString(R.string.game_space_page)) {
                 PrefRowInset {
                     PrefRow(
-                        title = c.getString(R.string.game_space_page),
+                        title = stringResource(R.string.game_space_page),
                         summary = "(${appUtils.getAppLabel("com.nearme.gamecenter")})",
                         onClick = {
                             launchShell(
@@ -134,7 +135,7 @@ object OplusGamesPage {
                 custom(title = c.getString(R.string.game_assistant_develop_page)) {
                     PrefRowInset {
                         PrefRow(
-                            title = c.getString(R.string.game_assistant_develop_page),
+                            title = stringResource(R.string.game_assistant_develop_page),
                             summary = "(${appUtils.getAppLabel("com.oplus.games")})",
                             onClick = {
                                 launchShell(
@@ -156,14 +157,14 @@ object OplusGamesPage {
             var show by remember { mutableStateOf(false) }
             PrefRowInset {
                 PrefRow(
-                    title = c.getString(R.string.custom_media_player_support),
+                    title = stringResource(R.string.custom_media_player_support),
                     summary = saved.toString(),
                     onClick = { show = true },
                 )
             }
             if (show) {
                 AppPickerDialog(
-                    title = c.getString(R.string.custom_media_player_support),
+                    title = stringResource(R.string.custom_media_player_support),
                     multiMode = true,
                     enabledList = saved,
                     onDismiss = { show = false },
@@ -187,14 +188,14 @@ object OplusGamesPage {
             var show by remember { mutableStateOf(false) }
             PrefRowInset {
                 PrefRow(
-                    title = c.getString(R.string.custom_barrage_notification_whitelist),
+                    title = stringResource(R.string.custom_barrage_notification_whitelist),
                     summary = saved.toString(),
                     onClick = { show = true },
                 )
             }
             if (show) {
                 AppPickerDialog(
-                    title = c.getString(R.string.custom_barrage_notification_whitelist),
+                    title = stringResource(R.string.custom_barrage_notification_whitelist),
                     multiMode = true,
                     enabledList = saved,
                     onDismiss = { show = false },

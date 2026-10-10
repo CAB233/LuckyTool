@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.database.getStringOrNull
@@ -129,8 +130,8 @@ object ExtractOTAPage {
             }
             LaunchedEffect(Unit) { reload() }
 
-            val noDataText = c.getString(R.string.no_ota_data)
-            val copyText = c.getString(android.R.string.copy)
+            val noDataText = stringResource(R.string.no_ota_data)
+            val copyText = stringResource(android.R.string.copy)
             val tipsText = if (isZh(c)) "使用此功能时,禁止删除与遗漏数据" else ""
             val fullText = if (dataList.isNotEmpty()) formatStringAuto(dataList, "\n") else ""
 

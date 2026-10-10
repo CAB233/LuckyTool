@@ -83,8 +83,8 @@ object OplusCameraPage {
                 var show by remember { mutableStateOf(false) }
                 if (LocalUiMode.current == UiMode.Miuix) {
                     MiuixListItem(
-                        title = c.getString(R.string.custom_camera_open_gallery_by_default),
-                        summary = arraySummaryLine(current.ifBlank { c.getString(R.string.not_set) }),
+                        title = stringResource(R.string.custom_camera_open_gallery_by_default),
+                        summary = arraySummaryLine(current.ifBlank { stringResource(R.string.not_set) }),
                         onClick = { show = true },
                     )
                 } else {
@@ -92,18 +92,18 @@ object OplusCameraPage {
                         MaterialListItem(
                             onClick = { show = true },
                             supportingContent = {
-                                Text(arraySummaryLine(current.ifBlank { c.getString(R.string.not_set) }))
+                                Text(arraySummaryLine(current.ifBlank { stringResource(R.string.not_set) }))
                             },
                             colors = itemColors(slot),
                             headlineContent = {
-                                Text(c.getString(R.string.custom_camera_open_gallery_by_default))
+                                Text(stringResource(R.string.custom_camera_open_gallery_by_default))
                             },
                         )
                     }
                 }
                 if (show) {
                     AppPickerDialog(
-                        title = c.getString(R.string.custom_camera_open_gallery_by_default),
+                        title = stringResource(R.string.custom_camera_open_gallery_by_default),
                         onDismiss = { show = false },
                         onConfirm = { apps ->
                             val packName = apps.firstOrNull()?.packageName.orEmpty()
@@ -180,7 +180,7 @@ object OplusCameraPage {
                 }
                 if (LocalUiMode.current == UiMode.Miuix) {
                     MiuixListItem(
-                        title = c.getString(R.string.camera_universal_filter_settings),
+                        title = stringResource(R.string.camera_universal_filter_settings),
                         summary = filters.filter { it.isEnable }.map { it.title }.toString(),
                         onClick = { showDialog = true },
                     )
@@ -193,7 +193,7 @@ object OplusCameraPage {
                             },
                             colors = itemColors(slot),
                             headlineContent = {
-                                Text(c.getString(R.string.camera_universal_filter_settings))
+                                Text(stringResource(R.string.camera_universal_filter_settings))
                             },
                         )
                     }
@@ -204,7 +204,7 @@ object OplusCameraPage {
                         state = state,
                         data = FilterDialogData(
                             key = "camera_universal_filter_settings",
-                            title = c.getString(R.string.camera_universal_filter_settings),
+                            title = stringResource(R.string.camera_universal_filter_settings),
                             filters = filters,
                             onSaved = { set ->
                                 if (set.contains("master_filter")) {
@@ -228,7 +228,7 @@ object OplusCameraPage {
                 }
                 if (LocalUiMode.current == UiMode.Miuix) {
                     MiuixListItem(
-                        title = c.getString(R.string.camera_portrait_filter_settings),
+                        title = stringResource(R.string.camera_portrait_filter_settings),
                         summary = filters.filter { it.isEnable }.map { it.title }.toString(),
                         onClick = { showDialog = true },
                     )
@@ -241,7 +241,7 @@ object OplusCameraPage {
                             },
                             colors = itemColors(slot),
                             headlineContent = {
-                                Text(c.getString(R.string.camera_portrait_filter_settings))
+                                Text(stringResource(R.string.camera_portrait_filter_settings))
                             },
                         )
                     }
@@ -252,7 +252,7 @@ object OplusCameraPage {
                         state = state,
                         data = FilterDialogData(
                             key = "camera_portrait_filter_settings",
-                            title = c.getString(R.string.camera_portrait_filter_settings),
+                            title = stringResource(R.string.camera_portrait_filter_settings),
                             filters = filters,
                             onRestart = { restart?.invoke() },
                         ),
@@ -271,7 +271,7 @@ object OplusCameraPage {
                 }
                 if (LocalUiMode.current == UiMode.Miuix) {
                     MiuixListItem(
-                        title = c.getString(R.string.camera_video_filter_settings),
+                        title = stringResource(R.string.camera_video_filter_settings),
                         summary = filters.filter { it.isEnable }.map { it.title }.toString(),
                         onClick = { showDialog = true },
                     )
@@ -284,7 +284,7 @@ object OplusCameraPage {
                             },
                             colors = itemColors(slot),
                             headlineContent = {
-                                Text(c.getString(R.string.camera_video_filter_settings))
+                                Text(stringResource(R.string.camera_video_filter_settings))
                             },
                         )
                     }
@@ -295,7 +295,7 @@ object OplusCameraPage {
                         state = state,
                         data = FilterDialogData(
                             key = "camera_video_filter_settings",
-                            title = c.getString(R.string.camera_video_filter_settings),
+                            title = stringResource(R.string.camera_video_filter_settings),
                             filters = filters,
                             onRestart = { restart?.invoke() },
                         ),

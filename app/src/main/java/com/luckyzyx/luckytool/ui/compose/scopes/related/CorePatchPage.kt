@@ -43,7 +43,7 @@ object CorePatchPage {
         val c = requireNotNull(context) { "ScopeScreen 未注入 Context" }
         custom(key = "ColorOSCorePatchTip", title = c.getString(R.string.ColorOSCorePatchTip), bare = true) {
             PrefCard(
-                title = c.getString(R.string.ColorOSCorePatchTip),
+                title = stringResource(R.string.ColorOSCorePatchTip),
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
         }
@@ -87,8 +87,8 @@ object CorePatchPage {
             }
             PrefRowInset {
                 PrefSwitchRow(
-                    title = c.getString(R.string.use_previous_signatures),
-                    summary = c.getString(R.string.use_previous_signatures_summary),
+                    title = stringResource(R.string.use_previous_signatures),
+                    summary = stringResource(R.string.use_previous_signatures_summary),
                     checked = checked,
                     onCheckedChange = ::apply,
                 )
@@ -100,7 +100,7 @@ object CorePatchPage {
                         onDismissRequest = { showWarning = false },
                     ) {
                         MiuixText(
-                            text = c.getString(R.string.use_previous_signatures_warning),
+                            text = stringResource(R.string.use_previous_signatures_warning),
                             modifier = Modifier.fillMaxWidth(),
                         )
                         MiuixTextButton(
@@ -113,7 +113,7 @@ object CorePatchPage {
 
                     UiMode.Material -> AlertDialog(
                         onDismissRequest = { showWarning = false },
-                        text = { Text(c.getString(R.string.use_previous_signatures_warning)) },
+                        text = { Text(stringResource(R.string.use_previous_signatures_warning)) },
                         confirmButton = {
                             TextButton(onClick = { showWarning = false }) {
                                 Text(stringResource(android.R.string.ok))

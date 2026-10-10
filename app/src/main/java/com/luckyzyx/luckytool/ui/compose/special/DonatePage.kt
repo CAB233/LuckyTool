@@ -412,7 +412,7 @@ internal fun PrefScopeBuilder.DonateBody(c: Context) {
                         if (showDetail) list.removeLastOrNull()
                         list
                     }
-                    MiuixPrefCategoryHeader(c.getString(R.string.appinfo_sort_by))
+                    MiuixPrefCategoryHeader(stringResource(R.string.appinfo_sort_by))
                     sorts.forEachIndexed { index, title ->
                         MiuixRadioItem(
                             title = title,
@@ -424,16 +424,16 @@ internal fun PrefScopeBuilder.DonateBody(c: Context) {
                         )
                     }
                     MiuixSwitchItem(
-                        title = c.getString(R.string.appinfo_reverse),
+                        title = stringResource(R.string.appinfo_reverse),
                         checked = isReverse,
                         onCheckedChange = {
                             isReverse = it
                             rerunFilter()
                         },
                     )
-                    MiuixPrefCategoryHeader(c.getString(R.string.appinfo_filter))
+                    MiuixPrefCategoryHeader(stringResource(R.string.appinfo_filter))
                     MiuixCheckboxItem(
-                        title = c.getString(R.string.donate_detailed_data),
+                        title = stringResource(R.string.donate_detailed_data),
                         checked = showDetail,
                         onCheckedChange = {
                             showDetail = it
@@ -442,7 +442,7 @@ internal fun PrefScopeBuilder.DonateBody(c: Context) {
                         },
                     )
                     MiuixCheckboxItem(
-                        title = c.getString(R.string.donate_other_currency),
+                        title = stringResource(R.string.donate_other_currency),
                         checked = otherCurrency,
                         onCheckedChange = {
                             otherCurrency = it
@@ -458,15 +458,15 @@ internal fun PrefScopeBuilder.DonateBody(c: Context) {
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)
                 ) {
                     Text(
-                        c.getString(R.string.appinfo_sort_and_filter),
+                        stringResource(R.string.appinfo_sort_and_filter),
                         modifier = Modifier.align(Alignment.CenterHorizontally),
                     )
                     Row(
                         Modifier.fillMaxWidth().padding(top = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(c.getString(R.string.appinfo_sort_by), Modifier.weight(1f))
-                        Text(c.getString(R.string.appinfo_reverse))
+                        Text(stringResource(R.string.appinfo_sort_by), Modifier.weight(1f))
+                        Text(stringResource(R.string.appinfo_reverse))
                         MaterialSwitch(
                             checked = isReverse,
                             onCheckedChange = {
@@ -499,7 +499,7 @@ internal fun PrefScopeBuilder.DonateBody(c: Context) {
                         }
                     }
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                    Text(c.getString(R.string.appinfo_filter))
+                    Text(stringResource(R.string.appinfo_filter))
                     Row(
                         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
                     ) {
@@ -510,7 +510,7 @@ internal fun PrefScopeBuilder.DonateBody(c: Context) {
                                 state.set(showDetailedKey, showDetail)
                                 rerunFilter()
                             },
-                            label = { Text(c.getString(R.string.donate_detailed_data)) },
+                            label = { Text(stringResource(R.string.donate_detailed_data)) },
                         )
                         FilterChip(
                             selected = otherCurrency,
@@ -519,7 +519,7 @@ internal fun PrefScopeBuilder.DonateBody(c: Context) {
                                 state.set(showOtherCurrencyKey, otherCurrency)
                                 rerunFilter()
                             },
-                            label = { Text(c.getString(R.string.donate_other_currency)) },
+                            label = { Text(stringResource(R.string.donate_other_currency)) },
                         )
                     }
                 }

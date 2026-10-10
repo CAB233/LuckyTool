@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
@@ -290,20 +291,20 @@ object ApplicationRelatedPage {
                 val checked by state.booleanFlow(archivingKey, true).collectAsStateWithLifecycle()
                 if (LocalUiMode.current == UiMode.Miuix) {
                     MiuixSwitchItem(
-                        title = c.getString(R.string.disable_app_archiving),
+                        title = stringResource(R.string.disable_app_archiving),
                         checked = checked,
                         onCheckedChange = { v ->
                             state.set(archivingKey, v)
                             c.sendPrefsValue("android", archivingKey, v)
                             c.sendPrefsValue("com.android.settings", archivingKey, v)
                         },
-                        summary = c.getString(R.string.disable_app_archiving_summary),
+                        summary = stringResource(R.string.disable_app_archiving_summary),
                     )
                 } else {
                     Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                         MaterialSwitchItem(
-                            title = c.getString(R.string.disable_app_archiving),
-                            summary = c.getString(R.string.disable_app_archiving_summary),
+                            title = stringResource(R.string.disable_app_archiving),
+                            summary = stringResource(R.string.disable_app_archiving_summary),
                             checked = checked,
                             colors = itemColors(slot),
                             onCheckedChange = { v ->
