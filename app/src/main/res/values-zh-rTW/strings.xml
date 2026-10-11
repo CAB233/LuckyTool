@@ -1212,6 +1212,8 @@
     <string name="statusbar_icon_order_enable_summary">開啟後才會按下方的順序排列狀態列圖示，切換開關需重啟系統介面</string>
     <string name="statusbar_icon_order_clock_after">時鐘排在通知圖示右側</string>
     <string name="statusbar_icon_order_clock_after_summary">預設時鐘在通知圖示左側，開啟後兩者交換位置</string>
+    <string name="statusbar_icon_order_icons_first">系統圖示移到最左側</string>
+    <string name="statusbar_icon_order_icons_first_summary">把電池、藍牙等系統圖示移到狀態列最左側，時鐘與通知圖示排在其後</string>
     <string name="statusbar_icon_order_summary">調整圖示在狀態列上的顯示順序，新出現的圖示維持系統預設位置</string>
     <string name="statusbar_icon_order_reset">重設</string>
     <string name="statusbar_icon_order_move_up">上移</string>

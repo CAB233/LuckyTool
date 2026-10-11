@@ -50,6 +50,9 @@ const val STATUS_BAR_ICON_ORDER_ENABLED_KEY = "statusbar_icon_order_enabled"
 /** 时钟位置开关：开启后时钟排到通知图标右侧（默认左侧），同一容器内换序，无需重启 */
 const val STATUS_BAR_ICON_ORDER_CLOCK_AFTER_KEY = "statusbar_icon_order_clock_after"
 
+/** 区域排列开关：开启后把右侧系统图标区（电池、蓝牙等）整体挪到左侧容器最前面，无需重启 */
+const val STATUS_BAR_ICON_ORDER_ICONS_FIRST_KEY = "statusbar_icon_order_icons_first"
+
 /**
  * 状态栏图标槽位表（宿主 `config_statusBarIcons` 的顺序与名字）。
  *

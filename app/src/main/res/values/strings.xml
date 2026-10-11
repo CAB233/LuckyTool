@@ -1442,6 +1442,8 @@
     <string name="statusbar_icon_order_enable_summary">Only when enabled the module reorders the status bar icons; toggling it needs a SystemUI restart</string>
     <string name="statusbar_icon_order_clock_after">Clock right of the notification icons</string>
     <string name="statusbar_icon_order_clock_after_summary">By default the clock sits left of the notification icons; enable to move it to their right</string>
+    <string name="statusbar_icon_order_icons_first">System icons on the far left</string>
+    <string name="statusbar_icon_order_icons_first_summary">Move the battery, Bluetooth and other system icons to the far left, with the clock and the notification icons after them</string>
     <string name="statusbar_icon_order_summary">Adjust the display order of the status bar icons; newly appearing icons keep their system default position</string>
     <string name="statusbar_icon_order_reset">Reset</string>
     <string name="statusbar_icon_order_move_up">Move up</string>

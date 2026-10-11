@@ -2,8 +2,10 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 
 import android.os.Handler
 import android.os.Looper
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.toClassOrNull
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
@@ -35,6 +37,9 @@ object StatusBarIconOrder : YukiBaseHooker() {
     /** 时钟位置：true = 时钟排到通知图标右侧（宿主默认在左侧） */
     private const val CLOCK_AFTER_KEY = "statusbar_icon_order_clock_after"
 
+    /** 区域排列：true = 把右侧的系统图标区（电池、蓝牙等）整体挪到左侧容器最前面 */
+    private const val ICONS_FIRST_KEY = "statusbar_icon_order_icons_first"
+
     /** ColorOS 17 的状态栏根布局（StatusBarRoot 里 inflate `R.layout.status_bar` 的那个 View） */
     private const val STATUS_BAR_VIEW_CLASS = "com.android.systemui.statusbar.phone.PhoneStatusBarView"
 
@@ -65,11 +70,23 @@ object StatusBarIconOrder : YukiBaseHooker() {
     @Volatile
     private var clockAfterNotifications = false
 
+    /** 系统图标区是否挪到最左侧 */
+    @Volatile
+    private var iconsFirst = false
+
+    // 系统图标区搬走前的原始位置，开关关掉时原样放回
+    private var iconsOriginalParent: ViewGroup? = null
+    private var iconsOriginalIndex = -1
+    private var iconsOriginalLp: ViewGroup.LayoutParams? = null
+    private var statusIconsOriginalWidth = 0
+    private var statusIconsOriginalWeight = 0f
+
     override fun onHook() {
         // 需要重启作用域才会装载/卸载本 hooker
         if (!preferences(ModulePrefs).getBoolean(ENABLE_KEY, false)) return
         userOrder = parseOrder(preferences(ModulePrefs).getString(KEY, ""))
         clockAfterNotifications = preferences(ModulePrefs).getBoolean(CLOCK_AFTER_KEY, false)
+        iconsFirst = preferences(ModulePrefs).getBoolean(ICONS_FIRST_KEY, false)
         hookIconList()
         hookIconController()
         hookStatusBarView()
@@ -78,10 +95,14 @@ object StatusBarIconOrder : YukiBaseHooker() {
             // 重排 + refreshStatusBarIconList 都要在主线程做
             Handler(Looper.getMainLooper()).post { applyOrder(iconList, refresh = true) }
         }
-        // 时钟位置只动同一容器内的子 view 顺序，可以在主线程立即生效
+        // 布局调整只动 view 树的顺序，可以在主线程立即生效
         dataChannel.wait<Boolean>(CLOCK_AFTER_KEY) { value ->
             clockAfterNotifications = value
-            Handler(Looper.getMainLooper()).post { applyClockPosition() }
+            Handler(Looper.getMainLooper()).post { applyStatusBarLayout() }
+        }
+        dataChannel.wait<Boolean>(ICONS_FIRST_KEY) { value ->
+            iconsFirst = value
+            Handler(Looper.getMainLooper()).post { applyStatusBarLayout() }
         }
     }
 
@@ -134,9 +155,68 @@ object StatusBarIconOrder : YukiBaseHooker() {
                 after {
                     val view = instance<View>()
                     statusBarView = view
-                    applyClockPosition()
+                    applyStatusBarLayout()
                 }
             }
+        }
+    }
+
+    /** 状态栏区域排列：先摆系统图标区，再摆时钟（两步都只改子 view 顺序） */
+    private fun applyStatusBarLayout() {
+        applySystemIconsPosition()
+        applyClockPosition()
+    }
+
+    /**
+     * 把右侧系统图标区（`@layout/system_icons`，内含 `statusIcons`(蓝牙/wifi/signal 等) 与电池）整体挪到左侧容器最前面。
+     *
+     * 宿主两个区域分处两个容器：左侧 `status_bar_start_side_except_heads_up`、右侧 `status_bar_end_side_content`，
+     * 所以只能搬 view（`removeView` + `addView`），不能像时钟那样仅换序。为此需要：
+     * - 记录原始父容器与下标，开关关闭后原样放回；
+     * - 把整块改成自适应宽度，并清掉内部 `statusIcons` 的 `0dp + weight=1`：那是为了让电池贴右边缘，
+     *   搬到自适应宽度的左侧容器里会把整块撑满半屏、把时钟和通知图标挤出可视区。
+     */
+    private fun applySystemIconsPosition() {
+        val view = statusBarView ?: return
+        val startSide = view.findViewById<ViewGroup>(idOf(view, "status_bar_start_side_except_heads_up"))
+            ?: return
+        val systemIcons = view.findViewById<View>(idOf(view, "system_icons")) ?: return
+        if (iconsFirst) {
+            if (systemIcons.parent === startSide) return
+            if (iconsOriginalParent == null) {
+                iconsOriginalParent = systemIcons.parent as? ViewGroup
+                iconsOriginalIndex = iconsOriginalParent?.indexOfChild(systemIcons) ?: -1
+                iconsOriginalLp = systemIcons.layoutParams
+                (systemIcons.findViewById<View>(idOf(view, "statusIcons"))?.layoutParams
+                    as? LinearLayout.LayoutParams)?.let {
+                    statusIconsOriginalWidth = it.width
+                    statusIconsOriginalWeight = it.weight
+                }
+            }
+            (systemIcons.parent as? ViewGroup)?.removeView(systemIcons)
+            systemIcons.layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.MATCH_PARENT,
+            ).apply { gravity = Gravity.CENTER_VERTICAL }
+            (systemIcons.findViewById<View>(idOf(view, "statusIcons"))?.layoutParams
+                as? LinearLayout.LayoutParams)?.let {
+                it.width = LinearLayout.LayoutParams.WRAP_CONTENT
+                it.weight = 0f
+            }
+            val clock = startSide.findViewById<View>(idOf(view, "clock_for_fake"))
+            val index = clock?.let { startSide.indexOfChild(it) }?.coerceAtLeast(0) ?: 0
+            startSide.addView(systemIcons, index.coerceAtMost(startSide.childCount))
+        } else {
+            val parent = iconsOriginalParent ?: return
+            if (systemIcons.parent === parent) return
+            (systemIcons.parent as? ViewGroup)?.removeView(systemIcons)
+            iconsOriginalLp?.let { systemIcons.layoutParams = it }
+            (systemIcons.findViewById<View>(idOf(view, "statusIcons"))?.layoutParams
+                as? LinearLayout.LayoutParams)?.let {
+                it.width = statusIconsOriginalWidth
+                it.weight = statusIconsOriginalWeight
+            }
+            parent.addView(systemIcons, iconsOriginalIndex.coerceIn(0, parent.childCount))
         }
     }
 

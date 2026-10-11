@@ -41,6 +41,13 @@ object StatusBarIconPage {
             onChange = { restart?.invoke() },
         )
         if (state.getBoolean(STATUS_BAR_ICON_ORDER_ENABLED_KEY, false)) {
+            // 区域排列：系统图标区整体挪到最左侧（电池、蓝牙在最左，其后是时钟与通知图标）
+            switch(
+                key = STATUS_BAR_ICON_ORDER_ICONS_FIRST_KEY,
+                title = c.getString(R.string.statusbar_icon_order_icons_first),
+                summary = c.getString(R.string.statusbar_icon_order_icons_first_summary),
+                notify = true,
+            )
             // 区域排列：时钟与通知图标的左右位置（同一个左侧容器内换序，无需重启）
             switch(
                 key = STATUS_BAR_ICON_ORDER_CLOCK_AFTER_KEY,
