@@ -1,7 +1,6 @@
 package com.luckyzyx.luckytool.ui.compose
 
 import android.content.Context
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -135,10 +134,12 @@ fun FunctionPage(activity: MainActivity, onShellBack: () -> Unit) {
 
     var showVersionInfo by remember { mutableStateOf(false) }
 
-    // 返回键：有内部上一页则退内部栈，否则交还 shell（功能树根 → 上一 tab/退出）
-    BackHandler {
-        if (canPopInternal) navController.popBackStack() else onShellBack()
-    }
+    // 返回键不再自己注册 BackHandler：Activity 的 NavigationEventDispatcher 按「后注册者优先」派发，
+    // 下方内层 NavHost 的处理器注册在本页之后，内部栈可退时由它接管（预测性返回动画也由它驱动）；
+    // 内部栈到底时它自行禁用，事件继续落到 shell NavHost 的处理器上，
+    // 因此「功能页 → 主页」同样带预测性返回动画（功能树根 → 上一 tab/退出）。
+    // 若这里再挂 BackHandler，它会抢在 shell 之前以非预测方式 pop，功能页返回主页就没有预览动画了。
+    // 侧滑返回（EdgeSwipeDismiss）与服务页顶栏返回键不是系统返回手势，仍按下方的显式逻辑处理。
 
     var showRestartMenu by remember { mutableStateOf(false) }
 
