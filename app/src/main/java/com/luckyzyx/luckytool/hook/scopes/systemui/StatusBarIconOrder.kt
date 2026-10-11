@@ -12,6 +12,12 @@ import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.makeAccessible
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.log.YLog
+import com.luckyzyx.luckytool.hook.scopes.systemui.StatusBarIconOrder.CLOCK_ITEM
+import com.luckyzyx.luckytool.hook.scopes.systemui.StatusBarIconOrder.NOTIFY_ITEM
+import com.luckyzyx.luckytool.hook.scopes.systemui.StatusBarIconOrder.endBeforeGroup
+import com.luckyzyx.luckytool.hook.scopes.systemui.StatusBarIconOrder.leftOrder
+import com.luckyzyx.luckytool.hook.scopes.systemui.StatusBarIconOrder.leftSegmentOf
+import com.luckyzyx.luckytool.hook.scopes.systemui.StatusBarIconOrder.placedLeftAnchors
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import org.lsposed.lsparanoid.Obfuscate
 import java.lang.reflect.Field
@@ -155,6 +161,29 @@ object StatusBarIconOrder : YukiBaseHooker() {
     private var zonesActive = false
 
     private val slotMethodCache = HashMap<Class<*>, Method?>(8)
+
+    /** `ViewGroup.detachViewFromParent(View)`：摘子 view 但不触发 detach 回调 */
+    private val detachViewFromParentMethod: Method? by lazy {
+        runCatching {
+            ViewGroup::class.java
+                .getDeclaredMethod("detachViewFromParent", View::class.java)
+                .apply { makeAccessible() }
+        }.getOrNull()
+    }
+
+    /** `ViewGroup.attachViewToParent(View, int, LayoutParams)`：挂子 view 但不触发 attach 回调 */
+    private val attachViewToParentMethod: Method? by lazy {
+        runCatching {
+            ViewGroup::class.java
+                .getDeclaredMethod(
+                    "attachViewToParent",
+                    View::class.java,
+                    Int::class.javaPrimitiveType,
+                    ViewGroup.LayoutParams::class.java,
+                )
+                .apply { makeAccessible() }
+        }.getOrNull()
+    }
 
     override fun onHook() {
         // 需要重启作用域才会装载/卸载本 hooker
@@ -352,45 +381,118 @@ object StatusBarIconOrder : YukiBaseHooker() {
         if (notify != null) anchors += NOTIFY_ITEM to notify
         placedLeftAnchors = anchors.map { it.first }
         anchorsPlaced = anchors.isNotEmpty()
-
-        // 记录锚点在左侧容器里的原始下标（首次见到时）：被搬到右区后回来时放回原处
         for ((item, view) in anchors) {
             if (view.parent === startSide && item !in anchorStartIndex) {
                 anchorStartIndex[item] = startSide.indexOfChild(view)
             }
         }
-        // 先把分段容器、锚点、右区容器从布局里摘出来（锚点要整体重排）
-        detachViews(*leftSegGroups, endBefore)
-        for ((_, view) in anchors) (view.parent as? ViewGroup)?.removeView(view)
 
-        // 左区：按 [第0段][锚点0][第1段][锚点1]… 依次插到第一个锚点原来的位置
-        val insertAt = anchors
-            .mapNotNull { anchorStartIndex[it.first] }
-            .minOrNull()
-            ?.coerceIn(0, startSide.childCount) ?: 0
-        var index = insertAt
+        // 本轮的左区序列：[第0段][锚点0][第1段][锚点1]…
+        val sequence = ArrayList<View>(5)
         var segment = 0
         while (true) {
-            leftSegGroups.getOrNull(segment)?.let { seg ->
-                startSide.addView(seg, index.coerceIn(0, startSide.childCount))
-                index = startSide.indexOfChild(seg) + 1
-            }
+            leftSegGroups.getOrNull(segment)?.let { sequence += it }
             val anchor = anchors.getOrNull(segment)?.second ?: break
-            startSide.addView(anchor, index.coerceIn(0, startSide.childCount))
-            index = startSide.indexOfChild(anchor) + 1
+            sequence += anchor
             segment++
+        }
+        // 起始位置优先用第一个锚点当前的下标（历史下标只作兜底），避免把段插错位置
+        val firstAnchor = anchors.firstOrNull()?.second
+        val insertAt = (
+                firstAnchor?.takeIf { it.parent === startSide }
+                    ?.let { startSide.indexOfChild(it) }
+                    ?: anchors.mapNotNull { anchorStartIndex[it.first] }.minOrNull()
+                    ?: 0
+                ).coerceIn(0, startSide.childCount)
+
+        // 只摆「位置不对」的 view，并且同父容器内的移动走 [moveChildInPlace]（不触发 attach/detach 回调）。
+        // 宿主很多 view 挂在 ColorOS `SysuiLifecycle` 的 attach 回调上：反复 removeView/addView
+        // 会把它们的生命周期打成 DESTROYED，再 attach 就抛
+        // `State is 'DESTROYED' and cannot be moved to RESUMED`（applyZones 会整条中断）。
+        var index = insertAt
+        for (view in sequence) {
+            if (!isChildAt(startSide, index, view)) {
+                val currentParent = view.parent as? ViewGroup
+                if (currentParent === startSide) {
+                    if (!moveChildInPlace(startSide, view, index)) {
+                        runCatching {
+                            startSide.removeView(view)
+                            startSide.addView(view, index.coerceIn(0, startSide.childCount))
+                        }.onFailure {
+                            YLog.debug("StatusBarIconOrder: move in left zone failed -> $it")
+                        }
+                    }
+                } else {
+                    currentParent?.let { detachQuietly(it, view) }
+                    runCatching {
+                        startSide.addView(view, index.coerceIn(0, startSide.childCount))
+                    }.onFailure { YLog.debug("StatusBarIconOrder: attach to left zone failed -> $it") }
+                }
+            }
+            index = startSide.indexOfChild(view).let { if (it >= 0) it + 1 else index + 1 }
         }
 
         // 时钟在右区：放进 system_icons 里 statusIcons 之前（左区已由分段容器接替时钟原来的位置）
         if (!clockInLeft && clock != null && systemIcons != null) {
-            systemIcons.addView(endBefore, 0)
-            if (clock.parent !== systemIcons) {
-                (clock.parent as? ViewGroup)?.removeView(clock)
-                systemIcons.addView(clock, systemIcons.indexOfChild(endBefore) + 1)
-            }
+            runCatching {
+                if (endBefore.parent !== systemIcons) {
+                    (endBefore.parent as? ViewGroup)?.let { detachQuietly(it, endBefore) }
+                    systemIcons.addView(endBefore, 0)
+                }
+                if (clock.parent !== systemIcons) {
+                    (clock.parent as? ViewGroup)?.let { detachQuietly(it, clock) }
+                    systemIcons.addView(clock, systemIcons.indexOfChild(endBefore) + 1)
+                }
+            }.onFailure { YLog.debug("StatusBarIconOrder: move clock to right zone failed -> $it") }
+        } else if (endBefore.parent != null) {
+            detachViews(endBefore)
         }
         return true
     }
+
+    /**
+     * 同一父容器内把 [view] 移到 [index]：直接用 `ViewGroup.detachViewFromParent` /
+     * `attachViewToParent`（Android 内部移动子 view 用的就是这两个），**不触发
+     * `onDetachedFromWindow` / `onAttachedToWindow`**，因此不会碰坏宿主挂在 attach 回调上的生命周期。
+     */
+    private fun moveChildInPlace(parent: ViewGroup, view: View, index: Int): Boolean = runCatching {
+        val detach = detachViewFromParentMethod ?: return@runCatching false
+        val attach = attachViewToParentMethod ?: return@runCatching false
+        detach.invoke(parent, view)
+        attach.invoke(
+            parent,
+            view,
+            index.coerceIn(0, parent.childCount),
+            view.layoutParams
+                ?: ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                ),
+        )
+        // 这两个内部接口不会自己请求布局，移动完必须手动触发，否则子 view 位置不刷新
+        parent.requestLayout()
+        parent.invalidate()
+        view.requestLayout()
+        true
+    }.getOrElse {
+        YLog.debug("StatusBarIconOrder: moveChildInPlace failed -> $it")
+        false
+    }
+
+    /** 把 [view] 从 [parent] 摘掉但不触发 detach 回调（失败退回普通 `removeView`） */
+    private fun detachQuietly(parent: ViewGroup, view: View): Boolean = runCatching {
+        val detach = detachViewFromParentMethod ?: return@runCatching false
+        detach.invoke(parent, view)
+        true
+    }.getOrElse {
+        YLog.debug("StatusBarIconOrder: detachQuietly failed -> $it")
+        runCatching { parent.removeView(view) }
+        false
+    }
+
+    /** 父容器的第 [index] 个子 view 是否就是 [view]（越界返回 false） */
+    private fun isChildAt(parent: ViewGroup, index: Int, view: View): Boolean =
+        index in 0 until parent.childCount && parent.getChildAt(index) === view
 
     private fun detachViews(vararg groups: ViewGroup?) {
         for (group in groups) (group?.parent as? ViewGroup)?.removeView(group)
@@ -468,15 +570,31 @@ object StatusBarIconOrder : YukiBaseHooker() {
                 val child = want[index]
                 // 必须用 getChildAt（越界返回 null）：betterandroid 的 container.child(index)
                 // 在容器为空 / 下标越界时会直接抛 IllegalStateException，把 SystemUI 带走
-                if (container.getChildAt(index) === child) continue
-                (child.parent as? ViewGroup)?.removeView(child)
-                runCatching {
-                    container.addView(
-                        child,
-                        index.coerceIn(0, container.childCount),
-                        child.layoutParams
-                    )
-                }.onFailure { YLog.debug("StatusBarIconOrder: reorder add failed -> $it") }
+                if (isChildAt(container, index, child)) continue
+                val currentParent = child.parent as? ViewGroup
+                if (currentParent === container) {
+                    // 同容器内换位：走安静接口，避免每次对账都把图标 detach/attach 一遍
+                    if (!moveChildInPlace(container, child, index)) {
+                        runCatching {
+                            container.removeView(child)
+                            container.addView(
+                                child,
+                                index.coerceIn(0, container.childCount),
+                                child.layoutParams,
+                            )
+                        }.onFailure { YLog.debug("StatusBarIconOrder: reorder move failed -> $it") }
+                    }
+                } else {
+                    // 换容器必然要真正 attach/detach，失败只记日志（回落到宿主容器）
+                    currentParent?.let { detachQuietly(it, child) }
+                    runCatching {
+                        container.addView(
+                            child,
+                            index.coerceIn(0, container.childCount),
+                            child.layoutParams,
+                        )
+                    }.onFailure { YLog.debug("StatusBarIconOrder: reorder add failed -> $it") }
+                }
             }
         }
     }
