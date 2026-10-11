@@ -143,20 +143,34 @@ class StatusBarIconOrderTest {
         assertEquals(2, zoneDrop(toLeft, 1, 1, 0))
         assertEquals(listOf("battery", "clock", "wifi"), toLeft)
 
-        // 时钟搬到右区：左区被搬空
+        // 时钟搬到右区：左区被搬空，自动补回占位条目（占位不算进偏好，也不参与区头计数）
         val clockToRight = mutableListOf("clock", "battery", "wifi")
-        assertEquals(0, zoneDrop(clockToRight, 1, 0, 1))
-        assertEquals(listOf("battery", "clock", "wifi"), clockToRight)
+        assertEquals(1, zoneDrop(clockToRight, 1, 0, 1))
+        assertEquals(
+            listOf(STATUS_BAR_ICON_ORDER_LEFT_EMPTY_MARKER, "battery", "clock", "wifi"),
+            clockToRight,
+        )
+    }
 
-        // 左区被搬空后：把任意项拖到列表最顶（to = 0）即重建左区
-        val rebuildLeft = mutableListOf("clock", "battery", "wifi")
-        assertEquals(1, zoneDrop(rebuildLeft, 0, 1, 0))
-        assertEquals(listOf("battery", "clock", "wifi"), rebuildLeft)
+    /** 左区为空时占位条目占住下标 0：右区第一个位置照常可用，只有拖到占位行才放回左侧 */
+    @Test
+    fun `zone drop keeps the first right slot reachable when the left zone is empty`() {
+        val marker = STATUS_BAR_ICON_ORDER_LEFT_EMPTY_MARKER
 
-        // 最顶行原地不动也允许「拖一下 = 放进左侧」：左区为空时它没有别的办法回左区
-        val topRow = mutableListOf("clock", "battery")
-        assertEquals(1, zoneDrop(topRow, 0, 0, 0))
-        assertEquals(listOf("clock", "battery"), topRow)
+        // 拖到占位槽（to = 0）＝放进左侧：占位被顶替后消失
+        val onto = mutableListOf(marker, "clock", "battery", "wifi")
+        assertEquals(1, zoneDrop(onto, 1, 1, 0))
+        assertEquals(listOf("clock", "battery", "wifi"), onto)
+
+        // 拖到右区第一个位置（to = 1）：占位保留，右区照常排序
+        val firstRight = mutableListOf(marker, "clock", "battery")
+        assertEquals(1, zoneDrop(firstRight, 1, 2, 1))
+        assertEquals(listOf(marker, "battery", "clock"), firstRight)
+
+        // 右区第一项原地不动（from = to = 1）：无操作，不会误入左区
+        val noOp = mutableListOf(marker, "clock", "battery")
+        assertEquals(1, zoneDrop(noOp, 1, 1, 1))
+        assertEquals(listOf(marker, "clock", "battery"), noOp)
     }
 
     @Test

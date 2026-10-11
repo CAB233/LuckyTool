@@ -78,6 +78,15 @@ const val STATUS_BAR_ICON_ORDER_ENABLED_KEY = "statusbar_icon_order_enabled"
 const val STATUS_BAR_ICON_ORDER_CLOCK_ITEM = "clock"
 
 /**
+ * 左区为空时的占位伪条目。
+ *
+ * 只存在于本页的本地列表里（从不写进偏好）：左区被搬空后它占住下标 0，让「左侧区域」始终
+ * 可见可落位，同时右区的第一个位置（下标 1 起）照常可用。把真实图标拖到占位行上，
+ * 占位条目就被顶替消失（图标变成左区第一项）。
+ */
+internal const val STATUS_BAR_ICON_ORDER_LEFT_EMPTY_MARKER = "__left_zone_empty__"
+
+/**
  * 排序行高。
  *
  * 拖拽时用位移换算「跨过几行」，因此必须与行的实际高度一致（[OrderItemRowHeight]）。
@@ -270,21 +279,35 @@ internal fun zoneSplit(leftRaw: String, rightRaw: String): Pair<List<String>, Li
  *
  * 用「先摘后插」，所以 [to] 也用移动前的下标：`[A,B,C,D]` 把 1 移到 3 得到 `[A,C,D,B]`。
  * 跨区（左区项落到右区下标，或反之）时区界随之增减；时钟也能跨区，因此左区可以被搬空。
- * 左区被搬空后没有「左区下标」可落：把任意项拖到列表最顶（[to] = 0）即重建左区；
- * 最顶行本身原地不动（[from] = [to] = 0）也算「拖一下放进左侧」，否则它永远回不了左区。
- * 下标越界时不改动 [items]，原样返回 [leftCount]。
+ *
+ * 左区为空时列表由 [STATUS_BAR_ICON_ORDER_LEFT_EMPTY_MARKER] 占住下标 0（此时 [leftCount] = 1）：
+ * - 拖到占位槽（[to] = 0）= 放进左侧：图标顶替占位条目（占位被顶出下标 0 后移除）；
+ * - 拖到 [to] ≥ 1 = 右区排序，第一个右区位置（下标 1）照常可用；
+ * - 左区被搬空时自动补回占位条目，保证左区在列表里始终占一行。
+ *
+ * 下标越界或原地不动时不改动 [items]，原样返回 [leftCount]。
  */
 internal fun zoneDrop(items: MutableList<String>, leftCount: Int, from: Int, to: Int): Int {
-    if (from !in items.indices || to !in items.indices) return leftCount
-    if (from == to) return if (leftCount == 0 && to == 0) 1 else leftCount
+    if (from !in items.indices || to !in items.indices || from == to) return leftCount
     val moved = items.removeAt(from)
     items.add(to, moved)
-    return when {
+    var next = when {
         from < leftCount && to >= leftCount -> leftCount - 1
         from >= leftCount && to < leftCount -> leftCount + 1
-        leftCount == 0 && to == 0 -> 1
         else -> leftCount
     }
+    // 占位条目被顶出下标 0 = 左区已有真实图标，占位不再需要
+    val markerIndex = items.indexOf(STATUS_BAR_ICON_ORDER_LEFT_EMPTY_MARKER)
+    if (markerIndex > 0) {
+        items.removeAt(markerIndex)
+        next = (next - 1).coerceAtLeast(0)
+    }
+    // 左区被搬空：补回占位条目，让左区在列表里始终占一行
+    if (next == 0) {
+        items.add(0, STATUS_BAR_ICON_ORDER_LEFT_EMPTY_MARKER)
+        next = 1
+    }
+    return next
 }
 
 /** 开关卡片里的长说明：解释长按手柄拖动与跨区搬运的规则（对齐设计稿） */
@@ -341,11 +364,13 @@ fun StatusBarIconOrderZones(
     val initial = remember(session) { zoneSplit(leftRaw, rightRaw) }
     val items = remember(session) {
         mutableStateListOf<String>().apply {
+            // 左区为空时用占位条目占住下标 0：左区始终可见可落位，右区第一个位置（下标 1）照常可用
+            if (initial.first.isEmpty()) add(STATUS_BAR_ICON_ORDER_LEFT_EMPTY_MARKER)
             addAll(initial.first)
             addAll(initial.second)
         }
     }
-    var leftCount by remember(session) { mutableIntStateOf(initial.first.size) }
+    var leftCount by remember(session) { mutableIntStateOf(if (initial.first.isEmpty()) 1 else initial.first.size) }
     var draggingItem by remember(session) { mutableStateOf<String?>(null) }
     var dragFrom by remember(session) { mutableIntStateOf(-1) }
     val dragDelta = remember(session) { mutableFloatStateOf(0f) }
@@ -404,22 +429,28 @@ fun StatusBarIconOrderZones(
         return if (index == from) dragDelta.floatValue else 0f
     }
 
-    // 区头计数：拖动期间实时显示落位后的数量，但只在跨区那一刻才变化
+    // 区头计数：显示口径不含占位条目，拖动期间实时预览落位结果，只在跨区那一刻才变化
     val liveCounts by remember(session) {
         derivedStateOf {
             val from = dragFrom
             val item = draggingItem
+            val hasMarker = items.firstOrNull() == STATUS_BAR_ICON_ORDER_LEFT_EMPTY_MARKER
+            // 右区实际项数（占位条目不计入任何一区）
+            val rightSize = items.size - leftCount - (if (hasMarker) 1 else 0)
             if (item == null || from !in items.indices) {
-                leftCount to (items.size - leftCount)
+                (if (hasMarker) 0 else leftCount) to rightSize
             } else {
                 val to = dragTarget
                 val left = when {
+                    // 左区只有占位：落在占位槽（to=0）则左区变为 1，否则仍为空
+                    hasMarker -> if (to == 0) 1 else 0
                     from < leftCount && to >= leftCount -> leftCount - 1
                     from >= leftCount && to < leftCount -> leftCount + 1
-                    leftCount == 0 && to == 0 -> 1
                     else -> leftCount
                 }
-                left to (items.size - left)
+                // 被拖项从右区落入左区（含占位槽）时右区少一项
+                val leavesRight = from >= leftCount && to < leftCount
+                left to (rightSize - if (leavesRight) 1 else 0)
             }
         }
     }
@@ -431,16 +462,15 @@ fun StatusBarIconOrderZones(
         scrolledBy[0] = 0f
     }
 
-    /** 松手落位：换位（跨区时区界同步增减），然后写回偏好，宿主侧实时生效 */
+    /** 松手落位：换位（跨区时区界同步增减），然后写回偏好（占位条目不落偏好），宿主侧实时生效 */
     fun commitDrag() {
         val from = dragFrom
         val to = targetFromPosition(dragRowTop[0] + (dragDelta.floatValue - scrolledBy[0]))
         resetDrag()
-        if (from !in items.indices || to !in items.indices) return
-        // 左区被搬空时，最顶行即使原地不动也允许「拖一下 = 放进左侧」（否则最顶行永远回不了左区）
-        if (from == to && !(leftCount == 0 && to == 0)) return
+        if (from !in items.indices || to !in items.indices || from == to) return
         leftCount = zoneDrop(items, leftCount, from, to)
-        onApply(items.take(leftCount).joinToString(","), items.drop(leftCount).joinToString(","))
+        val leftItems = items.take(leftCount).filterNot { it == STATUS_BAR_ICON_ORDER_LEFT_EMPTY_MARKER }
+        onApply(leftItems.joinToString(","), items.drop(leftCount).joinToString(","))
     }
 
     // afterLongPress = true：长按整行开始拖动；false：按住手柄立即拖动。
@@ -517,22 +547,28 @@ fun StatusBarIconOrderZones(
             text = stringResource(R.string.statusbar_icon_order_zone_left, liveCounts.first),
             topPadding = 12.dp,
         )
-        // 左区被搬空时仍保留可见的落位区：把右侧图标拖到这里即可放回左侧
-        if (leftCount == 0) {
-            LeftZoneEmptyRow(highlighted = draggingItem != null && dragTarget == 0)
-        }
         items.take(leftCount).forEachIndexed { index, item ->
-            key(item) {
-                OrderItemRow(
-                    number = index + 1,
-                    label = StatusBarIconSlots.label(context, item),
-                    slot = item,
-                    dragging = draggingItem == item,
-                    highlighted = draggingItem != item && dragTarget == index,
-                    rowOffset = { offsetFor(index) },
-                    rowDragModifier = dragModifierFor(item, true),
-                    handleDragModifier = dragModifierFor(item, false),
+            if (item == STATUS_BAR_ICON_ORDER_LEFT_EMPTY_MARKER) {
+                // 左区被搬空时的占位行：占住下标 0，让左区始终可见、右区第一位置（下标 1）照常可用
+                LeftZoneEmptyRow(
+                    modifier = Modifier.onGloballyPositioned {
+                        rowTops[STATUS_BAR_ICON_ORDER_LEFT_EMPTY_MARKER] = it.positionInWindow().y
+                    },
+                    highlighted = draggingItem != null && dragTarget == index,
                 )
+            } else {
+                key(item) {
+                    OrderItemRow(
+                        number = index + 1,
+                        label = StatusBarIconSlots.label(context, item),
+                        slot = item,
+                        dragging = draggingItem == item,
+                        highlighted = draggingItem != item && dragTarget == index,
+                        rowOffset = { offsetFor(index) },
+                        rowDragModifier = dragModifierFor(item, true),
+                        handleDragModifier = dragModifierFor(item, false),
+                    )
+                }
             }
         }
         ZoneDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -547,9 +583,7 @@ fun StatusBarIconOrderZones(
                     label = StatusBarIconSlots.label(context, item),
                     slot = item,
                     dragging = draggingItem == item,
-                    // 左区为空时，落位槽高亮让给空区占位行（真正落点是「放回左侧」而不是第一行右区）
-                    highlighted = draggingItem != item && dragTarget == leftCount + index &&
-                        !(leftCount == 0 && dragTarget == 0),
+                    highlighted = draggingItem != item && dragTarget == leftCount + index,
                     rowOffset = { offsetFor(leftCount + index) },
                     rowDragModifier = dragModifierFor(item, true),
                     handleDragModifier = dragModifierFor(item, false),
@@ -649,14 +683,15 @@ private fun ZoneDivider(modifier: Modifier = Modifier) {
  * 左区被搬空时的占位行：让「左侧区域」始终可见，并充当「把图标拖回左侧」的落位区。
  *
  * [highlighted] 由拖动状态传入：落位下标为 0 时高亮，与普通行的落位槽高亮同色。
- * 本行不参与 [items] 的下标空间，拖到它上面落位下标自然为 0（它位于第一行右区行之上）。
+ * [modifier] 由调用点传入（用于把占位行的窗口位置登记进 rowTops，落位计算按实测位置走）。
  */
 @Composable
-private fun LeftZoneEmptyRow(highlighted: Boolean) {
+private fun LeftZoneEmptyRow(modifier: Modifier, highlighted: Boolean) {
     val text = stringResource(R.string.statusbar_icon_order_left_empty)
     when (LocalUiMode.current) {
         UiMode.Miuix -> Row(
             modifier = Modifier
+                .then(modifier)
                 .fillMaxWidth()
                 .height(OrderItemHeight)
                 .then(
@@ -679,6 +714,7 @@ private fun LeftZoneEmptyRow(highlighted: Boolean) {
 
         UiMode.Material -> Row(
             modifier = Modifier
+                .then(modifier)
                 .fillMaxWidth()
                 .height(OrderItemHeight)
                 .then(
