@@ -1,25 +1,27 @@
 [versions]
 agp = "9.4.1"
-kotlin = "2.4.20"
+kotlin = "2.4.21"
 ksp = "2.3.12"
 
+yukihook = "1.5.0-beta.11"
 kavaref = "1.1.1"
 betterandroid = "1.1.6"
-navigation = "2.10.2"
-kotlinx-coroutines = "1.11.0"
-kotlinx-serialization = "1.11.0"
-libsu = "6.0.0"
-lsparanoid = "0.6.0"
-yukihook = "1.5.0-beta.10"
 
 compose-bom = "2026.09.00"
 material3 = "1.5.0-beta01"
 materialKolor = "5.0.1"
-miuix = "0.9.4"
-markwon = "4.6.2"
-lifecycle = "2.11.0"
 activity-compose = "1.13.0"
+navigation = "2.10.2"
+kotlinx-coroutines = "1.11.0"
+kotlinx-serialization = "1.11.0"
+lifecycle = "2.11.0"
+
+miuix = "0.9.4"
+libsu = "6.0.0"
 coil = "3.6.3"
+markwon = "4.6.2"
+lsparanoid = "0.6.0"
+
 junit = "4.13.2"
 robolectric = "4.17"
 androidx-test-core = "1.7.0"
@@ -50,7 +52,7 @@ kavaref-android = { group = "com.highcapable.kavaref", name = "kavaref-android",
 kavaref-extension = { group = "com.highcapable.kavaref", name = "kavaref-extension", version.ref = "kavaref" }
 
 dexkit = { group = "org.luckypray", name = "dexkit", version = "2.3.0" }
-hiddenapibypass = { group = "org.lsposed.hiddenapibypass", name = "hiddenapibypass", version = "6.1" }
+hiddenapibypass = { group = "org.lsposed.hiddenapibypass", name = "hiddenapibypass", version = "6.2" }
 
 betterandroid-ui-component = { group = "com.highcapable.betterandroid", name = "ui-component", version.ref = "betterandroid" }
 betterandroid-ui-component-adapter = { group = "com.highcapable.betterandroid", name = "ui-component-adapter", version.ref = "betterandroid" }
