@@ -186,25 +186,35 @@ internal class MemcConfigState(private val context: Context) {
         reload()
     }
 
+    // 写入一律「先拷贝、再改、最后整体赋值」：pkgAll/actAll 是 MutableState 持有的列表，
+    // 就地改后再赋一个内容相等的副本会被结构相等策略丢弃（列表不刷新、要重开页面才看到）。
     fun savePackage(old: MemcConfigPackage?, new: MemcConfigPackage) {
-        val index = old?.let { pkgAll.indexOf(it) } ?: -1
-        if (index != -1) pkgAll[index] = new else pkgAll.add(new)
+        val next = ArrayList(pkgAll)
+        val index = old?.let { next.indexOf(it) } ?: -1
+        if (index != -1) next[index] = new else next.add(new)
+        pkgAll = next
         persistPackages()
     }
 
     fun deletePackage(info: MemcConfigPackage) {
-        pkgAll.remove(info)
+        val next = ArrayList(pkgAll)
+        next.remove(info)
+        pkgAll = next
         persistPackages()
     }
 
     fun saveActivity(old: MemcConfigActivity?, new: MemcConfigActivity) {
-        val index = old?.let { actAll.indexOf(it) } ?: -1
-        if (index != -1) actAll[index] = new else actAll.add(new)
+        val next = ArrayList(actAll)
+        val index = old?.let { next.indexOf(it) } ?: -1
+        if (index != -1) next[index] = new else next.add(new)
+        actAll = next
         persistActivities()
     }
 
     fun deleteActivity(info: MemcConfigActivity) {
-        actAll.remove(info)
+        val next = ArrayList(actAll)
+        next.remove(info)
+        actAll = next
         persistActivities()
     }
 

@@ -207,9 +207,8 @@ internal fun LazyItemScope.HideAppIntentContent() {
         )
 
     fun bump() {
-        allIntentInfos = ArrayList(allIntentInfos)
-        allEnabledInfos = ArrayList(allEnabledInfos)
-        allAppInfos = ArrayList(allAppInfos)
+        // all* 已在写入点整体换成新集合（见 [saveAppIntentList]），这里只需按搜索词重算列表，
+        // 不能再靠「赋一个内容相等的副本」来触发重组：MutableState 的结构相等策略会丢弃该写入。
         filterAppInfos = applyQuery(query)
     }
 
@@ -227,15 +226,25 @@ internal fun LazyItemScope.HideAppIntentContent() {
         appIntents.removeIf(filte)
         if (list.isNotEmpty()) appIntents.addAll(list)
 
-        allEnabledInfos.removeIf { it.packName == packName }
-        allEnabledInfos.addAll(appIntents)
+        // 先拷贝再改、最后整体赋值：就地改状态当前持有的集合后赋一个内容相等的副本，
+        // MutableState 会判定「值没变」而丢弃写入，表现为点了没反应、重开页面才刷新。
+        val nextEnabled = ArrayList(allEnabledInfos)
+        nextEnabled.removeIf { it.packName == packName }
+        nextEnabled.addAll(appIntents)
+        var nextIntents = allIntentInfos
+        var nextAppInfos = allAppInfos
         if (appIntents.isNotEmpty()) {
-            allIntentInfos.removeIf { !intentFilter.contains(it.type) }
-            allEnabledInfos.removeIf { !intentFilter.contains(it.type) }
-            allAppInfos.removeIf { info ->
-                !allIntentInfos.map { it.packName }.contains(info.packageName)
+            nextIntents = ArrayList(allIntentInfos).apply {
+                removeIf { !intentFilter.contains(it.type) }
             }
+            nextEnabled.removeIf { !intentFilter.contains(it.type) }
+            nextAppInfos = ArrayList(allAppInfos).apply { removeIf { info ->
+                !nextIntents.map { it.packName }.contains(info.packageName)
+            } }
         }
+        allEnabledInfos = nextEnabled
+        allIntentInfos = nextIntents
+        allAppInfos = nextAppInfos
 
         if (appIntents.isEmpty()) {
             context.removeKey(IntentPrefs, packName)
@@ -309,7 +318,7 @@ internal fun LazyItemScope.HideAppIntentContent() {
                 it.value.putExtra("result_origin_data", true)
             }
 
-            if (intentFilter.isEmpty()) intentFilter.addAll(allIntentFilter.map { it.key })
+            if (intentFilter.isEmpty()) intentFilter = ArraySet(allIntentFilter.map { it.key })
 
             val existIntentApps = ArraySet<String>()
             val intentInfos = ArrayList<AppIntentInfo>()
@@ -599,56 +608,40 @@ internal fun LazyItemScope.HideAppIntentContent() {
                             title = stringResource(R.string.intent_share),
                             checked = intentFilter.contains(IntentType.SINGLE_SHARE),
                             onCheckedChange = {
-                                val types = arrayOf(
-                                    IntentType.SINGLE_SHARE, IntentType.MULTI_SHARE
+                                setFilterTypes(
+                                    arrayOf(IntentType.SINGLE_SHARE, IntentType.MULTI_SHARE),
+                                    !intentFilter.contains(IntentType.SINGLE_SHARE),
                                 )
-                                if (intentFilter.contains(IntentType.SINGLE_SHARE)) {
-                                    intentFilter.removeAll(types)
-                                } else {
-                                    intentFilter.addAll(types.toList())
-                                }
-                                scope.launch { reload() }
                             },
                         )
                         MiuixCheckboxItem(
                             title = stringResource(R.string.intent_text),
                             checked = intentFilter.contains(IntentType.PROCESS_TEXT),
                             onCheckedChange = {
-                                val types = arrayOf(IntentType.PROCESS_TEXT)
-                                if (intentFilter.contains(IntentType.PROCESS_TEXT)) {
-                                    intentFilter.removeAll(types)
-                                } else {
-                                    intentFilter.addAll(types.toList())
-                                }
-                                scope.launch { reload() }
+                                setFilterTypes(
+                                    arrayOf(IntentType.PROCESS_TEXT),
+                                    !intentFilter.contains(IntentType.PROCESS_TEXT),
+                                )
                             },
                         )
                         MiuixCheckboxItem(
                             title = stringResource(R.string.intent_open),
                             checked = intentFilter.contains(IntentType.CONTENT),
                             onCheckedChange = {
-                                val types = arrayOf(IntentType.CONTENT, IntentType.FILE)
-                                if (intentFilter.contains(IntentType.CONTENT)) {
-                                    intentFilter.removeAll(types)
-                                } else {
-                                    intentFilter.addAll(types.toList())
-                                }
-                                scope.launch { reload() }
+                                setFilterTypes(
+                                    arrayOf(IntentType.CONTENT, IntentType.FILE),
+                                    !intentFilter.contains(IntentType.CONTENT),
+                                )
                             },
                         )
                         MiuixCheckboxItem(
                             title = stringResource(R.string.intent_browser),
                             checked = intentFilter.contains(IntentType.HTTP_LINK),
                             onCheckedChange = {
-                                val types = arrayOf(
-                                    IntentType.HTTP_LINK, IntentType.HTTPS_LINK
+                                setFilterTypes(
+                                    arrayOf(IntentType.HTTP_LINK, IntentType.HTTPS_LINK),
+                                    !intentFilter.contains(IntentType.HTTP_LINK),
                                 )
-                                if (intentFilter.contains(IntentType.HTTP_LINK)) {
-                                    intentFilter.removeAll(types)
-                                } else {
-                                    intentFilter.addAll(types.toList())
-                                }
-                                scope.launch { reload() }
                             },
                         )
                     }
@@ -665,56 +658,40 @@ internal fun LazyItemScope.HideAppIntentContent() {
                         FilterChip(
                             selected = intentFilter.contains(IntentType.SINGLE_SHARE),
                             onClick = {
-                                val types = arrayOf(
-                                    IntentType.SINGLE_SHARE, IntentType.MULTI_SHARE
+                                setFilterTypes(
+                                    arrayOf(IntentType.SINGLE_SHARE, IntentType.MULTI_SHARE),
+                                    !intentFilter.contains(IntentType.SINGLE_SHARE),
                                 )
-                                if (intentFilter.contains(IntentType.SINGLE_SHARE)) {
-                                    intentFilter.removeAll(types)
-                                } else {
-                                    intentFilter.addAll(types)
-                                }
-                                scope.launch { reload() }
                             },
                             label = { Text(stringResource(R.string.intent_share)) },
                         )
                         FilterChip(
                             selected = intentFilter.contains(IntentType.PROCESS_TEXT),
                             onClick = {
-                                val types = arrayOf(IntentType.PROCESS_TEXT)
-                                if (intentFilter.contains(IntentType.PROCESS_TEXT)) {
-                                    intentFilter.removeAll(types)
-                                } else {
-                                    intentFilter.addAll(types)
-                                }
-                                scope.launch { reload() }
+                                setFilterTypes(
+                                    arrayOf(IntentType.PROCESS_TEXT),
+                                    !intentFilter.contains(IntentType.PROCESS_TEXT),
+                                )
                             },
                             label = { Text(stringResource(R.string.intent_text)) },
                         )
                         FilterChip(
                             selected = intentFilter.contains(IntentType.CONTENT),
                             onClick = {
-                                val types = arrayOf(IntentType.CONTENT, IntentType.FILE)
-                                if (intentFilter.contains(IntentType.CONTENT)) {
-                                    intentFilter.removeAll(types)
-                                } else {
-                                    intentFilter.addAll(types)
-                                }
-                                scope.launch { reload() }
+                                setFilterTypes(
+                                    arrayOf(IntentType.CONTENT, IntentType.FILE),
+                                    !intentFilter.contains(IntentType.CONTENT),
+                                )
                             },
                             label = { Text(stringResource(R.string.intent_open)) },
                         )
                         FilterChip(
                             selected = intentFilter.contains(IntentType.HTTP_LINK),
                             onClick = {
-                                val types = arrayOf(
-                                    IntentType.HTTP_LINK, IntentType.HTTPS_LINK
+                                setFilterTypes(
+                                    arrayOf(IntentType.HTTP_LINK, IntentType.HTTPS_LINK),
+                                    !intentFilter.contains(IntentType.HTTP_LINK),
                                 )
-                                if (intentFilter.contains(IntentType.HTTP_LINK)) {
-                                    intentFilter.removeAll(types)
-                                } else {
-                                    intentFilter.addAll(types)
-                                }
-                                scope.launch { reload() }
                             },
                             label = { Text(stringResource(R.string.intent_browser)) },
                         )

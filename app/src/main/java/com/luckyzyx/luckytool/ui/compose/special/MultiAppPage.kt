@@ -118,9 +118,12 @@ internal fun LazyItemScope.MultiAppContent(builder: PrefScopeBuilder) {
     }
 
     fun toggle(info: AppInfo, enable: Boolean) {
-        if (enable) allEnabledInfos.add(info.packageName)
-        else allEnabledInfos.remove(info.packageName)
-        allEnabledInfos = ArraySet(allEnabledInfos)
+        // 先拷贝再改、再整体赋值：就地改 state 当前持有的集合后赋一个内容相等的副本，
+        // MutableState 的结构相等策略会认定"值没变"而丢弃这次写入，界面不重组
+        //（表现为点了没反应、重开页面才刷新）。
+        val next = ArraySet(allEnabledInfos)
+        if (enable) next.add(info.packageName) else next.remove(info.packageName)
+        allEnabledInfos = next
         saveEnableList()
     }
 

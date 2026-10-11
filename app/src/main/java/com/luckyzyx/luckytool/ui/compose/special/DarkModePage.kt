@@ -155,6 +155,25 @@ internal fun LazyItemScope.DarkModeContent(builder: PrefScopeBuilder) {
         context.sendPrefsKey("com.android.settings", DarkModePage.SUPPORT_KEY)
     }
 
+    // 写值一律「先拷贝、再改、最后整体赋值」：就地改 state 当前持有的 map 后再赋一个
+    // 内容相等的副本，MutableState 的结构相等策略会认定"值没变"而丢弃写入，
+    // 界面不重组（表现为点了没反应、重开页面才刷新）。
+    fun setEnabled(packName: String, enable: Boolean) {
+        val next: ArrayMap<String, DarkModeInfo> = ArrayMap(allEnabledInfos)
+        if (enable) next[packName] = DarkModeInfo(packName) else next.remove(packName)
+        allEnabledInfos = next
+        saveEnableList()
+    }
+
+    fun setType(packName: String, type: Int) {
+        // DarkModeInfo 的 curType 是 var：就地改字段会连旧值一起变，
+        // 必须换成一个新的 data class 实例，新 map 才与旧值不相等。
+        val next: ArrayMap<String, DarkModeInfo> = ArrayMap(allEnabledInfos)
+        next[packName]?.let { next[packName] = DarkModeInfo(it.packName, type) }
+        allEnabledInfos = next
+        saveEnableList()
+    }
+
     suspend fun reload() {
         loading = true
         query = ""
@@ -267,20 +286,8 @@ internal fun LazyItemScope.DarkModeContent(builder: PrefScopeBuilder) {
                             info = info,
                             enabled = allEnabledInfos.containsKey(info.packageName),
                             curType = allEnabledInfos[info.packageName]?.curType ?: 0,
-                            onToggle = { v ->
-                                allEnabledInfos.remove(info.packageName)
-                                if (v) {
-                                    allEnabledInfos[info.packageName] =
-                                        DarkModeInfo(info.packageName)
-                                }
-                                allEnabledInfos = ArrayMap(allEnabledInfos)
-                                saveEnableList()
-                            },
-                            onTypeChange = { t ->
-                                allEnabledInfos[info.packageName]?.curType = t
-                                allEnabledInfos = ArrayMap(allEnabledInfos)
-                                saveEnableList()
-                            },
+                            onToggle = { v -> setEnabled(info.packageName, v) },
+                            onTypeChange = { t -> setType(info.packageName, t) },
                         )
                     }
                 }
@@ -297,20 +304,8 @@ internal fun LazyItemScope.DarkModeContent(builder: PrefScopeBuilder) {
                             info = info,
                             enabled = allEnabledInfos.containsKey(info.packageName),
                             curType = allEnabledInfos[info.packageName]?.curType ?: 0,
-                            onToggle = { v ->
-                                allEnabledInfos.remove(info.packageName)
-                                if (v) {
-                                    allEnabledInfos[info.packageName] =
-                                        DarkModeInfo(info.packageName)
-                                }
-                                allEnabledInfos = ArrayMap(allEnabledInfos)
-                                saveEnableList()
-                            },
-                            onTypeChange = { t ->
-                                allEnabledInfos[info.packageName]?.curType = t
-                                allEnabledInfos = ArrayMap(allEnabledInfos)
-                                saveEnableList()
-                            },
+                            onToggle = { v -> setEnabled(info.packageName, v) },
+                            onTypeChange = { t -> setType(info.packageName, t) },
                         )
                     }
                 }
