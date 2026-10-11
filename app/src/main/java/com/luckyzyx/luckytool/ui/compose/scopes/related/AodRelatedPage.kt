@@ -22,15 +22,16 @@ import com.luckyzyx.luckytool.utils.SDK
 import com.luckyzyx.luckytool.utils.arraySummaryLine
 import com.luckyzyx.luckytool.utils.checkPackName
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import com.luckyzyx.luckytool.utils.putString
 
 /**
  * 息屏显示页（旧 ui.fragment.scopes.related.AodRelated 的 Compose 等价物）。
- * 逐项对齐：键、默认值、条件可见性（osCode = getOSVersionCode、SDK = Android API）、
- * restart 回调。旧 loadRootPreference 的 isVisible = SDK >= A13 && checkPackName("com.oplus.aod")
+ * 逐项对齐：键、默认值、条件可见性（osCode = getOSVersionCode、SDK = Android API）。
+ * 旧 loadRootPreference 的 isVisible = SDK >= A13 && checkPackName("com.oplus.aod")
  * 平移为 spec.isVisible（本页 DSL 无条件渲染）。
  * set_random_text_display_mode 的构建期 when("1"→选文件点击项;"2"→EditText) 迁移为
- * builder 内 when(state.getString(...))（每次 revision 重组重跑，等价）。
+ * builder 内 when(state.getString(...))（每次 revision 重组重跑，等价）。条件条目与摘要
+ * 全在构建 lambda 里同步读取，而写入都走 state.set（revision 前进 → 重组重跑），因此旧代码
+ * 「写值后 restart() 重建整页」的刷新回调已删除，无需 recreate。
  */
 object AodRelatedPage {
 
@@ -94,7 +95,6 @@ object AodRelatedPage {
                     c.getString(R.string.set_random_text_display_mode_tips1),
                     c.getString(R.string.set_random_text_display_mode_tips2)
                 ),
-                onChange = { restart?.invoke() },
             )
             when (state.getString("set_random_text_display_mode", "0")) {
                 "1" -> {
@@ -111,10 +111,11 @@ object AodRelatedPage {
                         ) { uri ->
                             if (uri != null && activity != null) {
                                 FileUtils.getDocumentPath(activity, uri)?.let { p ->
-                                    c.putString(ModulePrefs, "custom_random_text_file", p)
+                                    // 走 state.set 而非裸 SP 写入：revision 前进让构建 lambda 重跑，
+                                    // 摘要中的 path 自行刷新（无需 recreate）
+                                    state.set("custom_random_text_file", p)
                                 }
                             }
-                            restart?.invoke()
                         }
                         PrefRowInset {
                             PrefRow(
@@ -144,7 +145,6 @@ object AodRelatedPage {
                 entryValues = arrayOf("0", "1", "2"),
                 default = "0",
                 summary = c.getString(R.string.current_mode) + ": %s",
-                onChange = { restart?.invoke() },
             )
             if (state.getString("set_aod_typeface_mode", "0") != "0") {
                 switch(
