@@ -24,7 +24,6 @@ import com.luckyzyx.luckytool.service.PowerService
 import com.luckyzyx.luckytool.service.RefreshRateService
 import com.luckyzyx.luckytool.service.TilesService
 import com.luckyzyx.luckytool.service.UserService
-import com.luckyzyx.luckytool.ui.application.ActivityLifecycleManager
 import com.luckyzyx.luckytool.ui.compose.FunctionRequest
 import com.luckyzyx.luckytool.ui.compose.LuckySplashHost
 import com.luckyzyx.luckytool.ui.compose.MainShell
@@ -79,7 +78,6 @@ open class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         ThemeUtils.initTheme(this)
-        ActivityLifecycleManager.registerActivity(this)
 
         verityPackage()
         checkXposed()
@@ -95,11 +93,6 @@ open class MainActivity : AppCompatActivity() {
                 }
             }
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        ActivityLifecycleManager.unregisterActivity(this)
     }
 
     /** Compose 页面跨 tab 跳转到 Function 子树作用域页（pageKey 见 ScopePageRegistry） */

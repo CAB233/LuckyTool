@@ -1,12 +1,6 @@
 package com.luckyzyx.luckytool.ui.activity
 
 import android.content.Intent
-import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import com.luckyzyx.luckytool.ui.application.ActivityLifecycleManager
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.net.Uri
@@ -14,9 +8,13 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
-import android.view.View
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.core.view.MenuProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
 import androidx.lifecycle.Lifecycle
 import com.canhub.cropper.CropImage
@@ -27,9 +25,9 @@ import com.canhub.cropper.CropImageView.OnCropImageCompleteListener
 import com.canhub.cropper.CropImageView.OnSetImageUriCompleteListener
 import com.canhub.cropper.R
 import com.canhub.cropper.parcelable
-import com.luckyzyx.luckytool.R as LuckyToolR
 import com.luckyzyx.luckytool.utils.ThemeUtils
 import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.R as LuckyToolR
 
 @Obfuscate
 class CropImageActivity : AppCompatActivity(), MenuProvider,
@@ -60,7 +58,6 @@ class CropImageActivity : AppCompatActivity(), MenuProvider,
             v.setPadding(0, systemBars.top, 0, 0)
             insets
         }
-        ActivityLifecycleManager.registerActivity(this)
 
         addMenuProvider(this, this, Lifecycle.State.RESUMED)
 
@@ -101,11 +98,6 @@ class CropImageActivity : AppCompatActivity(), MenuProvider,
         super.onStop()
         cropImageView?.setOnSetImageUriCompleteListener(null)
         cropImageView?.setOnCropImageCompleteListener(null)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        ActivityLifecycleManager.unregisterActivity(this)
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {

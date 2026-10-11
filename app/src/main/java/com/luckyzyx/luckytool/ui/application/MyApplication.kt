@@ -1,13 +1,13 @@
 package com.luckyzyx.luckytool.ui.application
 
-import android.app.Application
+import com.highcapable.yukihookapi.hook.xposed.application.ModuleApplication
 import com.luckyzyx.luckytool.ui.service.XposedServiceBridge
 import com.luckyzyx.luckytool.ui.shell.ShellSettingsController
 import com.luckyzyx.luckytool.utils.PredictiveBackUtils
 import org.lsposed.lsparanoid.Obfuscate
 
 @Obfuscate
-class MyApplication : Application() {
+class MyApplication : ModuleApplication() {
 
     override fun onCreate() {
         super.onCreate()
@@ -16,9 +16,6 @@ class MyApplication : Application() {
         PredictiveBackUtils.apply(this, ShellSettingsController.get(this).predictiveBack)
     }
 
-    fun reloadAllActivities() {
-        ActivityLifecycleManager.recreateAllActivities()
-    }
 }
 
 
