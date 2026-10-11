@@ -1257,7 +1257,7 @@
     <string name="statusbar_icon_order_category_arrange">排列</string>
     <string name="statusbar_icon_order_enable">启用状态栏图标排序</string>
     <string name="statusbar_icon_order_enable_summary">自定义状态栏图标的位置与顺序</string>
-    <string name="statusbar_icon_order_drag_hint">按住右边手柄图标可以上下拖动(也可以长按整行拖动):拖到「右侧区域」标题下面就是搬到右侧,拖回「左侧区域」标题下面就是搬回左侧。关掉总开关后一切保持系统原生排序。</string>
+    <string name="statusbar_icon_order_drag_hint">按住右边手柄图标可以上下拖动(也可以长按整行拖动):拖动时高亮的行就是松手后的落位,拖过「右侧区域」标题就是搬到右侧,拖回「左侧区域」标题就是搬回左侧。左区被搬空后,把图标拖到列表最顶端即可重新放回左侧。关掉总开关后一切保持系统原生排序。</string>
     <string name="statusbar_icon_order_zone_left">左侧区域(共 %1$d 项)</string>
     <string name="statusbar_icon_order_zone_right">右侧区域(共 %1$d 项)</string>
     <string name="statusbar_icon_order_clock">时钟</string>

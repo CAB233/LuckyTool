@@ -53,7 +53,6 @@ import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeListState
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
-import kotlin.math.roundToInt
 import kotlinx.coroutines.isActive
 import top.yukonga.miuix.kmp.basic.HorizontalDivider as MiuixHorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
@@ -270,6 +269,7 @@ internal fun zoneSplit(leftRaw: String, rightRaw: String): Pair<List<String>, Li
  *
  * 用「先摘后插」，所以 [to] 也用移动前的下标：`[A,B,C,D]` 把 1 移到 3 得到 `[A,C,D,B]`。
  * 跨区（左区项落到右区下标，或反之）时区界随之增减；时钟也能跨区，因此左区可以被搬空。
+ * 左区被搬空后没有「左区下标」可落，此时把任意项拖到列表最顶（[to] = 0）即重建左区。
  * 下标越界或原地不动时不改动 [items]，原样返回 [leftCount]。
  */
 internal fun zoneDrop(items: MutableList<String>, leftCount: Int, from: Int, to: Int): Int {
@@ -279,6 +279,7 @@ internal fun zoneDrop(items: MutableList<String>, leftCount: Int, from: Int, to:
     return when {
         from < leftCount && to >= leftCount -> leftCount - 1
         from >= leftCount && to < leftCount -> leftCount + 1
+        leftCount == 0 && to == 0 -> 1
         else -> leftCount
     }
 }
@@ -316,13 +317,15 @@ fun StatusBarIconOrderHint() {
  * 拖动方式两种，走同一套状态机：按住右侧手柄立即拖动（48dp 热区），或长按任意一行拖动。
  *
  * 与手感有关的两条硬约束（也是早期版本「一拖就丢状态」的原因）：
- * - **拖动期间不改动列表结构**：只有被拖行的 `translationY` 跟随手指，其余行按落位下标让出一行
- *   （[OrderItemRow] 的 `rowOffset`，全部在 `graphicsLayer` 的 lambda 里读取 = 绘制阶段，
- *   因此逐帧拖动不触发重组）。旧实现每满一行就交换一次列表，行在左右两个 `forEach` 之间
+ * - **拖动期间不改动列表结构**：只有被拖行的 `translationY` 跟随手指（绘制阶段读取，
+ *   逐帧拖动不触发重组）。旧实现每满一行就交换一次列表，行在左右两个 `forEach` 之间
  *   搬家时组合节点被销毁重建，手势检测器随之取消——表现就是拖到半路状态丢失。
- * - **松手才落位**：目标下标由位移换算（时钟也能跨区，因此左区可以被搬空），换位与写回偏好只发生一次。
+ * - **落位用实测位置而不是固定行距**：[targetFromPosition] 按「手指落在哪些行的中心之上」计数。
+ *   区头/分隔线本来就不占行数，按行距估算会在跨区时把区头高度算进行程，出现
+ *   「视觉上已经拖到左区、松手却还在右区」的错位；实测位置则不受区头高度影响。
  *
- * 区头计数在拖动期间实时反映落位结果（[liveCounts] 只在跨区那一刻变化，不逐帧重组）。
+ * 拖动期间其余行不再让位（之前的 ±一行偏移会越过区头/列表两端造成布局溢出），
+ * 改为**高亮落位槽**：被拖行浮在列表上方，落位行以底色标出，松手才真正换位。
  */
 @Composable
 fun StatusBarIconOrderZones(
@@ -352,8 +355,11 @@ fun StatusBarIconOrderZones(
     val autoScrollEdge = with(density) { AutoScrollEdge.toPx() }
     val autoScrollSpeed = with(density) { AutoScrollMaxSpeed.toPx() }
 
-    // 每行的窗口 Y：拖动开始时用它推算被拖行此刻的窗口位置。普通 map（不参与快照，避免逐帧重组）。
+    // 每行的窗口 Y（普通 map，不参与快照，避免逐帧重组）
     val rowTops = remember(session) { HashMap<String, Float>() }
+
+    /** 拖动开始时全部行的窗口 Y 快照；页面滚动期间统一减去 [scrolledBy] 即得当前位置 */
+    val startTops = remember(session) { HashMap<String, Float>() }
 
     /** 拖动开始时被拖行的窗口 Y */
     val dragRowTop = remember(session) { FloatArray(1) }
@@ -361,28 +367,38 @@ fun StatusBarIconOrderZones(
     /** 自动滚动累计量（正 = 内容上移）：要补进被拖行的位移，行才不会在滚动时脱离手指 */
     val scrolledBy = remember(session) { FloatArray(1) }
 
-    /** 落位下标：位移换算成行数，再夹进列表范围（时钟同样可以跨区，只看用户拖到哪） */
-    fun targetIndex(from: Int, delta: Float): Int =
-        (from + (delta / step).roundToInt()).coerceIn(0, items.lastIndex.coerceAtLeast(0))
+    /**
+     * 落位下标：数「手指 Y 之下有多少行的中心」，即插入位置。
+     *
+     * 行在拖动期间不发生布局位移（除被拖行外没有视觉偏移），页面滚动让所有行统一移动
+     * [scrolledBy]，所以 `startTops[item] - scrolledBy` 就是该行此刻的窗口 Y。
+     */
+    fun targetFromPosition(fingerY: Float): Int {
+        var count = 0
+        for (index in items.indices) {
+            // 快照在拖动开始时由 onGloballyPositioned 填满；缺失的行跳过（宁可少算也不给错位置）
+            val top = (startTops[items[index]] ?: continue) - scrolledBy[0]
+            if (fingerY > top + step / 2f) count++
+        }
+        return count.coerceIn(0, items.lastIndex.coerceAtLeast(0))
+    }
 
-    /** 行的绘制偏移：被拖行贴手指（到端点也继续贴着），其余行按落位下标让出一行 */
+    /** 当前落位下标（只在数值变化时通知，行的高亮因此只在换槽那一刻重组） */
+    val dragTarget by remember(session) {
+        derivedStateOf {
+            val item = draggingItem
+            if (item == null) -1
+            else targetFromPosition(dragRowTop[0] + (dragDelta.floatValue - scrolledBy[0]))
+        }
+    }
+
+    /** 行的绘制偏移：只有被拖行跟随手指，其余行保持原位（落位槽由高亮标出） */
     fun offsetFor(index: Int): Float {
         val item = draggingItem ?: return 0f
         val from = dragFrom
         if (from !in items.indices) return 0f
-        val delta = dragDelta.floatValue
-        val to = targetIndex(from, delta)
-        if (index == from) {
-            // 被拖行不做夹取：位移里含自动滚动的补偿量，一旦按落位范围夹住，长距离滚动或拖到
-            // 列表端点后会出现「行不动、只能原路拖回一大段才恢复」的手感（落位下标已由
-            // targetIndex 夹取，视觉上让它一直跟着手指才自然）。
-            return delta
-        }
-        return when {
-            from < to && index in (from + 1)..to -> -step
-            to < from && index in to until from -> step
-            else -> 0f
-        }
+        // 位移里含自动滚动的补偿量，不再夹取：夹住会让行在端点/长距离滚动后「拖不动、只能原路拖回」
+        return if (index == from) dragDelta.floatValue else 0f
     }
 
     // 区头计数：拖动期间实时显示落位后的数量，但只在跨区那一刻才变化
@@ -393,10 +409,11 @@ fun StatusBarIconOrderZones(
             if (item == null || from !in items.indices) {
                 leftCount to (items.size - leftCount)
             } else {
-                val to = targetIndex(from, dragDelta.floatValue)
+                val to = dragTarget
                 val left = when {
                     from < leftCount && to >= leftCount -> leftCount - 1
                     from >= leftCount && to < leftCount -> leftCount + 1
+                    leftCount == 0 && to == 0 -> 1
                     else -> leftCount
                 }
                 left to (items.size - left)
@@ -414,7 +431,7 @@ fun StatusBarIconOrderZones(
     /** 松手落位：换位（跨区时区界同步增减），然后写回偏好，宿主侧实时生效 */
     fun commitDrag() {
         val from = dragFrom
-        val to = targetIndex(from, dragDelta.floatValue)
+        val to = targetFromPosition(dragRowTop[0] + (dragDelta.floatValue - scrolledBy[0]))
         resetDrag()
         if (from !in items.indices || to !in items.indices || from == to) return
         leftCount = zoneDrop(items, leftCount, from, to)
@@ -425,7 +442,7 @@ fun StatusBarIconOrderZones(
     // pointerInput 的 key 与位置无关，拖动期间即使发生重组也不会重启手势检测器。
     val dragModifierFor: (String, Boolean) -> Modifier = { item, afterLongPress ->
         Modifier
-            // 记住每一行的窗口 Y：拖动开始时被拖行的位置是自动滚动的判据
+            // 记住每一行的窗口 Y：拖动开始时快照全部行位置，落位下标按实测位置计算
             .onGloballyPositioned { rowTops[item] = it.positionInWindow().y }
             .pointerInput(session, afterLongPress) {
                 val onStart = {
@@ -434,6 +451,8 @@ fun StatusBarIconOrderZones(
                     dragDelta.floatValue = 0f
                     dragRowTop[0] = rowTops[item] ?: 0f
                     scrolledBy[0] = 0f
+                    startTops.clear()
+                    startTops.putAll(rowTops)
                 }
                 val onDrag: (PointerInputChange, Offset) -> Unit = { change, amount ->
                     change.consume()
@@ -500,6 +519,7 @@ fun StatusBarIconOrderZones(
                     label = StatusBarIconSlots.label(context, item),
                     slot = item,
                     dragging = draggingItem == item,
+                    highlighted = draggingItem != item && dragTarget == index,
                     rowOffset = { offsetFor(index) },
                     rowDragModifier = dragModifierFor(item, true),
                     handleDragModifier = dragModifierFor(item, false),
@@ -518,6 +538,7 @@ fun StatusBarIconOrderZones(
                     label = StatusBarIconSlots.label(context, item),
                     slot = item,
                     dragging = draggingItem == item,
+                    highlighted = draggingItem != item && dragTarget == leftCount + index,
                     rowOffset = { offsetFor(leftCount + index) },
                     rowDragModifier = dragModifierFor(item, true),
                     handleDragModifier = dragModifierFor(item, false),
@@ -626,13 +647,14 @@ private fun OrderItemRow(
     label: String,
     slot: String,
     dragging: Boolean,
+    highlighted: Boolean,
     rowOffset: () -> Float,
     rowDragModifier: Modifier,
     handleDragModifier: Modifier,
 ) {
     when (LocalUiMode.current) {
-        UiMode.Miuix -> MiuixOrderItemRow(number, label, slot, dragging, rowOffset, rowDragModifier, handleDragModifier)
-        UiMode.Material -> MaterialOrderItemRow(number, label, slot, dragging, rowOffset, rowDragModifier, handleDragModifier)
+        UiMode.Miuix -> MiuixOrderItemRow(number, label, slot, dragging, highlighted, rowOffset, rowDragModifier, handleDragModifier)
+        UiMode.Material -> MaterialOrderItemRow(number, label, slot, dragging, highlighted, rowOffset, rowDragModifier, handleDragModifier)
     }
 }
 
@@ -642,6 +664,7 @@ private fun MiuixOrderItemRow(
     label: String,
     slot: String,
     dragging: Boolean,
+    highlighted: Boolean,
     rowOffset: () -> Float,
     rowDragModifier: Modifier,
     handleDragModifier: Modifier,
@@ -653,10 +676,10 @@ private fun MiuixOrderItemRow(
             .zIndex(if (dragging) 1f else 0f)
             .graphicsLayer { translationY = rowOffset() }
             .then(
-                if (dragging) {
-                    Modifier.background(MiuixTheme.colorScheme.onBackground.copy(alpha = 0.06f))
-                } else {
-                    Modifier
+                when {
+                    dragging -> Modifier.background(MiuixTheme.colorScheme.onBackground.copy(alpha = 0.06f))
+                    highlighted -> Modifier.background(MiuixTheme.colorScheme.primary.copy(alpha = 0.08f))
+                    else -> Modifier
                 }
             )
             .then(rowDragModifier)
@@ -698,6 +721,7 @@ private fun MaterialOrderItemRow(
     label: String,
     slot: String,
     dragging: Boolean,
+    highlighted: Boolean,
     rowOffset: () -> Float,
     rowDragModifier: Modifier,
     handleDragModifier: Modifier,
@@ -709,10 +733,10 @@ private fun MaterialOrderItemRow(
             .zIndex(if (dragging) 1f else 0f)
             .graphicsLayer { translationY = rowOffset() }
             .then(
-                if (dragging) {
-                    Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
-                } else {
-                    Modifier
+                when {
+                    dragging -> Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+                    highlighted -> Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
+                    else -> Modifier
                 }
             )
             .then(rowDragModifier)
