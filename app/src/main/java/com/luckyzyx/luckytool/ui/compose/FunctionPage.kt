@@ -611,8 +611,10 @@ internal fun ScopePageHost(
             val navigatePage: (target: String, title: String?) -> Unit = { target, title ->
                 ScopePageRegistry.pageTargetMap[target]?.let { onNavigate(it, title) }
             }
-            val restartScope: (() -> Unit)? = if (spec.restartEnabled) ({ activity.restart() }) else null
-
+            // 不再向页面注入 onRestart：旧实现是 `activity.restart()`（整 Activity 重建），
+            // 而作用域页的刷新已由 PrefState.revision + per-key flow 覆盖（写入 → bump → 构建 lambda 重跑）。
+            // 各页面里遗留的 restart?.invoke() 因此变成 no-op，由后续提交逐页删除。
+            //
             // 页面内容分派（唯一分派点见 ScopePageContent）：
             // 页面为当前主题线提供了槽位（contentMiuix/contentMaterial）时由页面自有布局渲染整页，
             // 否则逐字回落到共享渲染层 ScopeScreen —— ScopeScreen 自带 LazyColumn 并渲染全部条目，
@@ -648,7 +650,6 @@ internal fun ScopePageHost(
                     sendValue = sendPrefsValue,
                     scrollTarget = jumpTarget,
                     onNavigate = navigatePage,
-                    onRestart = restartScope,
                 )
             }
             if (uiMode == UiMode.Miuix) {
