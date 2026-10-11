@@ -4,6 +4,8 @@ import android.util.ArraySet
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -19,15 +21,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.data.AppInfo
-import com.luckyzyx.luckytool.ui.compose.components.PrefCard
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialItem
 import com.luckyzyx.luckytool.ui.compose.components.material.materialBottomInset
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefDefaults
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefItem
+import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageAction
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
 import com.luckyzyx.luckytool.ui.compose.components.PrefScopeBuilder
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
@@ -48,12 +49,18 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
  * P4 特殊页：应用分身自定义列表（旧 MultiAppFragment 1:1 迁移）。
  *
  * 单文件双线：状态与数据加载逻辑唯一一份，只在渲染缝按 [LocalUiMode] 分派
- * （「打开应用分身」[PrefCard]、搜索框 [AppSearchField]、LazyColumn 骨架、条目容器、
- * 应用行 [AppToggleRow]），与 prefCard 同一分派哲学，去掉旧 Material/Miuix 两份变体。
+ * （搜索框 [AppSearchField]、LazyColumn 骨架、条目容器、应用行 [AppToggleRow]），
+ * 与 prefCard 同一分派哲学，去掉旧 Material/Miuix 两份变体。
+ *
+ * 「打开应用分身」是旧 Toolbar 菜单项（`SHOW_AS_ACTION_IF_ROOM`），放回页面顶栏
+ * （[ScopePageAction]），不再平铺成页面里的卡片。
  */
 object MultiAppPage {
 
     internal const val SUPPORT_KEY = "multi_app_custom_list"
+
+    /** 顶栏动作 key：打开应用分身（旧菜单 id 1） */
+    internal const val ACTION_OPEN = "open"
 
     internal var refresh: (suspend () -> Unit)? = null
 
@@ -67,6 +74,14 @@ object MultiAppPage {
         selfRendered = true,
         onRefresh = { refresh?.invoke() },
         fullContent = { builder -> MultiAppContent(builder) },
+        topActions = listOf(
+            ScopePageAction(
+                key = ACTION_OPEN,
+                labelRes = R.string.open,
+                icon = R.drawable.baseline_open_in_new_24,
+                showAsAction = true,
+            ),
+        ),
     ) { }
 }
 
@@ -154,6 +169,9 @@ internal fun LazyItemScope.MultiAppContent(builder: PrefScopeBuilder) {
     }
 
     MultiAppPage.refresh = { reload() }
+    MultiAppPage.spec.actionHandler = { key ->
+        if (key == MultiAppPage.ACTION_OPEN) IntentUtils(context).jumpMultiApp()
+    }
 
     LaunchedEffect(Unit) {
         if (allAppInfos.isEmpty()) reload()
@@ -182,10 +200,6 @@ internal fun LazyItemScope.MultiAppContent(builder: PrefScopeBuilder) {
             ),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            PrefCard(
-                title = stringResource(R.string.open),
-                onClick = { IntentUtils(context).jumpMultiApp() },
-            )
             AppSearchField(
                 query = query,
                 enabled = !loading,
@@ -196,6 +210,7 @@ internal fun LazyItemScope.MultiAppContent(builder: PrefScopeBuilder) {
                 onSortClick = { showSortSheet = true },
             )
         }
+        Spacer(Modifier.height(AppListContentGap))
         if (miuix) {
             LazyColumn(
                 modifier = Modifier

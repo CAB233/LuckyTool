@@ -1,6 +1,8 @@
 package com.luckyzyx.luckytool.ui.compose.scopes
 
 import android.content.Context
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -103,6 +105,24 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
+ * 页面顶栏动作——旧 Toolbar 菜单项（`onCreateMenu` 里的 `menu.add(...)`）在 Compose 侧的等价声明。
+ *
+ * 迁移时这些动作曾被平铺成页面里的偏好卡片/选项行，视觉上与"页面选项"混淆；
+ * 现在按旧版位置放回页面顶栏（由 [ScopePageSpec.topActions] 声明、页面宿主渲染）。
+ *
+ * @param key           动作标识，页面在 [ScopePageSpec.actionHandler] 里据此分派
+ * @param labelRes      动作标题（溢出菜单文本 / 图标按钮的 contentDescription）
+ * @param icon          图标资源；0 = 无图标，只能进溢出菜单
+ * @param showAsAction  旧 `SHOW_AS_ACTION_IF_ROOM` 的平移：true 且有图标时直接显示为顶栏图标按钮
+ */
+class ScopePageAction(
+    val key: String,
+    @StringRes val labelRes: Int,
+    @DrawableRes val icon: Int = 0,
+    val showAsAction: Boolean = false,
+)
+
+/**
  * 一个 Compose 作用域页的声明——旧 [BaseScopePreferenceFeagment] 子类中
  * scopes/currentPrefsName/loadPreferences 等字段的注册单元等价物。
  *
@@ -148,6 +168,11 @@ class ScopePageSpec(
     val selfRendered: Boolean = false,
     val onRefresh: (suspend () -> Unit)? = null,
     val fullContent: (@Composable LazyItemScope.(PrefScopeBuilder) -> Unit)? = null,
+    /**
+     * 顶栏动作清单（旧 Toolbar 菜单项平移）：有图标且 [ScopePageAction.showAsAction] 的直接显示为
+     * 图标按钮，其余收进顶栏溢出菜单。动作处理函数由页面在组合期登记到 [actionHandler]。
+     */
+    val topActions: List<ScopePageAction> = emptyList(),
     val contentMiuix: (@Composable ScopeContentScope.(PrefScopeBuilder) -> Unit)? = null,
     val contentMaterial: (@Composable ScopeContentScope.(PrefScopeBuilder) -> Unit)? = null,
     /**
@@ -155,7 +180,13 @@ class ScopePageSpec(
      * 无槽位时由 [ScopeScreen] 渲染，有槽位时由页面布局渲染同一批条目。
      */
     val content: PrefScopeBuilder.() -> Unit,
-)
+) {
+    /**
+     * 顶栏动作处理函数：页面内容在组合期登记（范式同 `refresh`，事件期读取），
+     * 顶栏点击时以 [ScopePageAction.key] 调用。用普通 var 而非快照状态，避免只读回调触发重组。
+     */
+    var actionHandler: ((String) -> Unit)? = null
+}
 
 /**
  * 页面级内容作用域（中性）：页面自带布局（[ScopePageSpec.contentMiuix] / [ScopePageSpec.contentMaterial]）

@@ -50,14 +50,13 @@ import com.luckyzyx.luckytool.data.MemcConfigActivity
 import com.luckyzyx.luckytool.data.MemcConfigPackage
 import com.luckyzyx.luckytool.ui.compose.components.AppPickerDialog
 import com.luckyzyx.luckytool.ui.compose.components.PrefCard
-import com.luckyzyx.luckytool.ui.compose.components.PrefGroup
-import com.luckyzyx.luckytool.ui.compose.components.PrefRow
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialItem
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialListItem
 import com.luckyzyx.luckytool.ui.compose.components.material.materialBottomInset
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixListItem
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefDefaults
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefItem
+import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageAction
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
@@ -92,10 +91,15 @@ private const val CONFIG_ACTIVITY_LIST = GlobalKeyValue.memcConfigActivityList
  * 双 Tab（Packages/Activitys）+ 搜索 + 下拉刷新 + Import Xml / Reset。
  *
  * 原「三文件制」已合并为单文件：状态/写值逻辑唯一一份 [MemcConfigState]，
- * 渲染差异集中在 [MemcConfigContent] 的 `if (miuix)` 分派上——顶部 Import/Reset
- * 卡片组复用 prefCard 的 [PrefGroup]+[PrefRow]、双面板与四个弹层按线分派。
+ * 渲染差异集中在 [MemcConfigContent] 的 `if (miuix)` 分派上——Import Xml / Reset 通过
+ * [ScopePageAction] 交回顶栏溢出菜单（旧 Fragment 即 `SHOW_AS_ACTION_NEVER`），
+ * 双面板与四个弹层按线分派。
  */
 object MemcConfigPage {
+
+    /** 顶栏溢出菜单动作 key（对应旧 Fragment `onCreateMenu` 的菜单项）。 */
+    const val ACTION_IMPORT_XML = "import_xml"
+    const val ACTION_RESET = "reset"
 
     val spec = ScopePageSpec(
         pageKey = "memc_config",
@@ -107,6 +111,11 @@ object MemcConfigPage {
         selfRendered = true,
         onRefresh = { memcRefresh?.invoke() },
         fullContent = { _ -> MemcConfigContent() },
+        // 旧版这两项都在 Toolbar 溢出菜单里（无图标、SHOW_AS_ACTION_NEVER），保持一致
+        topActions = listOf(
+            ScopePageAction(ACTION_IMPORT_XML, R.string.menu_import_xml),
+            ScopePageAction(ACTION_RESET, R.string.reset),
+        ),
     ) { }
 }
 
@@ -268,44 +277,37 @@ internal fun MemcConfigContent() {
             }
         }
 
+    // Import Xml / Reset 在顶栏溢出菜单里触发，事件期回调到本页状态
+    MemcConfigPage.spec.actionHandler = { key ->
+        when (key) {
+            MemcConfigPage.ACTION_IMPORT_XML -> {
+                FileUtils.checkDownloadDir(context, "LuckyTool")
+                importLauncher.launch("text/xml")
+            }
+
+            MemcConfigPage.ACTION_RESET -> showResetConfirm = true
+        }
+    }
+
     LaunchedEffect(Unit) {
         state.reload()
     }
 
     Column(Modifier.fillMaxSize()) {
-        PrefGroup(
-            modifier = Modifier.padding(
-                horizontal = if (miuix) MiuixPrefDefaults.CardHorizontalInset else 16.dp,
-                vertical = 8.dp,
-            )
-        ) {
-            item {
-                PrefRow(
-                    title = stringResource(R.string.import_) + " Xml",
-                    onClick = {
-                        FileUtils.checkDownloadDir(context, "LuckyTool")
-                        importLauncher.launch("text/xml")
-                    },
-                )
-            }
-            item {
-                PrefRow(
-                    title = stringResource(R.string.reset),
-                    onClick = { showResetConfirm = true },
-                )
-            }
-        }
         if (miuix) {
             MiuixTabRow(
                 tabs = listOf("Packages", "Activitys"),
                 selectedTabIndex = tabIndex,
                 onTabSelected = { tabIndex = it },
-                modifier = Modifier.padding(horizontal = MiuixPrefDefaults.CardHorizontalInset),
+                modifier = Modifier.padding(
+                    horizontal = MiuixPrefDefaults.CardHorizontalInset,
+                    vertical = 8.dp,
+                ),
             )
         } else {
             SecondaryTabRow(
                 tabIndex,
-                Modifier,
+                Modifier.padding(vertical = 8.dp),
                 TabRowDefaults.primaryContainerColor,
                 TabRowDefaults.primaryContentColor,
                 @Composable {

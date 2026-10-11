@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.SignalCellularAlt
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -549,6 +551,11 @@ internal fun ScopePageHost(
     val context = LocalContext.current
     val spec = ScopePageRegistry[route.pageKey]
     var showRestartScope by remember { mutableStateOf(false) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
+
+    // 旧 Toolbar 菜单项平移：有图标且声明 showAsAction 的直接显示为图标按钮，其余收进溢出菜单
+    val topActions = spec?.topActions.orEmpty()
+    val overflowActions = topActions.filter { !(it.showAsAction && it.icon != 0) }
 
     MaterialPageScaffold(
         title = route.title.ifBlank { spec?.let { pageTitle(context, it) } ?: route.pageKey },
@@ -562,6 +569,40 @@ internal fun ScopePageHost(
                         painterResource(R.drawable.ic_baseline_refresh_24),
                         contentDescription = stringResource(R.string.menu_reboot),
                     )
+                }
+            }
+            topActions.forEach { action ->
+                if (action.showAsAction && action.icon != 0) {
+                    IconButton(onClick = { spec?.actionHandler?.invoke(action.key) }) {
+                        Icon(
+                            painterResource(action.icon),
+                            contentDescription = stringResource(action.labelRes),
+                        )
+                    }
+                }
+            }
+            if (overflowActions.isNotEmpty()) {
+                Box {
+                    IconButton(onClick = { showOverflowMenu = true }) {
+                        Icon(
+                            Icons.Filled.MoreHoriz,
+                            contentDescription = stringResource(R.string.menu_more),
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showOverflowMenu,
+                        onDismissRequest = { showOverflowMenu = false },
+                    ) {
+                        overflowActions.forEach { action ->
+                            DropdownMenuItem(
+                                text = { Text(stringResource(action.labelRes)) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    spec?.actionHandler?.invoke(action.key)
+                                },
+                            )
+                        }
+                    }
                 }
             }
         },

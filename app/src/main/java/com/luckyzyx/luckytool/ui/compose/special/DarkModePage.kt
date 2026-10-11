@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -42,7 +44,6 @@ import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.data.AppInfo
 import com.luckyzyx.luckytool.data.DarkModeInfo
 import com.luckyzyx.luckytool.ui.compose.components.PrefGroup
-import com.luckyzyx.luckytool.ui.compose.components.PrefRow
 import com.luckyzyx.luckytool.ui.compose.components.PrefScopeBuilder
 import com.luckyzyx.luckytool.ui.compose.components.PrefSwitchRow
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialItem
@@ -53,6 +54,7 @@ import com.luckyzyx.luckytool.ui.compose.components.material.materialBottomInset
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixListItem
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefDefaults
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefItem
+import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageAction
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
@@ -83,11 +85,17 @@ import top.yukonga.miuix.kmp.basic.Text as MiuixText
  *
  * 原「三文件制」已合并为单文件：状态/加载/写值逻辑唯一一份，渲染差异集中在
  * [DarkModeContent] 的 `if (miuix)` 分派与双线 [DarkModeAppRow] 上。
+ *
+ * 「打开暗色模式设置」是旧 Toolbar 菜单项（`SHOW_AS_ACTION_IF_ROOM`），放回页面顶栏
+ * （[ScopePageAction]）；「重启作用域」继续由 `restartEnabled` 提供。
  */
 object DarkModePage {
 
     internal const val ENABLE_KEY = "dark_mode_list_enable"
     internal const val SUPPORT_KEY = "dark_mode_support_list"
+
+    /** 顶栏动作 key：打开暗色模式设置（旧菜单 id 2） */
+    internal const val ACTION_OPEN = "open"
 
     internal var refresh: (suspend () -> Unit)? = null
 
@@ -101,6 +109,14 @@ object DarkModePage {
         selfRendered = true,
         onRefresh = { refresh?.invoke() },
         fullContent = { builder -> DarkModeContent(builder) },
+        topActions = listOf(
+            ScopePageAction(
+                key = ACTION_OPEN,
+                labelRes = R.string.open,
+                icon = R.drawable.baseline_open_in_new_24,
+                showAsAction = true,
+            ),
+        ),
     ) { }
 }
 
@@ -193,6 +209,9 @@ internal fun LazyItemScope.DarkModeContent(builder: PrefScopeBuilder) {
     }
 
     DarkModePage.refresh = { reload() }
+    DarkModePage.spec.actionHandler = { key ->
+        if (key == DarkModePage.ACTION_OPEN) IntentUtils(context).jumpDarkMode()
+    }
 
     LaunchedEffect(Unit) {
         if (allAppInfos.isEmpty()) reload()
@@ -216,12 +235,6 @@ internal fun LazyItemScope.DarkModeContent(builder: PrefScopeBuilder) {
                         },
                     )
                 }
-                item {
-                    PrefRow(
-                        title = stringResource(R.string.open),
-                        onClick = { IntentUtils(context).jumpDarkMode() },
-                    )
-                }
             }
             AppSearchField(
                 query = query,
@@ -233,6 +246,7 @@ internal fun LazyItemScope.DarkModeContent(builder: PrefScopeBuilder) {
                 onSortClick = { showSortSheet = true },
             )
         }
+        Spacer(Modifier.height(AppListContentGap))
         if (miuix) {
             LazyColumn(
                 modifier = Modifier

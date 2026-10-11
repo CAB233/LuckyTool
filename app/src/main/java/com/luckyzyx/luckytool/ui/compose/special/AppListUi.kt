@@ -41,6 +41,15 @@ import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
  */
 
 /**
+ * 搜索框与下方列表之间的间距。
+ *
+ * 复刻迁移前的取景：旧 `fragment_mutli_app_applist_layout.xml` 用 `SwipeRefreshLayout`
+ * 的 `paddingVertical = 12dp` 把列表与搜索框隔开；迁移到 Compose 后搜索框与 LazyColumn
+ * 成了同一 Column 的兄弟节点、彼此没有间距，视觉上"贴"在一起（用户反馈的原始症状）。
+ */
+internal val AppListContentGap = 12.dp
+
+/**
  * 应用行：图标 + 应用名 + 包名 + 只读开关，整行点击切换（VirtualKey 触感 → [onToggle]）。
  *
  * 与 prefCard 的通用 `PrefRow` 不同：Material 线需要 2 行截断（长应用名/包名）+ 共享

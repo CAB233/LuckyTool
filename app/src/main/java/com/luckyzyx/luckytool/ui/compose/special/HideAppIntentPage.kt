@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -61,7 +62,6 @@ import com.luckyzyx.luckytool.data.AppInfo
 import com.luckyzyx.luckytool.data.AppIntentInfo
 import com.luckyzyx.luckytool.enums.IntentType
 import com.luckyzyx.luckytool.ui.compose.components.PrefGroup
-import com.luckyzyx.luckytool.ui.compose.components.PrefRow
 import com.luckyzyx.luckytool.ui.compose.components.PrefSwitchRow
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialItem
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialItemContainer
@@ -72,6 +72,7 @@ import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixListItem
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefDefaults
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefItem
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixSwitchItem
+import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageAction
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
@@ -103,11 +104,20 @@ import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
  * 使用 ScopeScreen 的 fullContent 全屏自定义渲染 + onRefresh 下拉刷新。
  *
  * 原「三文件制」已合并为单文件：状态/加载/写值逻辑唯一一份，渲染差异集中在
- * [HideAppIntentContent] 的 `if (miuix)` 分派上——开关与批量操作合并为一张卡（[PrefGroup] 内
- * [PrefSwitchRow]+[PrefRow]）、搜索框复用 [AppSearchField]、
+ * [HideAppIntentContent] 的 `if (miuix)` 分派上——开关独占一张卡（[PrefGroup] 内
+ * [PrefSwitchRow]）、搜索框复用 [AppSearchField]、
  * 应用行 [IntentAppRow] 与多选对话框 [IntentInfoSelectDialog] 按线分派。
+ * 批量操作（旧 Fragment 的 Toolbar 溢出菜单）通过 [ScopePageAction] 交回顶栏溢出菜单，
+ * 不再平铺成页面上的选项行。
  */
 object HideAppIntentPage {
+
+    /** 顶栏溢出菜单动作 key（对应旧 Fragment `onCreateMenu` 的菜单项）。 */
+    const val ACTION_SELECT_SHARE = "select_all_share_intent"
+    const val ACTION_SELECT_TEXT = "select_all_text_intent"
+    const val ACTION_SELECT_OPEN = "select_all_open_intent"
+    const val ACTION_SELECT_BROWSER = "select_all_browser_intent"
+    const val ACTION_CLEAR_ALL = "clear_all_data"
 
     val spec = ScopePageSpec(
         pageKey = "hide_app_intent",
@@ -119,6 +129,14 @@ object HideAppIntentPage {
         selfRendered = true,
         onRefresh = { hideAppIntentRefresh?.invoke() },
         fullContent = { _ -> HideAppIntentContent() },
+        // 旧版这 5 项都在 Toolbar 溢出菜单里（无图标、不 SHOW_AS_ACTION），保持一致
+        topActions = listOf(
+            ScopePageAction(ACTION_SELECT_SHARE, R.string.select_all_share_intent),
+            ScopePageAction(ACTION_SELECT_TEXT, R.string.select_all_text_intent),
+            ScopePageAction(ACTION_SELECT_OPEN, R.string.select_all_open_intent),
+            ScopePageAction(ACTION_SELECT_BROWSER, R.string.select_all_browser_intent),
+            ScopePageAction(ACTION_CLEAR_ALL, R.string.clear_all_data),
+        ),
     ) { }
 }
 
@@ -151,7 +169,8 @@ internal fun intentTypeLabel(type: IntentType): String = stringResource(
 
 /**
  * 页面渲染体：状态/加载逻辑唯一一份（两线旧实现逐字一致），渲染差异集中在此：
- * 顶部开关 + 批量操作合并为一张卡（[PrefGroup] 内 [PrefSwitchRow]+[PrefRow]）、搜索框 [AppSearchField]，
+ * 顶部开关独占一张卡（[PrefGroup] 内 [PrefSwitchRow]，批量操作已移回顶栏溢出菜单）、
+ * 搜索框 [AppSearchField]，
  * 列表容器与行、清空对话框、多选对话框、排序过滤弹层均按 `if (miuix)` 分派。
  */
 @Composable
@@ -377,7 +396,38 @@ internal fun LazyItemScope.HideAppIntentContent() {
         loading = false
     }
 
+    /**
+     * 切换类型筛选。与页面其余状态写入一致：先拷贝再整体赋值，
+     * 就地改 `intentFilter` 会被 MutableState 的结构相等策略判为「值没变」，筛选片点了不刷新。
+     */
+    fun setFilterTypes(types: Array<IntentType>, enabled: Boolean) {
+        val next = ArraySet(intentFilter)
+        if (enabled) next.addAll(types.toList()) else next.removeAll(types.toList())
+        intentFilter = next
+        scope.launch { reload() }
+    }
+
     hideAppIntentRefresh = { reload() }
+
+    // 批量操作在顶栏溢出菜单里触发（见 [HideAppIntentPage.topActions]），事件期回调到页面状态
+    HideAppIntentPage.spec.actionHandler = { key ->
+        when (key) {
+            HideAppIntentPage.ACTION_SELECT_SHARE -> {
+                selectAllInfos(IntentType.SINGLE_SHARE, IntentType.MULTI_SHARE)
+            }
+
+            HideAppIntentPage.ACTION_SELECT_TEXT -> selectAllInfos(IntentType.PROCESS_TEXT)
+            HideAppIntentPage.ACTION_SELECT_OPEN -> {
+                selectAllInfos(IntentType.CONTENT, IntentType.FILE)
+            }
+
+            HideAppIntentPage.ACTION_SELECT_BROWSER -> {
+                selectAllInfos(IntentType.HTTP_LINK, IntentType.HTTPS_LINK)
+            }
+
+            HideAppIntentPage.ACTION_CLEAR_ALL -> showClearDialog = true
+        }
+    }
 
     LaunchedEffect(Unit) {
         if (allAppInfos.isEmpty() || allIntentInfos.isEmpty()) reload()
@@ -399,48 +449,6 @@ internal fun LazyItemScope.HideAppIntentContent() {
                         },
                     )
                 }
-                item {
-                    PrefRow(
-                        title = stringResource(R.string.select_all_share_intent),
-                        onClick = {
-                            selectAllInfos(
-                                IntentType.SINGLE_SHARE,
-                                IntentType.MULTI_SHARE,
-                            )
-                        },
-                    )
-                }
-                item {
-                    PrefRow(
-                        title = stringResource(R.string.select_all_text_intent),
-                        onClick = { selectAllInfos(IntentType.PROCESS_TEXT) },
-                    )
-                }
-                item {
-                    PrefRow(
-                        title = stringResource(R.string.select_all_open_intent),
-                        onClick = {
-                            selectAllInfos(IntentType.CONTENT, IntentType.FILE)
-                        },
-                    )
-                }
-                item {
-                    PrefRow(
-                        title = stringResource(R.string.select_all_browser_intent),
-                        onClick = {
-                            selectAllInfos(
-                                IntentType.HTTP_LINK,
-                                IntentType.HTTPS_LINK,
-                            )
-                        },
-                    )
-                }
-                item {
-                    PrefRow(
-                        title = stringResource(R.string.clear_all_data),
-                        onClick = { showClearDialog = true },
-                    )
-                }
             }
             AppSearchField(
                 query = query,
@@ -452,6 +460,8 @@ internal fun LazyItemScope.HideAppIntentContent() {
                 onSortClick = { showSortSheet = true },
             )
         }
+        // 复刻旧布局 SwipeRefreshLayout.paddingVertical = 12dp 的搜索框↔列表间距
+        Spacer(Modifier.height(AppListContentGap))
         if (miuix) {
             LazyColumn(
                 modifier = Modifier
