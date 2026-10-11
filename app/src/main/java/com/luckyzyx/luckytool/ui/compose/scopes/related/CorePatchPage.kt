@@ -1,6 +1,5 @@
 package com.luckyzyx.luckytool.ui.compose.scopes.related
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -23,9 +22,9 @@ import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
-import top.yukonga.miuix.kmp.overlay.OverlayDialog
 
 /**
  * CorePatch 页（旧 ui.fragment.scopes.related.CorePatch 的 Compose 等价物）。
@@ -117,7 +116,9 @@ object CorePatchPage {
                         MiuixTextButton(
                             text = stringResource(android.R.string.ok),
                             onClick = { showWarning = false },
-                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp),
                             colors = ButtonDefaults.textButtonColorsPrimary(),
                         )
                     }
