@@ -1253,16 +1253,14 @@
     <string name="action_button_ring_cycle_enable">替换响铃循环事件</string>
     <!--StatusBarIconOrder-->
     <string name="statusbar_icon_order">状态栏图标排序</string>
-    <string name="statusbar_icon_order_enable">启用图标排序</string>
-    <string name="statusbar_icon_order_enable_summary">开启后才会按下方顺序排列状态栏图标，切换开关需重启系统界面</string>
-    <string name="statusbar_icon_order_clock_after">时钟排在通知图标右侧</string>
-    <string name="statusbar_icon_order_clock_after_summary">默认时钟在通知图标左侧，开启后两者交换位置</string>
-    <string name="statusbar_icon_order_icons_first">系统图标移到最左侧</string>
-    <string name="statusbar_icon_order_icons_first_summary">把电池、蓝牙等系统图标移到状态栏最左侧，时钟与通知图标排在其后</string>
-    <string name="statusbar_icon_order_summary">调整图标在状态栏上的显示顺序，新出现的图标保持系统默认位置</string>
-    <string name="statusbar_icon_order_reset">重置</string>
-    <string name="statusbar_icon_order_move_up">上移</string>
-    <string name="statusbar_icon_order_move_down">下移</string>
+    <string name="statusbar_icon_order_category_switch">开关</string>
+    <string name="statusbar_icon_order_category_arrange">排列</string>
+    <string name="statusbar_icon_order_enable">启用状态栏图标排序</string>
+    <string name="statusbar_icon_order_enable_summary">自定义状态栏图标的位置与顺序</string>
+    <string name="statusbar_icon_order_drag_hint">长按右边手柄图标可以上下拖动:拖到「右侧区域」标题下面就是搬到右侧,拖回「左侧区域」标题下面就是搬回左侧。关掉总开关后一切保持系统原生排序。</string>
+    <string name="statusbar_icon_order_zone_left">左侧区域(共 %1$d 项)</string>
+    <string name="statusbar_icon_order_zone_right">右侧区域(共 %1$d 项)</string>
+    <string name="statusbar_icon_order_clock">时钟</string>
     <string name="status_bar_slot_logging">屏幕录制</string>
     <string name="status_bar_slot_hotspot">热点</string>
     <string name="status_bar_slot_data_saver">流量节省</string>

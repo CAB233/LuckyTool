@@ -1,14 +1,8 @@
 package com.luckyzyx.luckytool.ui.compose.scopes.statusbar
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
-import com.luckyzyx.luckytool.ui.compose.components.PrefRow
-import com.luckyzyx.luckytool.ui.compose.components.PrefRowInset
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
 import com.luckyzyx.luckytool.utils.A13
 import com.luckyzyx.luckytool.utils.ModulePrefs
@@ -32,7 +26,7 @@ object StatusBarIconPage {
         val c = requireNotNull(context) { "ScopeScreen 未注入 Context" }
         val osCode = getOSVersionCode
         // 图标位置排序
-        category(c.getString(R.string.statusbar_icon_order))
+        category(c.getString(R.string.statusbar_icon_order_category_switch))
         // 总开关：hooker 只在开启时装载（onHook 里判断），因此关闭/开启都需要重启作用域
         switch(
             key = STATUS_BAR_ICON_ORDER_ENABLED_KEY,
@@ -41,45 +35,25 @@ object StatusBarIconPage {
             onChange = { restart?.invoke() },
         )
         if (state.getBoolean(STATUS_BAR_ICON_ORDER_ENABLED_KEY, false)) {
-            // 区域排列：系统图标区整体挪到最左侧（电池、蓝牙在最左，其后是时钟与通知图标）
-            switch(
-                key = STATUS_BAR_ICON_ORDER_ICONS_FIRST_KEY,
-                title = c.getString(R.string.statusbar_icon_order_icons_first),
-                summary = c.getString(R.string.statusbar_icon_order_icons_first_summary),
-                notify = true,
-            )
-            // 区域排列：时钟与通知图标的左右位置（同一个左侧容器内换序，无需重启）
-            switch(
-                key = STATUS_BAR_ICON_ORDER_CLOCK_AFTER_KEY,
-                title = c.getString(R.string.statusbar_icon_order_clock_after),
-                summary = c.getString(R.string.statusbar_icon_order_clock_after_summary),
-                notify = true,
-            )
-            custom(
-                key = STATUS_BAR_ICON_ORDER_KEY,
-                title = c.getString(R.string.statusbar_icon_order),
-            ) {
-                val saved by state.stringFlow(STATUS_BAR_ICON_ORDER_KEY, "")
+            // 拖拽规则说明（与开关同一张卡片）
+            custom { StatusBarIconOrderHint() }
+            // 两区域拖拽排序：松手即写回偏好，宿主侧经 dataChannel 实时生效
+            category(c.getString(R.string.statusbar_icon_order_category_arrange))
+            custom {
+                val left by state.stringFlow(STATUS_BAR_ICON_ORDER_LEFT_KEY, "")
                     .collectAsStateWithLifecycle()
-                var showDialog by remember { mutableStateOf(false) }
-                PrefRowInset {
-                    PrefRow(
-                        title = stringResource(R.string.statusbar_icon_order),
-                        summary = stringResource(R.string.statusbar_icon_order_summary),
-                        onClick = { showDialog = true },
-                    )
-                }
-                if (showDialog) {
-                    StatusBarIconOrderDialog(
-                        savedOrder = saved,
-                        onDismiss = { showDialog = false },
-                        onApply = { value ->
-                            state.set(STATUS_BAR_ICON_ORDER_KEY, value)
-                            sendValue(STATUS_BAR_ICON_ORDER_KEY, value)
-                            showDialog = false
-                        },
-                    )
-                }
+                val right by state.stringFlow(STATUS_BAR_ICON_ORDER_KEY, "")
+                    .collectAsStateWithLifecycle()
+                StatusBarIconOrderZones(
+                    leftRaw = left,
+                    rightRaw = right,
+                    onApply = { newLeft, newRight ->
+                        state.set(STATUS_BAR_ICON_ORDER_LEFT_KEY, newLeft)
+                        sendValue(STATUS_BAR_ICON_ORDER_LEFT_KEY, newLeft)
+                        state.set(STATUS_BAR_ICON_ORDER_KEY, newRight)
+                        sendValue(STATUS_BAR_ICON_ORDER_KEY, newRight)
+                    },
+                )
             }
         }
         // WIFI

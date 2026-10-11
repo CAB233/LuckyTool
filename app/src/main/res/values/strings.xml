@@ -1438,16 +1438,14 @@
 
     <!--StatusBarIconOrder-->
     <string name="statusbar_icon_order">Status bar icon order</string>
-    <string name="statusbar_icon_order_enable">Enable icon order</string>
-    <string name="statusbar_icon_order_enable_summary">Only when enabled the module reorders the status bar icons; toggling it needs a SystemUI restart</string>
-    <string name="statusbar_icon_order_clock_after">Clock right of the notification icons</string>
-    <string name="statusbar_icon_order_clock_after_summary">By default the clock sits left of the notification icons; enable to move it to their right</string>
-    <string name="statusbar_icon_order_icons_first">System icons on the far left</string>
-    <string name="statusbar_icon_order_icons_first_summary">Move the battery, Bluetooth and other system icons to the far left, with the clock and the notification icons after them</string>
-    <string name="statusbar_icon_order_summary">Adjust the display order of the status bar icons; newly appearing icons keep their system default position</string>
-    <string name="statusbar_icon_order_reset">Reset</string>
-    <string name="statusbar_icon_order_move_up">Move up</string>
-    <string name="statusbar_icon_order_move_down">Move down</string>
+    <string name="statusbar_icon_order_category_switch">Switch</string>
+    <string name="statusbar_icon_order_category_arrange">Arrange</string>
+    <string name="statusbar_icon_order_enable">Enable status bar icon order</string>
+    <string name="statusbar_icon_order_enable_summary">Customize the position and order of the status bar icons</string>
+    <string name="statusbar_icon_order_drag_hint">Long-press the handle on the right to drag an item up or down: drop it below the “Right area” header to move it to the right, or back under the “Left area” header to return it to the left. Turning the master switch off keeps the system default order.</string>
+    <string name="statusbar_icon_order_zone_left">Left area (%1$d items)</string>
+    <string name="statusbar_icon_order_zone_right">Right area (%1$d items)</string>
+    <string name="statusbar_icon_order_clock">Clock</string>
     <string name="status_bar_slot_logging">Screen recording</string>
     <string name="status_bar_slot_hotspot">Hotspot</string>
     <string name="status_bar_slot_data_saver">Data saver</string>

@@ -59,25 +59,61 @@ class StatusBarIconOrderTest {
     }
 
     @Test
-    fun `saved order wins and the rest keeps the host order`() {
-        val merged = parseSlots("battery,logging")
-        assertEquals(49, merged.size)
-        assertEquals("battery", merged[0])
-        assertEquals("logging", merged[1])
-        assertEquals("hotspot", merged[2])
+    fun `blank preference keeps the clock on the left and the host order on the right`() {
+        val (left, right) = zoneSplit("", "")
+        assertEquals(listOf("clock"), left)
+        assertEquals(StatusBarIconSlots.defaultOrder, right)
     }
 
     @Test
-    fun `unknown saved entries are dropped`() {
-        val merged = parseSlots("ghost,battery,ghost")
-        assertEquals(49, merged.size)
-        assertEquals("battery", merged[0])
-        assertTrue("ghost" !in merged)
+    fun `saved zones are restored in place and never overlap`() {
+        val (left, right) = zoneSplit("network_speed,clock,mobile", "battery,vowifi")
+        assertEquals(listOf("network_speed", "clock", "mobile"), left)
+        assertEquals("battery", right[0])
+        assertEquals("vowifi", right[1])
+        // 49 个宿主槽位里只有 network_speed / mobile 被搬到左区；时钟是伪条目，不占宿主槽位
+        assertEquals(47, right.size)
+        assertTrue("network_speed" !in right)
+        assertTrue("mobile" !in right)
     }
 
     @Test
-    fun `blank preference keeps the host default order`() {
-        assertEquals(StatusBarIconSlots.defaultOrder, parseSlots(""))
-        assertEquals(StatusBarIconSlots.defaultOrder, parseSlots("  ,  "))
+    fun `clock is prepended when the saved left zone lost it`() {
+        val (left, _) = zoneSplit("network_speed", "")
+        assertEquals(listOf("clock", "network_speed"), left)
+    }
+
+    @Test
+    fun `unknown entries are dropped from both zones`() {
+        val (left, right) = zoneSplit("ghost,clock", "ghost,battery")
+        assertEquals(listOf("clock"), left)
+        assertEquals("battery", right[0])
+        assertTrue("ghost" !in left)
+        assertTrue("ghost" !in right)
+    }
+
+    @Test
+    fun `zone move swaps inside a zone and carries across the border`() {
+        val items = mutableListOf("clock", "network_speed", "battery", "wifi")
+        // 左区内下移：相邻交换
+        assertEquals(ZoneMove(2, true), zoneMove(items, 2, 0, down = true))
+        assertEquals(listOf("network_speed", "clock", "battery", "wifi"), items)
+        // 右区首项上移越过区界 → 变成左区末项（没有交换）
+        assertEquals(ZoneMove(3, true), zoneMove(items, 2, 2, down = false))
+        assertEquals(listOf("network_speed", "clock", "battery", "wifi"), items)
+        // 左区末项下移越过区界 → 变成右区首项
+        assertEquals(ZoneMove(2, true), zoneMove(items, 3, 2, down = true))
+    }
+
+    @Test
+    fun `zone move keeps the clock on the left and stops at both ends`() {
+        // 时钟不能搬去右区
+        assertEquals(ZoneMove(2, false), zoneMove(mutableListOf("network_speed", "clock"), 2, 1, down = true))
+        // 左区只剩时钟时不能再让出左区
+        assertEquals(ZoneMove(1, false), zoneMove(mutableListOf("clock"), 1, 0, down = true))
+        // 两端边界与非法下标
+        assertEquals(ZoneMove(1, false), zoneMove(mutableListOf("clock", "wifi"), 1, 1, down = true))
+        assertEquals(ZoneMove(1, false), zoneMove(mutableListOf("clock", "wifi"), 1, 0, down = false))
+        assertEquals(ZoneMove(0, false), zoneMove(mutableListOf(), 0, 0, down = true))
     }
 }
