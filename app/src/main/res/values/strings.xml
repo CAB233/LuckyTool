@@ -1446,6 +1446,7 @@
     <string name="statusbar_icon_order_zone_left">Left area (%1$d items)</string>
     <string name="statusbar_icon_order_zone_right">Right area (%1$d items)</string>
     <string name="statusbar_icon_order_clock">Clock</string>
+    <string name="statusbar_icon_order_notifications">Notification icons</string>
     <string name="statusbar_icon_order_left_empty">Left area is empty: drag an icon here to put it back on the left</string>
     <string name="statusbar_icon_order_reset">Reset to the system default</string>
     <string name="statusbar_icon_order_reset_summary">Restore the native order in both areas</string>

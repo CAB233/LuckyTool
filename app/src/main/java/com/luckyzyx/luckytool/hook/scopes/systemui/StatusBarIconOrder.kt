@@ -12,7 +12,6 @@ import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.makeAccessible
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.log.YLog
-import com.luckyzyx.luckytool.hook.scopes.systemui.StatusBarIconOrder.leftBeforeGroup
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import org.lsposed.lsparanoid.Obfuscate
 import java.lang.reflect.Field
@@ -68,6 +67,21 @@ object StatusBarIconOrder : YukiBaseHooker() {
     /** 时钟伪条目：代表 `clock_for_fake`，可以在左区，也可以搬到右区 */
     private const val CLOCK_ITEM = "clock"
 
+    /**
+     * 通知图标伪条目：代表左侧容器里的 `status_bar_start_side_content_for_fake`
+     * （内含 `notification_icon_area` 通知图标 + 实时活动 chips，整组一起移动）。
+     *
+     * 它和 [CLOCK_ITEM] 一样是「锚点」：排在它前面的左区图标进上一段容器、后面的进下一段，
+     * 因此它只能停在左区的任意位置（不能搬到右区容器，宿主右区是系统图标簇）。
+     */
+    private const val NOTIFY_ITEM = "notifications"
+
+    /** 锚点伪条目（顺序即 [leftOrder] 里的先后）；id → 宿主 view 的 id 名 */
+    private val anchorViewIds = linkedMapOf(
+        CLOCK_ITEM to "clock_for_fake",
+        NOTIFY_ITEM to "status_bar_start_side_content_for_fake",
+    )
+
     /** ColorOS 的状态栏根布局（StatusBarRoot 里 inflate `R.layout.status_bar` 的那个 View） */
     private const val STATUS_BAR_VIEW_CLASS =
         "com.android.systemui.statusbar.phone.PhoneStatusBarView"
@@ -112,9 +126,12 @@ object StatusBarIconOrder : YukiBaseHooker() {
     /** 被替换过 `mGroup` 的图标管理器（运行期重新对账用） */
     private val zoneGroups = ArrayList<ZoneIconGroup>(2)
 
-    /** 左区图标容器：时钟之前 / 时钟之后（时钟不在左区时只用前者装整个左区） */
-    private var leftBeforeGroup: LinearLayout? = null
-    private var leftAfterGroup: LinearLayout? = null
+    /**
+     * 左区分段容器：左区按**锚点**（时钟 / 通知图标）切成「锚点数 + 1」段，图标按所在段装进来。
+     *
+     * 下标 0 = 所有锚点之前、1 = 两个锚点之间、2 = 所有锚点之后（锚点最多 2 个）。
+     */
+    private val leftSegGroups = arrayOfNulls<LinearLayout>(3)
 
     /** 右区「时钟之前」容器：时钟搬到右区时插进 `system_icons` 的 `statusIcons` 之前 */
     private var endBeforeGroup: LinearLayout? = null
@@ -122,12 +139,16 @@ object StatusBarIconOrder : YukiBaseHooker() {
     /** 时钟原始布局参数：搬回左区时原样还原 */
     private var clockParams: ViewGroup.LayoutParams? = null
 
-    /** 时钟在左侧容器里的原始下标：-1 = 还没记录过（时钟搬到右区后位置由左区容器接替） */
-    private var clockStartIndex = -1
+    /** 锚点在左侧容器里的原始下标（首次见到时记录）：锚点右移回来时按它还原原位 */
+    private val anchorStartIndex = HashMap<String, Int>(2)
 
-    /** 时钟视图是否可用并参与分区：false 时左区退化成单容器（所有左区图标进 [leftBeforeGroup]） */
+    /** 锚点视图是否都拿得到并能参与分段：false 时左区退化成单容器（所有左区图标进第 0 段） */
     @Volatile
-    private var clockAttached = false
+    private var anchorsPlaced = false
+
+    /** 本轮真正摆好的左区锚点（伪条目，按 [leftOrder] 顺序）：[leftSegmentOf] 据此分段 */
+    @Volatile
+    private var placedLeftAnchors: List<String> = emptyList()
 
     /** 两区容器是否生效（容器已就绪 + 拿到的是状态栏容器） */
     @Volatile
@@ -146,7 +167,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
         )
         leftOrder = initial.first
         rightOrder = initial.second
-        YLog.debug("StatusBarIconOrder: loaded left=${leftOrder} right=${rightOrder}")
+//        YLog.debug("StatusBarIconOrder: loaded left=${leftOrder} right=${rightOrder}")
         hookIconList()
         hookIconController()
         hookIconManager()
@@ -263,14 +284,13 @@ object StatusBarIconOrder : YukiBaseHooker() {
         }.onFailure { YLog.debug("StatusBarIconOrder: applyZones failed -> $it") }
     }
 
-    /** 解析状态栏自己的 `statusIcons`，并准备两区容器（按需才会挂到布局上） */
+    /** 解析状态栏自己的 `statusIcons`，并准备分区容器（按需才会挂到布局上） */
     private fun ensureGroups() {
         val root = statusBarView ?: return
         val systemIcons = root.findViewById<View>(idOf(root, "system_icons"))
         statusIconsView = systemIcons?.findViewById(idOf(root, "statusIcons"))
-        if (leftBeforeGroup == null) {
-            leftBeforeGroup = createZoneGroup(root.context)
-            leftAfterGroup = createZoneGroup(root.context)
+        for (index in leftSegGroups.indices) {
+            if (leftSegGroups[index] == null) leftSegGroups[index] = createZoneGroup(root.context)
         }
         if (endBeforeGroup == null) endBeforeGroup = createZoneGroup(root.context)
     }
@@ -288,14 +308,27 @@ object StatusBarIconOrder : YukiBaseHooker() {
     private fun clockInStartSide(): Boolean = leftOrder.contains(CLOCK_ITEM)
 
     /**
-     * 把容器与时钟摆到位。
+     * 左区图标落在第几段：数 [leftOrder] 里排在该 slot 之前、且**已摆好**的锚点个数。
      *
-     * - 时钟在左区：`[左区(时钟前)][时钟][左区(时钟后)][通知图标组]`，右区容器就是宿主 `statusIcons`；
-     * - 时钟在右区：左区只用一个容器接替时钟原来的位置，宿主 `system_icons` 内变成
-     *   `[右区(时钟前)][时钟][statusIcons][电池]`，因此时钟可以插在任意两个右侧图标之间；
-     * - **时钟视图拿不到**（宿主换实现 / 结构变化）：退化成「只有左区容器」——左区图标照样能搬过去，
-     *   只是无法按时钟拆左右、也搬不动时钟；总比整个分区失效好（之前这种情况会让分区整体失效，
-     *   表现为「图标只能在右区排序、搬不进左区」）。
+     * 只看 [placedLeftAnchors]（而不是 [leftOrder] 里的全部锚点）：锚点视图拿不到时不会参与摆放，
+     * 用没摆的锚点数会算出不存在的段、图标被塞进没挂到布局里的容器而消失。
+     */
+    private fun leftSegmentOf(slot: String): Int {
+        val slotIndex = leftOrder.indexOf(slot)
+        if (slotIndex < 0) return 0
+        var count = 0
+        for (index in 0 until slotIndex) if (leftOrder[index] in placedLeftAnchors) count++
+        return count
+    }
+
+    /**
+     * 把分段容器与锚点摆到位。
+     *
+     * - 左区：`[第0段][锚点0][第1段][锚点1][第2段]`，锚点 = 时钟（在左区时）/ 通知图标，按 [leftOrder] 顺序；
+     * - 时钟搬到右区：宿主 `system_icons` 内变成 `[右区(时钟前)][时钟][statusIcons][电池]`，
+     *   左区只保留「通知图标」这一个锚点；
+     * - **锚点视图拿不到**（宿主换实现 / 结构变化）：退化成「左区只有第 0 段」，
+     *   左区图标照样能搬过去，只是无法再按锚点分段。
      *
      * `system_icons` 仍是 `status_bar_end_side_content` 的唯一子 view，因此右区整体布局逻辑不变。
      *
@@ -305,59 +338,56 @@ object StatusBarIconOrder : YukiBaseHooker() {
         val root = statusBarView ?: return false
         val startSide =
             root.findViewById<ViewGroup>(idOf(root, "status_bar_start_side_except_heads_up"))
-        val before = leftBeforeGroup
-        val after = leftAfterGroup
         val endBefore = endBeforeGroup
-        if (startSide == null || before == null || after == null || endBefore == null) return false
+        if (startSide == null || endBefore == null || leftSegGroups[0] == null) return false
         val systemIcons = root.findViewById<ViewGroup>(idOf(root, "system_icons"))
         val clock = root.findViewById<View>(idOf(root, "clock_for_fake"))
-        detachViews(before, after, endBefore)
-        if (systemIcons == null || clock == null) {
-            YLog.debug("StatusBarIconOrder: clock/system_icons missing, left zone degrades to one container")
-            clockAttached = false
-            startSide.addView(before, 0)
-            return true
-        }
-        clockAttached = true
-        if (clockParams == null) clockParams = clock.layoutParams
-        // 记录时钟在左侧容器里的原始下标：搬到右区后要由左区容器接替这个位置，搬回左区也放回原处
-        if (clockStartIndex < 0 && clock.parent === startSide) clockStartIndex =
-            startSide.indexOfChild(clock)
-        // 宿主改结构时不动：时钟只认状态栏左侧容器 / system_icons 两种父容器
-        val clockParent = clock.parent as? ViewGroup
-        if (clockParent != null && clockParent !== startSide && clockParent !== systemIcons) {
-            YLog.debug("StatusBarIconOrder: clock parent unexpected -> $clockParent")
-            clockAttached = false
-            startSide.addView(before, 0)
-            return true
-        }
-        if (clockInStartSide()) {
-            if (clock.parent !== startSide) {
-                (clock.parent as? ViewGroup)?.removeView(clock)
-                startSide.addView(
-                    clock,
-                    clockStartIndex.coerceIn(0, startSide.childCount),
-                    clockParams
-                )
+        val notify = root.findViewById<View>(idOf(root, "status_bar_start_side_content_for_fake"))
+        val clockInLeft = clockInStartSide()
+        if (clock != null && clockParams == null) clockParams = clock.layoutParams
+
+        // 本轮的左区锚点（按 leftOrder 顺序；视图拿不到的锚点不参与）
+        val anchors = ArrayList<Pair<String, View>>(2)
+        if (clockInLeft && clock != null) anchors += CLOCK_ITEM to clock
+        if (notify != null) anchors += NOTIFY_ITEM to notify
+        placedLeftAnchors = anchors.map { it.first }
+        anchorsPlaced = anchors.isNotEmpty()
+
+        // 记录锚点在左侧容器里的原始下标（首次见到时）：被搬到右区后回来时放回原处
+        for ((item, view) in anchors) {
+            if (view.parent === startSide && item !in anchorStartIndex) {
+                anchorStartIndex[item] = startSide.indexOfChild(view)
             }
-            val clockIndex = startSide.indexOfChild(clock).coerceIn(0, startSide.childCount)
-            startSide.addView(before, clockIndex)
-            startSide.addView(
-                after,
-                (startSide.indexOfChild(clock) + 1).coerceIn(0, startSide.childCount)
-            )
-        } else {
-            // 时钟原来的位置由左区容器接替（左区图标原地保留，不被时钟的搬迁带走）
-            if (clock.parent === startSide) clockStartIndex = startSide.indexOfChild(clock)
+        }
+        // 先把分段容器、锚点、右区容器从布局里摘出来（锚点要整体重排）
+        detachViews(*leftSegGroups, endBefore)
+        for ((_, view) in anchors) (view.parent as? ViewGroup)?.removeView(view)
+
+        // 左区：按 [第0段][锚点0][第1段][锚点1]… 依次插到第一个锚点原来的位置
+        val insertAt = anchors
+            .mapNotNull { anchorStartIndex[it.first] }
+            .minOrNull()
+            ?.coerceIn(0, startSide.childCount) ?: 0
+        var index = insertAt
+        var segment = 0
+        while (true) {
+            leftSegGroups.getOrNull(segment)?.let { seg ->
+                startSide.addView(seg, index.coerceIn(0, startSide.childCount))
+                index = startSide.indexOfChild(seg) + 1
+            }
+            val anchor = anchors.getOrNull(segment)?.second ?: break
+            startSide.addView(anchor, index.coerceIn(0, startSide.childCount))
+            index = startSide.indexOfChild(anchor) + 1
+            segment++
+        }
+
+        // 时钟在右区：放进 system_icons 里 statusIcons 之前（左区已由分段容器接替时钟原来的位置）
+        if (!clockInLeft && clock != null && systemIcons != null) {
             systemIcons.addView(endBefore, 0)
             if (clock.parent !== systemIcons) {
                 (clock.parent as? ViewGroup)?.removeView(clock)
                 systemIcons.addView(clock, systemIcons.indexOfChild(endBefore) + 1)
             }
-            startSide.addView(
-                before,
-                clockStartIndex.coerceAtLeast(0).coerceIn(0, startSide.childCount)
-            )
         }
         return true
     }
@@ -372,27 +402,19 @@ object StatusBarIconOrder : YukiBaseHooker() {
      * **只对状态栏那个 group 做分区路由**（`rightGroup === statusIconsView`）：锁屏/通知栏各自还有
      * 一个 `DarkIconManager`，它们的图标槽位同名，若也按槽位路由就会搬进状态栏的左侧容器，
      * 互相顶掉（左区看起来「搬过去没用」）。
-     * 时钟所在区域按时钟拆成「前 / 后」两个容器，另一区域用一个容器装全部图标：
-     * 时钟在左区时右区就是宿主 `statusIcons`；时钟在右区时左区只用 [leftBeforeGroup]。
+     * 左区按锚点（时钟 / 通知图标）分成「锚点数 + 1」段，图标落在它所属的段容器里；
+     * 右区里排在时钟锚点之前的图标进 [endBeforeGroup]，其余留在宿主 `statusIcons`。
      */
     private fun targetOf(group: ZoneIconGroup, child: View): ViewGroup? {
         if (!zonesActive) return null
         if (group.rightGroup !== statusIconsView) return null
         val slot = slotOf(child) ?: return null
-        if (slot == CLOCK_ITEM) return null
-        if (!clockAttached) {
-            // 时钟视图拿不到：左区图标统一进唯一容器（leftBefore），右区图标留在宿主容器
-            return if (slot in leftOrder) leftBeforeGroup else null
+        if (slot in anchorViewIds) return null
+        if (slot in leftOrder) {
+            // 左区：按「排在该 slot 之前的已摆好锚点数」选段；锚点全拿不到时退化成第 0 段
+            val segment = if (anchorsPlaced) leftSegmentOf(slot) else 0
+            return leftSegGroups.getOrNull(segment) ?: leftSegGroups[0]
         }
-        if (clockInStartSide()) {
-            if (slot !in leftOrder) return null
-            val clockIndex = leftOrder.indexOf(CLOCK_ITEM)
-            val itemIndex = leftOrder.indexOf(slot)
-            val before = leftBeforeGroup ?: return null
-            val after = leftAfterGroup ?: return null
-            return if (clockIndex in 0..<itemIndex) after else before
-        }
-        if (slot in leftOrder) return leftBeforeGroup
         if (slot !in rightOrder) return null
         val clockIndex = rightOrder.indexOf(CLOCK_ITEM)
         val itemIndex = rightOrder.indexOf(slot)
@@ -403,7 +425,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
     /** 把整个虚拟列表按当前区域配置摆好（先把要换容器的摘掉，再按顺序放回去） */
     private fun reconcile() {
         val statusIcons = statusIconsView
-        zonesActive = leftBeforeGroup != null && statusIcons != null &&
+        zonesActive = leftSegGroups[0] != null && statusIcons != null &&
                 zoneGroups.any { it.rightGroup === statusIcons }
         var placed = false
         if (zonesActive) {
@@ -411,19 +433,18 @@ object StatusBarIconOrder : YukiBaseHooker() {
             placed = placeGroups()
         }
         if (!placed) {
-            // 容器没能挂进布局树（宿主结构变化 / 时钟不在预期位置）：图标全部回宿主 statusIcons，
+            // 容器没能挂进布局树（宿主结构变化）：图标全部回宿主 statusIcons，
             // 否则它们会被搬进不在布局树里的容器 = 直接看不见
             zonesActive = false
             for (group in zoneGroups) reorderGroup(group)
-            detachViews(leftBeforeGroup, leftAfterGroup, endBeforeGroup)
+            detachViews(*leftSegGroups, endBeforeGroup)
         }
     }
 
     private fun reorderGroup(group: ZoneIconGroup) {
-        val containers = ArrayList<ViewGroup>(4)
+        val containers = ArrayList<ViewGroup>(5)
         containers += group.rightGroup
-        leftBeforeGroup?.let { containers += it }
-        leftAfterGroup?.let { containers += it }
+        for (segment in leftSegGroups) segment?.let { containers += it }
         endBeforeGroup?.let { containers += it }
 
         // 1) 计算每个容器期望的子 view 顺序
@@ -513,8 +534,8 @@ object StatusBarIconOrder : YukiBaseHooker() {
         val slots = (list ?: ensureIconList())?.let { slotsOf(it) } ?: return
         val rank = HashMap<String, Int>(leftOrder.size + rightOrder.size)
         var next = 0
-        leftOrder.forEach { if (it != CLOCK_ITEM && rank.put(it, next) == null) next++ }
-        rightOrder.forEach { if (it != CLOCK_ITEM && rank.put(it, next) == null) next++ }
+        leftOrder.forEach { if (it !in anchorViewIds && rank.put(it, next) == null) next++ }
+        rightOrder.forEach { if (it !in anchorViewIds && rank.put(it, next) == null) next++ }
         val fallback = HashMap<String, Int>(defaultOrder.size)
         defaultOrder.forEachIndexed { index, name -> fallback[name] = index }
 
@@ -611,12 +632,13 @@ object StatusBarIconOrder : YukiBaseHooker() {
         value?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }?.distinct() ?: emptyList()
 
     /**
-     * 归一化两区顺序：时钟必须恰好落在一个区域。
+     * 归一化两区顺序。
      *
-     * - 推送方明确的时钟归属优先（[pushed]）：页面写回是两个键分两次推送，只有「刚写的那个键」说了算，
-     *   否则把时钟从右区搬回左区时，先到的旧左区值会把时钟又拽回左侧；
-     * - 初始读取（[PushSide.NONE]）以及两边都写了时钟时以左区为准；
-     * - 都不声明时时钟留在原来的区域，原先也不在任何区域则默认落在左区最前。
+     * - 时钟必须恰好落在一个区域：推送方明确的归属优先（[pushed]，页面写回是两个键分两次推送，
+     *   只有「刚写的那个键」说了算，否则把时钟从右区搬回左区时会被先到的旧值拽回去）；
+     *   初始读取（[PushSide.NONE]）或两边都写了以左区为准；都没有则默认落在左区最前。
+     * - 通知图标（[NOTIFY_ITEM]）固定左区：先从两区里摘掉，再按它原来在左区里的相对位置插回去，
+     *   缺失时补到左区末尾（宿主默认：通知区排在所有左区内容之后）。
      */
     private fun normalizeOrders(
         left: List<String>,
@@ -625,13 +647,26 @@ object StatusBarIconOrder : YukiBaseHooker() {
     ): Pair<List<String>, List<String>> {
         val clockInLeft = left.contains(CLOCK_ITEM)
         val clockInRight = right.contains(CLOCK_ITEM)
-        return when {
-            pushed == PushSide.RIGHT && clockInRight -> left.filterNot { it == CLOCK_ITEM } to right
-            pushed == PushSide.LEFT && clockInLeft -> left to right.filterNot { it == CLOCK_ITEM }
-            clockInLeft -> left to right.filterNot { it == CLOCK_ITEM }
-            clockInRight -> left to right
-            else -> (listOf(CLOCK_ITEM) + left) to right
+        val baseLeft = left.filterNot { it == NOTIFY_ITEM }
+        val baseRight = right.filterNot { it == NOTIFY_ITEM }
+        val (normalizedLeft, normalizedRight) = when {
+            pushed == PushSide.RIGHT && clockInRight ->
+                baseLeft.filterNot { it == CLOCK_ITEM } to baseRight
+            pushed == PushSide.LEFT && clockInLeft ->
+                baseLeft to baseRight.filterNot { it == CLOCK_ITEM }
+            clockInLeft -> baseLeft to baseRight.filterNot { it == CLOCK_ITEM }
+            clockInRight -> baseLeft to baseRight
+            else -> (listOf(CLOCK_ITEM) + baseLeft) to baseRight
         }
+        val notifyAt = left.indexOf(NOTIFY_ITEM)
+        val withNotify = if (notifyAt < 0) {
+            normalizedLeft + NOTIFY_ITEM
+        } else {
+            // 插回「原来排在它前面、且仍在左区里的项数」之后
+            val before = left.take(notifyAt).count { it != NOTIFY_ITEM && it in normalizedLeft }
+            normalizedLeft.toMutableList().apply { add(before.coerceIn(0, size), NOTIFY_ITEM) }
+        }
+        return withNotify to normalizedRight
     }
 
     /** 归一化时以哪一区的推送为准（页面写回是两个键分两次推送） */

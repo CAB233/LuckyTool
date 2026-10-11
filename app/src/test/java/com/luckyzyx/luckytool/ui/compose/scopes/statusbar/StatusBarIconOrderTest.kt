@@ -65,9 +65,10 @@ class StatusBarIconOrderTest {
     }
 
     @Test
-    fun `blank preference keeps the clock on the left and the host order on the right`() {
+    fun `blank preference keeps the clock and notification icons on the left`() {
         val (left, right) = zoneSplit("", "")
-        assertEquals(listOf("clock"), left)
+        // 通知图标固定左区，缺失时补到末尾（宿主默认：通知区排在左区内容之后）
+        assertEquals(listOf("clock", STATUS_BAR_ICON_ORDER_NOTIFY_ITEM), left)
         assertEquals(StatusBarIconSlots.defaultOrder, right)
     }
 
@@ -77,13 +78,30 @@ class StatusBarIconOrderTest {
         assertEquals(zoneSplit("", ""), zoneSplit(STATUS_BAR_ICON_ORDER_CLOCK_ITEM, ""))
     }
 
+    /** 通知图标在左区的位置由保存顺序决定：可以排到时钟前面 */
+    @Test
+    fun `notification icons keep their saved place inside the left zone`() {
+        val (left, _) = zoneSplit("$STATUS_BAR_ICON_ORDER_NOTIFY_ITEM,clock,network_speed", "")
+        assertEquals(
+            listOf(STATUS_BAR_ICON_ORDER_NOTIFY_ITEM, "clock", "network_speed"),
+            left,
+        )
+        // 即使保存时被写进右区，也会被拉回左区
+        val (pulled, right) = zoneSplit("clock", "$STATUS_BAR_ICON_ORDER_NOTIFY_ITEM,battery")
+        assertEquals(listOf("clock", STATUS_BAR_ICON_ORDER_NOTIFY_ITEM), pulled)
+        assertTrue(STATUS_BAR_ICON_ORDER_NOTIFY_ITEM !in right)
+    }
+
     @Test
     fun `saved zones are restored in place and never overlap`() {
         val (left, right) = zoneSplit("network_speed,clock,mobile", "battery,vowifi")
-        assertEquals(listOf("network_speed", "clock", "mobile"), left)
+        assertEquals(
+            listOf("network_speed", "clock", "mobile", STATUS_BAR_ICON_ORDER_NOTIFY_ITEM),
+            left,
+        )
         assertEquals("battery", right[0])
         assertEquals("vowifi", right[1])
-        // 49 个宿主槽位里只有 network_speed / mobile 被搬到左区；时钟是伪条目，不占宿主槽位
+        // 49 个宿主槽位里只有 network_speed / mobile 被搬到左区；时钟/通知是伪条目，不占宿主槽位
         assertEquals(47, right.size)
         assertTrue("network_speed" !in right)
         assertTrue("mobile" !in right)
@@ -92,14 +110,17 @@ class StatusBarIconOrderTest {
     @Test
     fun `clock is prepended when the saved left zone lost it`() {
         val (left, _) = zoneSplit("network_speed", "")
-        assertEquals(listOf("clock", "network_speed"), left)
+        assertEquals(
+            listOf("clock", "network_speed", STATUS_BAR_ICON_ORDER_NOTIFY_ITEM),
+            left,
+        )
     }
 
-    /** 时钟可以搬到右区：此时左区可以为空，右区里时钟按保存顺序停在其它槽位之间 */
+    /** 时钟可以搬到右区：此时左区只剩通知图标，右区里时钟按保存顺序停在其它槽位之间 */
     @Test
     fun `clock can be moved to the right zone`() {
         val (left, right) = zoneSplit("", "clock,battery")
-        assertTrue(left.isEmpty())
+        assertEquals(listOf(STATUS_BAR_ICON_ORDER_NOTIFY_ITEM), left)
         assertEquals("clock", right[0])
         assertEquals("battery", right[1])
         // 49 个宿主槽位 + `clock` 伪条目（clock 本身不是宿主槽位）
@@ -111,7 +132,10 @@ class StatusBarIconOrderTest {
     @Test
     fun `the clock prefers the left zone when both zones claim it`() {
         val (left, right) = zoneSplit("clock,network_speed", "clock,battery")
-        assertEquals(listOf("clock", "network_speed"), left)
+        assertEquals(
+            listOf("clock", "network_speed", STATUS_BAR_ICON_ORDER_NOTIFY_ITEM),
+            left,
+        )
         assertTrue("clock" !in right)
         assertEquals("battery", right[0])
     }
@@ -119,7 +143,7 @@ class StatusBarIconOrderTest {
     @Test
     fun `unknown entries are dropped from both zones`() {
         val (left, right) = zoneSplit("ghost,clock", "ghost,battery")
-        assertEquals(listOf("clock"), left)
+        assertEquals(listOf("clock", STATUS_BAR_ICON_ORDER_NOTIFY_ITEM), left)
         assertEquals("battery", right[0])
         assertTrue("ghost" !in left)
         assertTrue("ghost" !in right)
@@ -171,6 +195,21 @@ class StatusBarIconOrderTest {
         val noOp = mutableListOf(marker, "clock", "battery")
         assertEquals(1, zoneDrop(noOp, 1, 1, 1))
         assertEquals(listOf(marker, "clock", "battery"), noOp)
+    }
+
+    /** 通知图标固定左区：拖向右区会被夹回左区范围，左区内仍可任意移动 */
+    @Test
+    fun `notification icons stay inside the left zone`() {
+        val notify = STATUS_BAR_ICON_ORDER_NOTIFY_ITEM
+        // 拖到右区（to = 3）被夹回左区末位 1，等于原地不动
+        val toRight = mutableListOf("clock", notify, "battery", "wifi")
+        assertEquals(2, zoneDrop(toRight, 2, 1, 3))
+        assertEquals(listOf("clock", notify, "battery", "wifi"), toRight)
+
+        // 左区内仍可与时钟互换位置
+        val inside = mutableListOf("clock", notify, "battery")
+        assertEquals(2, zoneDrop(inside, 2, 1, 0))
+        assertEquals(listOf(notify, "clock", "battery"), inside)
     }
 
     @Test
