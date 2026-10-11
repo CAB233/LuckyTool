@@ -52,7 +52,7 @@ object SharedUserSettingHook : BaseHook() {
             sharedUserSettingClazz.declaredMethods.first { m -> m.name == "removePackage" }
         removePackageMethod.hook {
             before {
-                val thisObject = instance ?: return@before
+                val thisObject = instance
                 if (!Config.isBypassDigestEnabled() || !Config.isBypassSharedUserEnabled()) {
                     return@before
                 }
@@ -65,7 +65,8 @@ object SharedUserSettingHook : BaseHook() {
                 val sharedUserSig = getSigningDetails(thisObject) ?: return@before
                 var newSignatures: Any? = null
 
-                val packagesSettings = getPackageStorage(packagesField.get(thisObject) ?: return@before)
+                val packagesSettings =
+                    getPackageStorage(packagesField.get(thisObject) ?: return@before)
                 val valueAtMethod =
                     packagesSettings.javaClass.declaredMethods.first { m -> m.name == "valueAt" }
                 val pkgSize =
@@ -105,7 +106,7 @@ object SharedUserSettingHook : BaseHook() {
             sharedUserSettingClazz.declaredMethods.first { m -> m.name == "addPackage" }
         addPackageMethod.hook {
             before {
-                val thisObject = instance ?: return@before
+                val thisObject = instance
                 if (!Config.isBypassDigestEnabled() || !Config.isBypassSharedUserEnabled()) {
                     return@before
                 }
@@ -117,7 +118,8 @@ object SharedUserSettingHook : BaseHook() {
                 var added = false
                 val sharedUserSig = getSigningDetails(thisObject) ?: return@before
                 var newSignatures: Any? = null
-                val packagesSettings = getPackageStorage(packagesField.get(thisObject) ?: return@before)
+                val packagesSettings =
+                    getPackageStorage(packagesField.get(thisObject) ?: return@before)
                 val valueAtMethod =
                     packagesSettings.javaClass.declaredMethods.first { m -> m.name == "valueAt" }
                 val pkgSize =
@@ -153,7 +155,8 @@ object SharedUserSettingHook : BaseHook() {
     }
 
     fun getPackageStorage(packagesSettings: Any): Any {
-        val storageField = packagesSettings.javaClass.declaredFields.firstOrNull { it.name == "mStorage" }
+        val storageField =
+            packagesSettings.javaClass.declaredFields.firstOrNull { it.name == "mStorage" }
         storageField?.isAccessible = true
         return storageField?.get(packagesSettings) ?: packagesSettings
     }

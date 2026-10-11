@@ -26,6 +26,7 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 - 软件商店默认展开更新列表 —— 进入软件商店的更新页面时默认展开列表
 - 新增 Miuix 界面风格，设置页可在 Material 与 Miuix 两套外观之间切换
 - 冷启动启动动画 —— Logo 入场与应用名淡入
+- 自定义状态栏图标排序
 
 #### 优化
 

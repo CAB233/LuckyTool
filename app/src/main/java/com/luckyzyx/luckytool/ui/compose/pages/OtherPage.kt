@@ -5,29 +5,28 @@ import android.app.StatusBarManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
-import android.os.Build
 import androidx.collection.ArrayMap
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddToHomeScreen
+import androidx.compose.material.icons.automirrored.filled.AddToHomeScreen
 import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.GridView
@@ -44,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,7 +62,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
-import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.luckyzyx.luckytool.IAdbDebugController
@@ -73,8 +72,8 @@ import com.luckyzyx.luckytool.service.TilesService
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.AppPickerDialog
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
-import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.PrefIconBadge
+import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.TopBarActionButton
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialPageScaffold
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
@@ -90,20 +89,20 @@ import com.luckyzyx.luckytool.utils.SettingsPrefs
 import com.luckyzyx.luckytool.utils.ShortcutUtils
 import com.luckyzyx.luckytool.utils.copyStr
 import com.luckyzyx.luckytool.utils.showToast
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Text as MiuixText
-import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
-import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.preference.CheckboxLocation
 import top.yukonga.miuix.kmp.preference.CheckboxPreference
 import top.yukonga.miuix.kmp.preference.RadioButtonPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
+import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
 
 /**
  * 其他页（旧 OtherFragment 的 Compose 等价实现）。
@@ -197,7 +196,12 @@ fun OtherPage(activity: MainActivity) {
                 click(
                     title = context.getString(R.string.set_module_shortcuts),
                     summary = context.getString(R.string.set_module_shortcuts_summary),
-                    leading = { PrefIconBadge(Icons.Filled.AddToHomeScreen, Color(0xFF3F51B5)) },
+                    leading = {
+                        PrefIconBadge(
+                            Icons.AutoMirrored.Filled.AddToHomeScreen,
+                            Color(0xFF3F51B5)
+                        )
+                    },
                     onClick = { showShortcutDialog = true },
                 )
                 click(
@@ -404,7 +408,11 @@ private fun ShortcutDialog(context: Context, onDismiss: () -> Unit) {
                                 context.showToast("Only select one item")
                             } else {
                                 selected.firstOrNull()?.let { index ->
-                                    shortcutUtils.requestPinShortcut(beans[index].toShortcutInfo(context))
+                                    shortcutUtils.requestPinShortcut(
+                                        beans[index].toShortcutInfo(
+                                            context
+                                        )
+                                    )
                                 }
                             }
                         },
@@ -476,7 +484,11 @@ private fun ShortcutDialog(context: Context, onDismiss: () -> Unit) {
                                     context.showToast("Only select one item")
                                 } else {
                                     selected.firstOrNull()?.let { index ->
-                                        shortcutUtils.requestPinShortcut(beans[index].toShortcutInfo(context))
+                                        shortcutUtils.requestPinShortcut(
+                                            beans[index].toShortcutInfo(
+                                                context
+                                            )
+                                        )
                                     }
                                 }
                             },
@@ -526,7 +538,8 @@ private fun TouchSamplingRateDialog(
                 MiuixTextButton(
                     text = stringResource(android.R.string.ok),
                     onClick = {
-                        val value = if (tempSelection > 0) touchs[tempSelection] else tempSelection.toString()
+                        val value =
+                            if (tempSelection > 0) touchs[tempSelection] else tempSelection.toString()
                         settings.set(keyTouchSamplingRateLevel, value)
                         controller?.touchMode = value.toInt()
                         onDismiss()
@@ -567,7 +580,8 @@ private fun TouchSamplingRateDialog(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val value = if (tempSelection > 0) touchs[tempSelection] else tempSelection.toString()
+                        val value =
+                            if (tempSelection > 0) touchs[tempSelection] else tempSelection.toString()
                         settings.set(keyTouchSamplingRateLevel, value)
                         controller?.touchMode = value.toInt()
                         onDismiss()
@@ -624,7 +638,8 @@ private fun AdbDebugDialog(
                             scope.launch {
                                 val port = portStr.toIntOrNull()
                                 if (port == null) {
-                                    adbTvText = context.getString(R.string.adb_debug_port_cannot_null)
+                                    adbTvText =
+                                        context.getString(R.string.adb_debug_port_cannot_null)
                                     return@launch
                                 }
                                 busy = true
@@ -715,12 +730,14 @@ private fun AdbDebugDialog(
                                 if (checked) {
                                     val portStr = portText
                                     if (portStr.isBlank()) {
-                                        adbTvText = context.getString(R.string.adb_debug_port_cannot_null)
+                                        adbTvText =
+                                            context.getString(R.string.adb_debug_port_cannot_null)
                                     } else {
                                         scope.launch {
                                             val port = portStr.toIntOrNull()
                                             if (port == null) {
-                                                adbTvText = context.getString(R.string.adb_debug_port_cannot_null)
+                                                adbTvText =
+                                                    context.getString(R.string.adb_debug_port_cannot_null)
                                                 return@launch
                                             }
                                             busy = true

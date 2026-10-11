@@ -41,8 +41,8 @@ import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusGamesPage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusGesturePage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusHealthPage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusLinkerPage
-import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusMarketPage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusMMSPage
+import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusMarketPage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusMcsPage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusMyDevicesPage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusNfcPage
@@ -62,15 +62,11 @@ import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusTeleServicePage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusThemeStorePage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusWeatherPage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusWirelessSettingsPage
-import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarBatteryPage
-import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarControlCenterPage
-import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarIconPage
-import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarIconOrderPage
-import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarLayoutPage
-import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarNetWorkSpeedPage
-import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarNotifyPage
-import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarNotifyRemovalPage
-import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarTilesPage
+import com.luckyzyx.luckytool.ui.compose.scopes.others.ADMPage
+import com.luckyzyx.luckytool.ui.compose.scopes.others.AlphaBackupProPage
+import com.luckyzyx.luckytool.ui.compose.scopes.others.ClawPage
+import com.luckyzyx.luckytool.ui.compose.scopes.others.GpsJoyStickPage
+import com.luckyzyx.luckytool.ui.compose.scopes.others.KsWebPage
 import com.luckyzyx.luckytool.ui.compose.scopes.related.AndroidRelatedPage
 import com.luckyzyx.luckytool.ui.compose.scopes.related.AodRelatedPage
 import com.luckyzyx.luckytool.ui.compose.scopes.related.ApplicationRelatedPage
@@ -81,20 +77,24 @@ import com.luckyzyx.luckytool.ui.compose.scopes.related.LauncherRelatedPage
 import com.luckyzyx.luckytool.ui.compose.scopes.related.LockScreenRelatedPage
 import com.luckyzyx.luckytool.ui.compose.scopes.related.MiscellaneousPage
 import com.luckyzyx.luckytool.ui.compose.scopes.related.SoundRelatedPage
-import com.luckyzyx.luckytool.ui.compose.scopes.others.ADMPage
-import com.luckyzyx.luckytool.ui.compose.scopes.others.AlphaBackupProPage
-import com.luckyzyx.luckytool.ui.compose.scopes.others.ClawPage
-import com.luckyzyx.luckytool.ui.compose.scopes.others.GpsJoyStickPage
-import com.luckyzyx.luckytool.ui.compose.scopes.others.KsWebPage
+import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarBatteryPage
+import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarControlCenterPage
+import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarIconOrderPage
+import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarIconPage
+import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarLayoutPage
+import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarNetWorkSpeedPage
+import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarNotifyPage
+import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarNotifyRemovalPage
+import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarTilesPage
 import com.luckyzyx.luckytool.ui.compose.special.BatteryInfoPage
+import com.luckyzyx.luckytool.ui.compose.special.DarkModePage
 import com.luckyzyx.luckytool.ui.compose.special.DonatePage
 import com.luckyzyx.luckytool.ui.compose.special.ExtractOTAPage
 import com.luckyzyx.luckytool.ui.compose.special.ForceFpsPage
-import com.luckyzyx.luckytool.ui.compose.special.QuickEntryPage
-import com.luckyzyx.luckytool.ui.compose.special.DarkModePage
 import com.luckyzyx.luckytool.ui.compose.special.HideAppIntentPage
 import com.luckyzyx.luckytool.ui.compose.special.MemcConfigPage
 import com.luckyzyx.luckytool.ui.compose.special.MultiAppPage
+import com.luckyzyx.luckytool.ui.compose.special.QuickEntryPage
 import com.luckyzyx.luckytool.ui.compose.special.ZoomWindowPage
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
@@ -238,13 +238,22 @@ private class ScopeContentScopeImpl(
     override val highlightedSlot: Int? get() = highlighted()
     override val scrollTarget: ScrollTarget? get() = target()
     override fun sendValue(key: String, value: Any) = onSendValue(key, value)
-    override fun navigate(target: String, title: String?) { onNavigate?.invoke(target, title) }
-    override fun restart() { onRestart?.invoke() }
-    override suspend fun refresh() { onRefresh?.invoke() }
+    override fun navigate(target: String, title: String?) {
+        onNavigate?.invoke(target, title)
+    }
+
+    override fun restart() {
+        onRestart?.invoke()
+    }
+
+    override suspend fun refresh() {
+        onRefresh?.invoke()
+    }
 }
 
 /** material 线页面作用域实现（对外签名与 [MiuixScopeContentScope] 逐字一致，行为委托同一实现体）。 */
-internal class MaterialScopeContentScope(delegate: ScopeContentScope) : ScopeContentScope by delegate
+internal class MaterialScopeContentScope(delegate: ScopeContentScope) :
+    ScopeContentScope by delegate
 
 /** miuix 线页面作用域实现（对外签名与 [MaterialScopeContentScope] 逐字一致，行为委托同一实现体）。 */
 internal class MiuixScopeContentScope(delegate: ScopeContentScope) : ScopeContentScope by delegate
@@ -407,7 +416,8 @@ object ScopePageRegistry {
     }
 
     /** 可达性探测栈（线程内防环）：page() 目标链理论上是树，防御性保护未来出现回链 */
-    private val reachabilityProbeStack: ThreadLocal<ArrayDeque<String>> = ThreadLocal.withInitial { ArrayDeque() }
+    private val reachabilityProbeStack: ThreadLocal<ArrayDeque<String>> =
+        ThreadLocal.withInitial { ArrayDeque() }
 
     /**
      * 一页是否有可见内容（旧 getRootPreference 检查2「可见子 item<=0 隐藏」的判据）。
@@ -431,7 +441,7 @@ object ScopePageRegistry {
         val spec = pages[pageKey] ?: return true
         if (!spec.isVisible(context)) return false
         if (!isScopeAppPresent(context, spec)) return false
-        val stack = reachabilityProbeStack.get()
+        val stack = reachabilityProbeStack.get() ?: return true
         if (pageKey in stack) return true
         stack.addLast(pageKey)
         return try {
@@ -443,17 +453,54 @@ object ScopePageRegistry {
 
     /** 功能树页面顺序（对齐旧 XposedFragment.loadPreferences 的 addFragmentPreference 顺序，49 页） */
     val treeOrder: List<String> = listOf(
-        "android_related", "statusbar", "launcher", "aod", "lock_screen", "application", "miscellaneous",
-        "oplus_screenshot", "oplus_battery", "oplus_alarm_clock", "oplus_settings",
-        "oplus_wireless_settings", "oplus_tele_service", "oplus_mms", "oplus_browser",
-        "oplus_camera", "oplus_gallery", "oplus_games", "theme_store", "oplus_market",
-        "oplus_cloud_service", "oplus_ota", "oplus_pictorial", "oplus_gesture",
-        "oplus_speech_assist", "oplus_direct_ui", "oplus_search_box", "oplus_weather",
-        "oplus_calendar", "oplus_smart_sidebar", "oplus_phone_manager", "oplus_health",
-        "oplus_sound_recorder", "oplus_eye_protect", "oplus_beacon_link", "oplus_nfc",
-        "oplus_oshare", "oplus_permission_controller", "oplus_linker",
-        "oplus_securityp_permission", "oplus_file_manager", "oplus_engineer_mode",
-        "oplus_my_devices", "oplus_mcs", "claw", "alpha_backup_pro", "ks_web", "adm",
+        "android_related",
+        "statusbar",
+        "launcher",
+        "aod",
+        "lock_screen",
+        "application",
+        "miscellaneous",
+        "oplus_screenshot",
+        "oplus_battery",
+        "oplus_alarm_clock",
+        "oplus_settings",
+        "oplus_wireless_settings",
+        "oplus_tele_service",
+        "oplus_mms",
+        "oplus_browser",
+        "oplus_camera",
+        "oplus_gallery",
+        "oplus_games",
+        "theme_store",
+        "oplus_market",
+        "oplus_cloud_service",
+        "oplus_ota",
+        "oplus_pictorial",
+        "oplus_gesture",
+        "oplus_speech_assist",
+        "oplus_direct_ui",
+        "oplus_search_box",
+        "oplus_weather",
+        "oplus_calendar",
+        "oplus_smart_sidebar",
+        "oplus_phone_manager",
+        "oplus_health",
+        "oplus_sound_recorder",
+        "oplus_eye_protect",
+        "oplus_beacon_link",
+        "oplus_nfc",
+        "oplus_oshare",
+        "oplus_permission_controller",
+        "oplus_linker",
+        "oplus_securityp_permission",
+        "oplus_file_manager",
+        "oplus_engineer_mode",
+        "oplus_my_devices",
+        "oplus_mcs",
+        "claw",
+        "alpha_backup_pro",
+        "ks_web",
+        "adm",
         "gps_joy_stick",
     )
 
