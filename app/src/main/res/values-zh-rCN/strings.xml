@@ -1261,6 +1261,7 @@
     <string name="statusbar_icon_order_zone_left">左侧区域(共 %1$d 项)</string>
     <string name="statusbar_icon_order_zone_right">右侧区域(共 %1$d 项)</string>
     <string name="statusbar_icon_order_clock">时钟</string>
+    <string name="statusbar_icon_order_left_empty">左侧区域为空:把右侧的图标拖到这里即可放回左侧</string>
     <string name="statusbar_icon_order_reset">重置为系统默认顺序</string>
     <string name="statusbar_icon_order_reset_summary">左右两个区域都恢复系统原生顺序</string>
     <string name="status_bar_slot_logging">屏幕录制</string>

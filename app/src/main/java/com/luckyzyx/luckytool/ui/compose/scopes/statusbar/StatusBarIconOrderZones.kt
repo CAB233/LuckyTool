@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -269,11 +270,13 @@ internal fun zoneSplit(leftRaw: String, rightRaw: String): Pair<List<String>, Li
  *
  * 用「先摘后插」，所以 [to] 也用移动前的下标：`[A,B,C,D]` 把 1 移到 3 得到 `[A,C,D,B]`。
  * 跨区（左区项落到右区下标，或反之）时区界随之增减；时钟也能跨区，因此左区可以被搬空。
- * 左区被搬空后没有「左区下标」可落，此时把任意项拖到列表最顶（[to] = 0）即重建左区。
- * 下标越界或原地不动时不改动 [items]，原样返回 [leftCount]。
+ * 左区被搬空后没有「左区下标」可落：把任意项拖到列表最顶（[to] = 0）即重建左区；
+ * 最顶行本身原地不动（[from] = [to] = 0）也算「拖一下放进左侧」，否则它永远回不了左区。
+ * 下标越界时不改动 [items]，原样返回 [leftCount]。
  */
 internal fun zoneDrop(items: MutableList<String>, leftCount: Int, from: Int, to: Int): Int {
-    if (from !in items.indices || to !in items.indices || from == to) return leftCount
+    if (from !in items.indices || to !in items.indices) return leftCount
+    if (from == to) return if (leftCount == 0 && to == 0) 1 else leftCount
     val moved = items.removeAt(from)
     items.add(to, moved)
     return when {
@@ -433,7 +436,9 @@ fun StatusBarIconOrderZones(
         val from = dragFrom
         val to = targetFromPosition(dragRowTop[0] + (dragDelta.floatValue - scrolledBy[0]))
         resetDrag()
-        if (from !in items.indices || to !in items.indices || from == to) return
+        if (from !in items.indices || to !in items.indices) return
+        // 左区被搬空时，最顶行即使原地不动也允许「拖一下 = 放进左侧」（否则最顶行永远回不了左区）
+        if (from == to && !(leftCount == 0 && to == 0)) return
         leftCount = zoneDrop(items, leftCount, from, to)
         onApply(items.take(leftCount).joinToString(","), items.drop(leftCount).joinToString(","))
     }
@@ -512,6 +517,10 @@ fun StatusBarIconOrderZones(
             text = stringResource(R.string.statusbar_icon_order_zone_left, liveCounts.first),
             topPadding = 12.dp,
         )
+        // 左区被搬空时仍保留可见的落位区：把右侧图标拖到这里即可放回左侧
+        if (leftCount == 0) {
+            LeftZoneEmptyRow(highlighted = draggingItem != null && dragTarget == 0)
+        }
         items.take(leftCount).forEachIndexed { index, item ->
             key(item) {
                 OrderItemRow(
@@ -538,7 +547,9 @@ fun StatusBarIconOrderZones(
                     label = StatusBarIconSlots.label(context, item),
                     slot = item,
                     dragging = draggingItem == item,
-                    highlighted = draggingItem != item && dragTarget == leftCount + index,
+                    // 左区为空时，落位槽高亮让给空区占位行（真正落点是「放回左侧」而不是第一行右区）
+                    highlighted = draggingItem != item && dragTarget == leftCount + index &&
+                        !(leftCount == 0 && dragTarget == 0),
                     rowOffset = { offsetFor(leftCount + index) },
                     rowDragModifier = dragModifierFor(item, true),
                     handleDragModifier = dragModifierFor(item, false),
@@ -631,6 +642,62 @@ private fun ZoneDivider(modifier: Modifier = Modifier) {
         MiuixHorizontalDivider(modifier)
     } else {
         HorizontalDivider(modifier)
+    }
+}
+
+/**
+ * 左区被搬空时的占位行：让「左侧区域」始终可见，并充当「把图标拖回左侧」的落位区。
+ *
+ * [highlighted] 由拖动状态传入：落位下标为 0 时高亮，与普通行的落位槽高亮同色。
+ * 本行不参与 [items] 的下标空间，拖到它上面落位下标自然为 0（它位于第一行右区行之上）。
+ */
+@Composable
+private fun LeftZoneEmptyRow(highlighted: Boolean) {
+    val text = stringResource(R.string.statusbar_icon_order_left_empty)
+    when (LocalUiMode.current) {
+        UiMode.Miuix -> Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(OrderItemHeight)
+                .then(
+                    if (highlighted) {
+                        Modifier.background(MiuixTheme.colorScheme.primary.copy(alpha = 0.08f))
+                    } else {
+                        Modifier
+                    }
+                )
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            MiuixText(
+                text = text,
+                color = MiuixTheme.colorScheme.onBackgroundVariant,
+                style = MiuixTheme.textStyles.footnote1,
+            )
+        }
+
+        UiMode.Material -> Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(OrderItemHeight)
+                .then(
+                    if (highlighted) {
+                        Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
+                    } else {
+                        Modifier
+                    }
+                )
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

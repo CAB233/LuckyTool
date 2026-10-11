@@ -152,6 +152,11 @@ class StatusBarIconOrderTest {
         val rebuildLeft = mutableListOf("clock", "battery", "wifi")
         assertEquals(1, zoneDrop(rebuildLeft, 0, 1, 0))
         assertEquals(listOf("battery", "clock", "wifi"), rebuildLeft)
+
+        // 最顶行原地不动也允许「拖一下 = 放进左侧」：左区为空时它没有别的办法回左区
+        val topRow = mutableListOf("clock", "battery")
+        assertEquals(1, zoneDrop(topRow, 0, 0, 0))
+        assertEquals(listOf("clock", "battery"), topRow)
     }
 
     @Test
