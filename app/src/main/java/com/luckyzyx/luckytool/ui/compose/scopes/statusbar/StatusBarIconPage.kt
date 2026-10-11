@@ -1,7 +1,5 @@
 package com.luckyzyx.luckytool.ui.compose.scopes.statusbar
 
-import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
 import com.luckyzyx.luckytool.utils.A13
@@ -25,37 +23,13 @@ object StatusBarIconPage {
     ) {
         val c = requireNotNull(context) { "ScopeScreen 未注入 Context" }
         val osCode = getOSVersionCode
-        // 图标位置排序
-        category(c.getString(R.string.statusbar_icon_order_category_switch))
-        // 总开关：hooker 只在开启时装载（onHook 里判断），因此关闭/开启都需要重启作用域
-        switch(
-            key = STATUS_BAR_ICON_ORDER_ENABLED_KEY,
-            title = c.getString(R.string.statusbar_icon_order_enable),
+        // 图标位置排序：拖拽列表有 50 项，单独成页（开关与列表都在该页），这里只留入口行
+        category(c.getString(R.string.statusbar_icon_order))
+        page(
+            title = c.getString(R.string.statusbar_icon_order),
+            target = StatusBarIconOrderPage.PAGE_KEY,
             summary = c.getString(R.string.statusbar_icon_order_enable_summary),
-            onChange = { restart?.invoke() },
         )
-        if (state.getBoolean(STATUS_BAR_ICON_ORDER_ENABLED_KEY, false)) {
-            // 拖拽规则说明（与开关同一张卡片）
-            custom { StatusBarIconOrderHint() }
-            // 两区域拖拽排序：松手即写回偏好，宿主侧经 dataChannel 实时生效
-            category(c.getString(R.string.statusbar_icon_order_category_arrange))
-            custom {
-                val left by state.stringFlow(STATUS_BAR_ICON_ORDER_LEFT_KEY, "")
-                    .collectAsStateWithLifecycle()
-                val right by state.stringFlow(STATUS_BAR_ICON_ORDER_KEY, "")
-                    .collectAsStateWithLifecycle()
-                StatusBarIconOrderZones(
-                    leftRaw = left,
-                    rightRaw = right,
-                    onApply = { newLeft, newRight ->
-                        state.set(STATUS_BAR_ICON_ORDER_LEFT_KEY, newLeft)
-                        sendValue(STATUS_BAR_ICON_ORDER_LEFT_KEY, newLeft)
-                        state.set(STATUS_BAR_ICON_ORDER_KEY, newRight)
-                        sendValue(STATUS_BAR_ICON_ORDER_KEY, newRight)
-                    },
-                )
-            }
-        }
         // WIFI
         category(c.getString(R.string.StatusBarWIFIIcon))
         switch(

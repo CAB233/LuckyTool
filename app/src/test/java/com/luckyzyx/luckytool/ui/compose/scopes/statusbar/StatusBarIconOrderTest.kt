@@ -1,7 +1,12 @@
 package com.luckyzyx.luckytool.ui.compose.scopes.statusbar
 
 import android.content.Context
+import android.content.pm.PackageInfo
 import androidx.test.core.app.ApplicationProvider
+import com.luckyzyx.luckytool.ui.compose.components.PrefScopeBuilder
+import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageRegistry
+import com.luckyzyx.luckytool.utils.ModulePrefs
+import com.luckyzyx.luckytool.utils.PrefState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -9,6 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
@@ -115,5 +121,40 @@ class StatusBarIconOrderTest {
         assertEquals(ZoneMove(1, false), zoneMove(mutableListOf("clock", "wifi"), 1, 1, down = true))
         assertEquals(ZoneMove(1, false), zoneMove(mutableListOf("clock", "wifi"), 1, 0, down = false))
         assertEquals(ZoneMove(0, false), zoneMove(mutableListOf(), 0, 0, down = true))
+    }
+
+    /**
+     * 排序列表独立成页：功能页只留入口行，排序页自己带开关与列表。
+     * `com.android.systemui` 是排序页的唯一作用域，Robolectric 下未安装时入口行会被可达性判断拦掉，
+     * 因此先装一个包信息（与 `ScopePageReachabilityTest` 同一手法）。
+     */
+    @Test
+    fun `the icon page links to the dedicated order page`() {
+        Shadows.shadowOf(context.packageManager).installPackage(
+            PackageInfo().apply { packageName = "com.android.systemui" },
+        )
+
+        val spec = ScopePageRegistry[StatusBarIconOrderPage.PAGE_KEY]
+        assertNotNull("排序页应已注册", spec)
+        assertEquals("statusbar_icon_order", StatusBarIconOrderPage.PAGE_KEY)
+        assertTrue(
+            "排序页必须有可见条目（开关无条件发射），否则入口行会被误隐藏",
+            ScopePageRegistry.hasVisibleContent(context, spec!!),
+        )
+
+        val raw = context.getSharedPreferences(ModulePrefs, Context.MODE_PRIVATE)
+        raw.edit().clear().commit()
+        val builder = PrefScopeBuilder(PrefState.ofProvider { raw })
+        builder.context = context
+        builder.beginBuild()
+        StatusBarIconPage.spec.content(builder)
+        val keys = builder.entries.mapNotNull { it.indexKey }.toSet()
+        assertTrue(
+            "图标页必须发射排序页入口行，实际索引键：$keys",
+            "page:${StatusBarIconOrderPage.PAGE_KEY}" in keys,
+        )
+        // 排序的行不再长在功能页里：旧的排序行键与左区键都不该出现在图标页索引中
+        assertTrue("排序列不应再留在图标页：$keys", STATUS_BAR_ICON_ORDER_KEY !in keys)
+        assertTrue("排序列不应再留在图标页：$keys", STATUS_BAR_ICON_ORDER_LEFT_KEY !in keys)
     }
 }

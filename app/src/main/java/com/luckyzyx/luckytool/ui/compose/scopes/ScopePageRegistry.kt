@@ -65,6 +65,7 @@ import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusWirelessSettingsPage
 import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarBatteryPage
 import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarControlCenterPage
 import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarIconPage
+import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarIconOrderPage
 import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarLayoutPage
 import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarNetWorkSpeedPage
 import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarNotifyPage
@@ -468,6 +469,8 @@ object ScopePageRegistry {
         "lock_screen" to R.string.LockScreen,
         "application" to R.string.Application,
         "miscellaneous" to R.string.Miscellaneous,
+        // 排序页不是功能树 root，登记标题只为顶栏兜底标题（经 page() 进入时用入口行标题）
+        "statusbar_icon_order" to R.string.statusbar_icon_order,
     )
 
     /** DSL page(target=...) 的旧 nav id 名 → pageKey（tools/p3_nav_switch.ps1 $pairs + $specialPairs + P1 两页） */
@@ -513,6 +516,8 @@ object ScopePageRegistry {
         "oplusWirelessSettings" to "oplus_wireless_settings",
         "statusBarNotify" to "statusbar_notify",
         "statusBarIcon" to "statusbar_icon",
+        // 无旧 nav id 的新页：入口行 target 直接用 pageKey，自映射让 page() 跳转与搜索索引都能解析
+        "statusbar_icon_order" to "statusbar_icon_order",
         "statusBarControlCenter" to "statusbar_control_center",
         "statusBarLayout" to "statusbar_layout",
         "statusBarBattery" to "statusbar_battery",
@@ -591,6 +596,7 @@ object ScopePageRegistry {
         register(StatusBarBatteryPage.spec)
         register(StatusBarControlCenterPage.spec)
         register(StatusBarIconPage.spec)
+        register(StatusBarIconOrderPage.spec)
         register(StatusBarLayoutPage.spec)
         register(StatusBarNetWorkSpeedPage.spec)
         register(StatusBarNotifyPage.spec)
