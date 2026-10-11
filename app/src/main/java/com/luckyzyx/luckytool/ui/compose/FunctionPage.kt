@@ -276,7 +276,7 @@ private fun TreeRowLeading(pageKey: String, title: String, packName: String?) {
     }
 }
 
-/** 功能树：49 页固定顺序（ScopePageRegistry.treeOrder），spec 手动不可见、单 App 作用域未安装或空索引页隐藏 */
+/** 功能树：49 页固定顺序（ScopePageRegistry.treeOrder），spec 手动不可见、单 App 作用域未安装或空索引页隐藏（fullContent 页除外） */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FunctionTreeScreen(
@@ -295,7 +295,9 @@ private fun FunctionTreeScreen(
                     if (!spec.isVisible(context)) return@mapNotNull null
                     if (!ScopePageRegistry.isScopeAppPresent(context, spec)) return@mapNotNull null
                     val index = ScopePageRegistry.buildIndex(context, spec)
-                    if (index.isEmpty()) return@mapNotNull null
+                    // fullContent 页（暗色模式列表/意图/自定义浮窗等）自带整页渲染、DSL 行恒空，
+                    // 空索引不代表不可见，判据与 ScopePageRegistry.hasVisibleContent 一致
+                    if (index.isEmpty() && spec.fullContent == null) return@mapNotNull null
                     val summary = index.mapNotNull { it.title }.take(3).joinToString(" · ").ifEmpty { null }
                     val packName = if (key in categoryBadges) null else (spec.displayPackName ?: spec.packName)
                     TreeRow(key, pageTitle(context, spec), summary, packName)

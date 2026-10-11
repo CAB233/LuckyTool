@@ -342,9 +342,9 @@ object ScopePageRegistry {
     fun all(): List<ScopePageSpec> = pages.values.toList()
 
     /**
-     * headless 构建一页的搜索索引（等价旧 getAllPrefsItem：条件可见性已由 DSL 的 Kotlin if 应用，
-     * 空索引 = 该页不可见）。构建是纯记录（emit 不渲染），可在任意线程运行；
-     * 功能树、全屏搜索与 DSL page() 子页入口可达性判断共用。
+     * headless 构建一页的搜索索引（等价旧 getAllPrefsItem：条件可见性已由 DSL 的 Kotlin if 应用）。
+     * 构建是纯记录（emit 不渲染），可在任意线程运行；功能树、全屏搜索与 DSL page() 子页入口可达性判断共用。
+     * 注意：空索引**不等于**该页不可见——见 [hasVisibleContent]。
      */
     fun buildIndex(context: Context, spec: ScopePageSpec): List<PrefIndexItem> = try {
         val state = PrefState.of(context.applicationContext, spec.prefsName)
@@ -372,6 +372,16 @@ object ScopePageRegistry {
     private val reachabilityProbeStack: ThreadLocal<ArrayDeque<String>> = ThreadLocal.withInitial { ArrayDeque() }
 
     /**
+     * 一页是否有可见内容（旧 getRootPreference 检查2「可见子 item<=0 隐藏」的判据）。
+     *
+     * [ScopePageSpec.fullContent] 自带整页渲染的特殊页（暗色模式列表 / 意图 / 自定义浮窗 /
+     * 应用分身 / MEMC 等）把行清单画在自己的布局里，其 DSL content 恒为空、索引恒为空；
+     * 若按空索引判为不可见，父页入口整行会被误隐藏。它们按「有内容」处理。
+     */
+    fun hasVisibleContent(context: Context, spec: ScopePageSpec): Boolean =
+        spec.fullContent != null || buildIndex(context, spec).isNotEmpty()
+
+    /**
      * 一页是否可进入（旧 getRootPreference 三级判断的集中版，供 DSL page() 子页入口使用）：
      * spec.isVisible（旧根条目 isVisible）&& 单 App 作用域已安装 && 存在可见条目（旧检查2「可见子 item<=0 隐藏」）。
      * 目标页不可达时父页不发射入口行。未注册的 pageKey 视为可达（不拦截未知目标，保持旧行为）。
@@ -384,7 +394,7 @@ object ScopePageRegistry {
         if (pageKey in stack) return true
         stack.addLast(pageKey)
         return try {
-            buildIndex(context, spec).isNotEmpty()
+            hasVisibleContent(context, spec)
         } finally {
             stack.removeLast()
         }
