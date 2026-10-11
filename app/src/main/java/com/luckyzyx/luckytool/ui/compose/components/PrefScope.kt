@@ -784,7 +784,10 @@ fun ScopeScreen(
     // 订阅 revision：任何偏好写入都会重组本页 → 构建 lambda 重跑 → 条件可见性自动重求值。
     // 必须读取 .value：仅调用 collectAsStateWithLifecycle() 并丢弃返回值，快照订阅不会建立，
     // 条件可见性（基于 state.getXxx() 的 if/let 分支）将不会随偏好写入重求值。
-    state.revision.collectAsStateWithLifecycle().value
+    // 同一个 State 对象还要交给列表内容 lambda 读取一次（见 listItems）：
+    // 只有列表内容自己也订阅 revision，偏好写入后条目才会重算、条件行才会出现。
+    val revisionState = state.revision.collectAsStateWithLifecycle()
+    revisionState.value
 
     val builder = remember(state) { PrefScopeBuilder(state) }
     builder.sendValue = sendValue
@@ -817,6 +820,13 @@ fun ScopeScreen(
         // （systemInfo / rows / entries / filtered 等 mutableStateOf）的读取因此进入快照订阅，
         // 任一变化都会让条目重算、列表刷新。放在函数体里这些读取不参与列表追踪：
         // 功能树 rows 由空变满不刷新（白屏）、搜索结果不出现、SYSTEMINFO 切页后才显示。
+        //
+        // revision 也必须在 lambda 内部读一次：偏好写入只让 ScopeScreen 重组（函数体里那次
+        // beginBuild/content 会用新值重建 entries），列表内容本身不重算就不会去用新的 entries，
+        // 行声明里的 if (state.getString(...)) 条件分支不重求值，条件条目永远不出现
+        //（实测：不读 revision 时写入偏好后只有函数体重建、条目内容不重组）。
+        // 读一次 revision 让列表内容直接依赖它，与 systemInfo / rows 走同一条快照链。
+        revisionState.value
         builder.beginBuild()
         builder.content()
         builder.computeSegments()

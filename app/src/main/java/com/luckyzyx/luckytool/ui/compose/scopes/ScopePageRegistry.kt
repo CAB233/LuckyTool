@@ -257,7 +257,8 @@ internal fun ScopePageContent(
 
     // ---- 槽位路径：页面自有布局（共享层负责状态/动作，不绘制任何行）----
     // 订阅 revision：任何偏好写入都会重组本页 → 构建 lambda 重跑 → 条件可见性自动重求值
-    state.revision.collectAsStateWithLifecycle()
+    // 必须读取 .value：仅调用 collectAsStateWithLifecycle() 并丢弃返回值，快照订阅不会建立
+    state.revision.collectAsStateWithLifecycle().value
 
     val builder = remember(state) { PrefScopeBuilder(state) }
     builder.sendValue = sendValue
