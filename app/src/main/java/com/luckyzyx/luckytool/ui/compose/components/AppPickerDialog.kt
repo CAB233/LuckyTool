@@ -52,20 +52,20 @@ import com.luckyzyx.luckytool.ui.compose.components.material.MaterialListItem
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.PackageUtils
-import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import top.yukonga.miuix.kmp.preference.CheckboxLocation
+import top.yukonga.miuix.kmp.preference.CheckboxPreference
+import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.HorizontalDivider as MiuixHorizontalDivider
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
-import top.yukonga.miuix.kmp.overlay.OverlayDialog
-import top.yukonga.miuix.kmp.preference.CheckboxLocation
-import top.yukonga.miuix.kmp.preference.CheckboxPreference
 
 /** AppInfo 排序模式（与旧 AppInfoSelectDialog 的 sortMode 对齐） */
 enum class AppSortMode(@StringRes val labelRes: Int) {
@@ -288,7 +288,7 @@ private fun MaterialAppPickerDialog(
         confirmButton = {
             if (multiMode) {
                 TextButton(
-                    enabled = !loading && state.selected.isNotEmpty(),
+                    enabled = !loading,
                     onClick = onConfirmSelected,
                 ) { Text(stringResource(android.R.string.ok)) }
             } else {
@@ -424,7 +424,7 @@ private fun MiuixAppPickerDialog(
                     MiuixTextButton(
                         text = stringResource(android.R.string.ok),
                         onClick = onConfirmSelected,
-                        enabled = !loading && state.selected.isNotEmpty(),
+                        enabled = !loading,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.textButtonColorsPrimary(),
                     )
