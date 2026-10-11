@@ -41,6 +41,13 @@ object StatusBarIconPage {
             onChange = { restart?.invoke() },
         )
         if (state.getBoolean(STATUS_BAR_ICON_ORDER_ENABLED_KEY, false)) {
+            // 区域排列：时钟与通知图标的左右位置（同一个左侧容器内换序，无需重启）
+            switch(
+                key = STATUS_BAR_ICON_ORDER_CLOCK_AFTER_KEY,
+                title = c.getString(R.string.statusbar_icon_order_clock_after),
+                summary = c.getString(R.string.statusbar_icon_order_clock_after_summary),
+                notify = true,
+            )
             custom(
                 key = STATUS_BAR_ICON_ORDER_KEY,
                 title = c.getString(R.string.statusbar_icon_order),

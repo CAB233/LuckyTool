@@ -1255,6 +1255,8 @@
     <string name="statusbar_icon_order">状态栏图标排序</string>
     <string name="statusbar_icon_order_enable">启用图标排序</string>
     <string name="statusbar_icon_order_enable_summary">开启后才会按下方顺序排列状态栏图标，切换开关需重启系统界面</string>
+    <string name="statusbar_icon_order_clock_after">时钟排在通知图标右侧</string>
+    <string name="statusbar_icon_order_clock_after_summary">默认时钟在通知图标左侧，开启后两者交换位置</string>
     <string name="statusbar_icon_order_summary">调整图标在状态栏上的显示顺序，新出现的图标保持系统默认位置</string>
     <string name="statusbar_icon_order_reset">重置</string>
     <string name="statusbar_icon_order_move_up">上移</string>

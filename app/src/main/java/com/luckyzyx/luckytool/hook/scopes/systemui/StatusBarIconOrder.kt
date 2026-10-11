@@ -2,6 +2,8 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 
 import android.os.Handler
 import android.os.Looper
+import android.view.View
+import android.view.ViewGroup
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.toClassOrNull
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
@@ -30,6 +32,12 @@ object StatusBarIconOrder : YukiBaseHooker() {
     /** 总开关：关闭时不装载任何 hook（与页面上的开关同名） */
     private const val ENABLE_KEY = "statusbar_icon_order_enabled"
 
+    /** 时钟位置：true = 时钟排到通知图标右侧（宿主默认在左侧） */
+    private const val CLOCK_AFTER_KEY = "statusbar_icon_order_clock_after"
+
+    /** ColorOS 17 的状态栏根布局（StatusBarRoot 里 inflate `R.layout.status_bar` 的那个 View） */
+    private const val STATUS_BAR_VIEW_CLASS = "com.android.systemui.statusbar.phone.PhoneStatusBarView"
+
     /** A15+ 把 StatusBarIconList/StatusBarIconControllerImpl 挪到 phone.ui 包，两代名字都兼容 */
     private val iconListClassNames = arrayOf(
         "com.android.systemui.statusbar.phone.ui.StatusBarIconList",
@@ -48,20 +56,32 @@ object StatusBarIconOrder : YukiBaseHooker() {
     @Volatile
     private var defaultOrder: List<String> = emptyList()
 
-    // StatusBarIconList / StatusBarIconControllerImpl 与 SystemUI 进程同生命周期，强引用不会泄漏
+    // StatusBarIconList / StatusBarIconControllerImpl / PhoneStatusBarView 与 SystemUI 进程同生命周期，强引用不会泄漏
     private var iconList: Any? = null
     private var iconController: Any? = null
+    private var statusBarView: View? = null
+
+    /** 时钟是否排在通知图标右侧 */
+    @Volatile
+    private var clockAfterNotifications = false
 
     override fun onHook() {
         // 需要重启作用域才会装载/卸载本 hooker
         if (!preferences(ModulePrefs).getBoolean(ENABLE_KEY, false)) return
         userOrder = parseOrder(preferences(ModulePrefs).getString(KEY, ""))
+        clockAfterNotifications = preferences(ModulePrefs).getBoolean(CLOCK_AFTER_KEY, false)
         hookIconList()
         hookIconController()
+        hookStatusBarView()
         dataChannel.wait<String>(KEY) { value ->
             userOrder = parseOrder(value)
             // 重排 + refreshStatusBarIconList 都要在主线程做
             Handler(Looper.getMainLooper()).post { applyOrder(iconList, refresh = true) }
+        }
+        // 时钟位置只动同一容器内的子 view 顺序，可以在主线程立即生效
+        dataChannel.wait<Boolean>(CLOCK_AFTER_KEY) { value ->
+            clockAfterNotifications = value
+            Handler(Looper.getMainLooper()).post { applyClockPosition() }
         }
     }
 
@@ -95,6 +115,52 @@ object StatusBarIconOrder : YukiBaseHooker() {
             }
         }
     }
+
+    /**
+     * 时钟与通知图标的左右位置。
+     *
+     * 宿主 `status_bar.xml` 里 `status_bar_start_side_except_heads_up` 的子 view 顺序就是布局顺序
+     * （`StartSideExceptHeadsUpLayout extends LinearLayout`，`onLayout` 只设 pivot 后交给 super）：
+     * `operator_name_stub`(ViewStub) → `clock_for_fake`(时钟) → `status_bar_start_side_content_for_fake`(通知图标组)。
+     *
+     * 这里只在这一个容器内部把 `clock_for_fake` 挪到通知图标组之前/之后：不跨容器、不重建容器、
+     * 不改任何 id，宿主自己的 `StatusBarRoot` 也是用 `addView(view, index)` 往这个容器里插东西。
+     */
+    private fun hookStatusBarView() {
+        val clazz = classOrNull(STATUS_BAR_VIEW_CLASS) ?: return
+        clazz.resolve().apply {
+            // PhoneStatusBarView#onFinishInflate 是 public final，此处此时布局结构就是 XML 原始顺序
+            firstMethod { name = "onFinishInflate" }.hook {
+                after {
+                    val view = instance<View>()
+                    statusBarView = view
+                    applyClockPosition()
+                }
+            }
+        }
+    }
+
+    /** 把 `clock_for_fake` 放到通知图标组的左侧（默认）或右侧（[clockAfterNotifications]） */
+    private fun applyClockPosition() {
+        val view = statusBarView ?: return
+        val startSide = view.findViewById<ViewGroup>(idOf(view, "status_bar_start_side_except_heads_up"))
+            ?: return
+        val clock = startSide.findViewById<View>(idOf(view, "clock_for_fake")) ?: return
+        val content = startSide.findViewById<View>(idOf(view, "status_bar_start_side_content_for_fake"))
+            ?: return
+        // 只处理直接的子 view（宿主改结构时直接不动，避免破坏其它联动）
+        if (clock.parent !== startSide || content.parent !== startSide) return
+
+        startSide.removeView(clock)
+        val contentIndex = startSide.indexOfChild(content)
+        val target = (if (clockAfterNotifications) contentIndex + 1 else contentIndex)
+            .coerceIn(0, startSide.childCount)
+        startSide.addView(clock, target)
+    }
+
+    /** 宿主资源 id 只能按名字取（模块里没有 com.android.systemui 的 R） */
+    private fun idOf(view: View, name: String): Int =
+        view.resources.getIdentifier(name, "id", view.context.packageName)
 
     /** 按 [userOrder] 原地重排 `mSlots`；未收录的槽位按捕获的宿主默认顺序稳定排在其后 */
     private fun applyOrder(list: Any?, refresh: Boolean) {
