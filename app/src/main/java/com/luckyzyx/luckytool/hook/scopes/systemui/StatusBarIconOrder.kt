@@ -8,9 +8,6 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import com.highcapable.betterandroid.ui.extension.view.child
-import com.highcapable.betterandroid.ui.extension.view.parentOrNull
-import com.highcapable.betterandroid.ui.extension.view.removeSelf
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.makeAccessible
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
@@ -240,10 +237,13 @@ object StatusBarIconOrder : YukiBaseHooker() {
      * @param refresh true 时额外重建图标 view（顺序变化必须重建：虚拟顺序来自宿主的插入顺序）
      */
     private fun applyZones(refresh: Boolean) {
-        applyOrder(iconList, refresh = false)
-        ensureGroups()
-        reconcile()
-        if (refresh) refreshIcons()
+        // hook 里任何异常都不能带走 SystemUI（宿主结构不符时只记日志、保持原样）
+        runCatching {
+            applyOrder(iconList, refresh = false)
+            ensureGroups()
+            reconcile()
+            if (refresh) refreshIcons()
+        }.onFailure { YLog.debug("StatusBarIconOrder: applyZones failed -> $it") }
     }
 
     /** 解析状态栏自己的 `statusIcons`，并准备两区容器（按需才会挂到布局上） */
@@ -307,7 +307,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
         if (clockStartIndex < 0 && clock.parent === startSide) clockStartIndex =
             startSide.indexOfChild(clock)
         // 宿主改结构时不动：时钟只认状态栏左侧容器 / system_icons 两种父容器
-        val clockParent = clock.parentOrNull()
+        val clockParent = clock.parent as? ViewGroup
         if (clockParent != null && clockParent !== startSide && clockParent !== systemIcons) {
             YLog.debug("StatusBarIconOrder: clock parent unexpected -> $clockParent")
             clockAttached = false
@@ -316,7 +316,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
         }
         if (clockInStartSide()) {
             if (clock.parent !== startSide) {
-                clock.removeSelf()
+                (clock.parent as? ViewGroup)?.removeView(clock)
                 startSide.addView(
                     clock,
                     clockStartIndex.coerceIn(0, startSide.childCount),
@@ -334,7 +334,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
             if (clock.parent === startSide) clockStartIndex = startSide.indexOfChild(clock)
             systemIcons.addView(endBefore, 0)
             if (clock.parent !== systemIcons) {
-                clock.removeSelf()
+                (clock.parent as? ViewGroup)?.removeView(clock)
                 systemIcons.addView(clock, systemIcons.indexOfChild(endBefore) + 1)
             }
             startSide.addView(
@@ -346,7 +346,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
     }
 
     private fun detachViews(vararg groups: ViewGroup?) {
-        for (group in groups) (group?.parentOrNull())?.removeView(group)
+        for (group in groups) (group?.parent as? ViewGroup)?.removeView(group)
     }
 
     /**
@@ -428,15 +428,17 @@ object StatusBarIconOrder : YukiBaseHooker() {
             val want = desired[container] ?: continue
             for (index in want.indices) {
                 val child = want[index]
-                if (container.child(index) === child) continue
-                child.removeSelf()
+                // 必须用 getChildAt（越界返回 null）：betterandroid 的 container.child(index)
+                // 在容器为空 / 下标越界时会直接抛 IllegalStateException，把 SystemUI 带走
+                if (container.getChildAt(index) === child) continue
+                (child.parent as? ViewGroup)?.removeView(child)
                 runCatching {
                     container.addView(
                         child,
                         index.coerceIn(0, container.childCount),
                         child.layoutParams
                     )
-                }
+                }.onFailure { YLog.debug("StatusBarIconOrder: reorder add failed -> $it") }
             }
         }
     }
@@ -470,7 +472,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
     }
 
     private fun childrenOf(group: ViewGroup): List<View> =
-        (0 until group.childCount).mapNotNull { group.child(it) }
+        (0 until group.childCount).mapNotNull { group.getChildAt(it) }
 
     /** 宿主资源 id 只能按名字取（模块里没有 com.android.systemui 的 R） */
     private fun idOf(view: View, name: String): Int =
@@ -655,13 +657,13 @@ private class ZoneIconGroup(
 
     override fun removeView(child: View) {
         virtualChildren.remove(child)
-        child.removeSelf()
+        (child.parent as? ViewGroup)?.removeView(child)
     }
 
     override fun removeViewAt(index: Int) {
         val child = virtualChildren.getOrNull(index) ?: return
         virtualChildren.removeAt(index)
-        child.removeSelf()
+        (child.parent as? ViewGroup)?.removeView(child)
     }
 
     override fun removeViews(start: Int, count: Int) {
@@ -669,7 +671,7 @@ private class ZoneIconGroup(
     }
 
     override fun removeAllViews() {
-        for (child in snapshot()) child.removeSelf()
+        for (child in snapshot()) (child.parent as? ViewGroup)?.removeView(child)
         virtualChildren.clear()
     }
 }
