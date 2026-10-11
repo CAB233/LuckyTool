@@ -87,8 +87,8 @@ open class MainActivity : AppCompatActivity() {
         setContent {
             LuckyAppTheme {
                 // 启动闪屏覆盖在主界面之上：主界面同时组合，闪屏淡出后立即可用
-                // 但有启动阻塞门时不播闪屏：它会盖住 MainShell 内 Miuix 线的场景内弹层
-                LuckySplashHost(showSplash = gateDialog == null) {
+                // 启动阻塞门是场景内弹层，闪屏淡出后即露出，不需要为它跳过闪屏
+                LuckySplashHost {
                     MainShell(this)
                 }
             }
