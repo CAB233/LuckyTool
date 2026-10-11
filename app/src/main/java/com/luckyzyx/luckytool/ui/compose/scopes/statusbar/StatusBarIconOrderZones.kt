@@ -370,7 +370,7 @@ fun StatusBarIconOrderZones(
         return (from + (delta / step).roundToInt()).coerceIn(0, maxIndexFor(item))
     }
 
-    /** 行的绘制偏移：被拖行贴手指（到端点就停住），其余行按落位下标让出一行 */
+    /** 行的绘制偏移：被拖行贴手指（到端点也继续贴着），其余行按落位下标让出一行 */
     fun offsetFor(index: Int): Float {
         val item = draggingItem ?: return 0f
         val from = dragFrom
@@ -378,7 +378,10 @@ fun StatusBarIconOrderZones(
         val delta = dragDelta.floatValue
         val to = targetIndex(from, delta)
         if (index == from) {
-            return delta.coerceIn((0 - from) * step, (maxIndexFor(item) - from) * step)
+            // 被拖行不做夹取：位移里含自动滚动的补偿量，一旦按落位范围夹住，长距离滚动或拖到
+            // 列表端点后会出现「行不动、只能原路拖回一大段才恢复」的手感（落位下标已由
+            // targetIndex 夹取，视觉上让它一直跟着手指才自然）。
+            return delta
         }
         return when {
             from < to && index in (from + 1)..to -> -step
