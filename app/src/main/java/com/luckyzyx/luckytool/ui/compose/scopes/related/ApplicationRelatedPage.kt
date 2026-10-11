@@ -96,10 +96,11 @@ object ApplicationRelatedPage {
                 c.getString(R.string.need_restart_system),
                 c.getString(R.string.set_multi_app_support_mode_tips),
             ),
+            // 条件可见性由 state.revision 驱动（list 内部先 state.set → revision 前进 →
+            // ScopeScreen 重组重跑构建 lambda），因此无需 recreate 刷新页面
             onChange = { value ->
                 c.sendPrefsValue("android", "set_multi_app_support_mode", value)
                 c.sendPrefsValue(MULTI_APP, "set_multi_app_support_mode", value)
-                restart?.invoke()
             },
         )
         if (state.getString("set_multi_app_support_mode", "0") == "1") {
@@ -148,7 +149,6 @@ object ApplicationRelatedPage {
             ),
             onChange = { value ->
                 c.sendPrefsValue("android", "set_wlan_sla_whitelist_mode", value)
-                restart?.invoke()
             },
         )
         if (state.getString("set_wlan_sla_whitelist_mode", "0") != "0") {
@@ -355,7 +355,6 @@ object ApplicationRelatedPage {
                     onConfirm = { apps ->
                         state.set(key, apps.map { it.packageName }.toSet())
                         c.sendPrefsKey("android", key)
-                        restart?.invoke()
                         showPicker = false
                     },
                 )
