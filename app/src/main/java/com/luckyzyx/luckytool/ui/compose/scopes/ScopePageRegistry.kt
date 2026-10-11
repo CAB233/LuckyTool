@@ -140,6 +140,12 @@ class ScopePageSpec(
      * false 时功能树、搜索与子页入口均不出现此页；默认恒可见。
      */
     val isVisible: Context.() -> Boolean = { true },
+    /**
+     * 自带整页渲染的**特殊页**（[fullContent] 或主题槽位）：入口可见性只由 [isVisible] 与作用域决定，
+     * 不看 DSL 行索引 —— 这类页面不声明共享行、索引恒空，空索引不能作为「该页不可见」的依据。
+     * 必须由页面自己声明（不要用 [fullContent] 非空之类的结构特征反推）。
+     */
+    val selfRendered: Boolean = false,
     val onRefresh: (suspend () -> Unit)? = null,
     val fullContent: (@Composable LazyItemScope.(PrefScopeBuilder) -> Unit)? = null,
     val contentMiuix: (@Composable ScopeContentScope.(PrefScopeBuilder) -> Unit)? = null,
@@ -374,16 +380,19 @@ object ScopePageRegistry {
     /**
      * 一页是否有可见内容（旧 getRootPreference 检查2「可见子 item<=0 隐藏」的判据）。
      *
-     * [ScopePageSpec.fullContent] 自带整页渲染的特殊页（暗色模式列表 / 意图 / 自定义浮窗 /
-     * 应用分身 / MEMC 等）把行清单画在自己的布局里，其 DSL content 恒为空、索引恒为空；
-     * 若按空索引判为不可见，父页入口整行会被误隐藏。它们按「有内容」处理。
+     * [ScopePageSpec.selfRendered] 的特殊页（暗色模式列表 / 意图 / 自定义浮窗 / 应用分身 / MEMC 等）
+     * 自带整页渲染、行清单画在自己的布局里，DSL content 恒为空、索引恒为空；它们的可见性**只看
+     * [ScopePageSpec.isVisible] 与作用域**，这里不再碰索引，否则父页入口整行会被误隐藏。
+     * 普通页仍按空索引判不可见（条件可见性把行全关掉时不该留下一个空页入口）。
      */
     fun hasVisibleContent(context: Context, spec: ScopePageSpec): Boolean =
-        spec.fullContent != null || buildIndex(context, spec).isNotEmpty()
+        spec.selfRendered || buildIndex(context, spec).isNotEmpty()
 
     /**
      * 一页是否可进入（旧 getRootPreference 三级判断的集中版，供 DSL page() 子页入口使用）：
-     * spec.isVisible（旧根条目 isVisible）&& 单 App 作用域已安装 && 存在可见条目（旧检查2「可见子 item<=0 隐藏」）。
+     * spec.isVisible（旧根条目 isVisible；作用域判断通常也写在这里面）&& 单 App 作用域已安装
+     * && 存在可见条目（旧检查2「可见子 item<=0 隐藏」）。
+     * [ScopePageSpec.selfRendered] 的特殊页到第三步直接为真——它们只靠 isVisible + 作用域，不看索引。
      * 目标页不可达时父页不发射入口行。未注册的 pageKey 视为可达（不拦截未知目标，保持旧行为）。
      */
     fun isPageReachable(context: Context, pageKey: String): Boolean {

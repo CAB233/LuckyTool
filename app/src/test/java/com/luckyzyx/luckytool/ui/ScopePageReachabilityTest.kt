@@ -21,12 +21,12 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * 冻结「自带整页渲染（fullContent）的特殊页不因 DSL 行为空而被判不可达」这一语义。
+ * 冻结「自带整页渲染的特殊页不因 DSL 行为空而被判不可达」这一语义。
  *
- * P4 批次的五个特殊页把 `content` 留成空 `{ }`，整页内容画在 `fullContent` 里（不走共享行渲染）。
- * 而 `ScopePageRegistry.buildIndex` 只跑 `content`，于是索引恒空；旧判据「空索引 = 该页不可见」
- * 会让 `PrefScope.page()` 直接不发射父页入口行 —— 症状就是这些页在界面上「无法显示」
- * （暗色模式列表 / 意图 / 自定义浮窗 / 应用分身 / MEMC）。
+ * P4 批次的五个特殊页把 `content` 留成空 `{ }`，整页内容画在 `fullContent` 里（不走共享行渲染），
+ * 它们自己声明 `selfRendered = true`：入口可见性只看 `isVisible` + 作用域，**不看** DSL 行索引。
+ * 旧判据「空索引 = 该页不可见」会让 `PrefScope.page()` 直接不发射父页入口行 —— 症状就是这些页
+ * 在界面上「无法显示」（暗色模式列表 / 意图 / 自定义浮窗 / 应用分身 / MEMC）。
  *
  * 若哪天有人把 `hasVisibleContent` 改回裸 `buildIndex(...).isNotEmpty()`，
  * 或给 FunctionPage 功能树改回 `index.isEmpty()` 即隐藏，本测试会失败并拦住那次改动。
@@ -42,11 +42,16 @@ class ScopePageReachabilityTest {
         listOf("dark_mode", "hide_app_intent", "zoom_window", "multi_app", "memc_config")
 
     @Test
-    fun `fullContent pages have no DSL rows but still count as visible content`() {
+    fun `special pages declare selfRendered so an empty index cannot hide them`() {
         fullContentPageKeys.forEach { key ->
             val spec = ScopePageRegistry[key]
             assertNotNull("$key 应已注册", spec)
             assertNotNull("$key 应自带整页渲染", spec!!.fullContent)
+            // 判据来自页面自己的声明，不是「fullContent 非空」之类的结构特征反推
+            assertTrue(
+                "$key 必须声明 selfRendered：入口可见性只看 isVisible + 作用域",
+                spec.selfRendered,
+            )
             assertTrue(
                 "$key 的 DSL 索引确实为空（行清单画在页面自己的布局里）",
                 ScopePageRegistry.buildIndex(context, spec).isEmpty(),
@@ -69,7 +74,7 @@ class ScopePageReachabilityTest {
     }
 
     @Test
-    fun `a page with neither DSL rows nor fullContent is not visible`() {
+    fun `a page with neither DSL rows nor the selfRendered flag is not visible`() {
         val empty = ScopePageSpec(
             pageKey = "test_empty_spec",
             prefsName = ModulePrefs,
@@ -78,8 +83,26 @@ class ScopePageReachabilityTest {
             restartEnabled = false,
         ) { }
         assertFalse(
-            "既无 DSL 行也无自带渲染的页仍应按空索引隐藏",
+            "既无 DSL 行也没声明自渲染的页仍应按空索引隐藏",
             ScopePageRegistry.hasVisibleContent(context, empty),
+        )
+    }
+
+    @Test
+    fun `the selfRendered flag alone makes an empty page visible`() {
+        // 特殊页的判据只有 isVisible + 作用域：声明了自渲染就不再看索引（哪怕一行都没有）
+        val special = ScopePageSpec(
+            pageKey = "test_self_rendered_spec",
+            prefsName = ModulePrefs,
+            packName = "",
+            scopes = arrayOf(),
+            restartEnabled = false,
+            selfRendered = true,
+        ) { }
+        assertTrue(ScopePageRegistry.buildIndex(context, special).isEmpty())
+        assertTrue(
+            "声明自渲染的页不应被空索引判为不可见",
+            ScopePageRegistry.hasVisibleContent(context, special),
         )
     }
 

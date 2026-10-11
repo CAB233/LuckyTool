@@ -103,6 +103,8 @@ object MemcConfigPage {
         packName = "",
         scopes = arrayOf(),
         restartEnabled = false,
+        // 特殊页：整页由 fullContent 自渲染，入口可见性只看 isVisible + 作用域
+        selfRendered = true,
         onRefresh = { memcRefresh?.invoke() },
         fullContent = { _ -> MemcConfigContent() },
     ) { }
