@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -32,6 +33,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -89,6 +91,14 @@ import kotlin.time.Duration.Companion.milliseconds
  * 除本机制外不要再补任何 padding 去解决首行遮挡（会与它叠加）。
  */
 internal val LocalScopeTopInset = compositionLocalOf { 0.dp }
+
+/**
+ * 页面列表的 [LazyListState]（[ScopeScreen] 里那个 LazyColumn 的状态）。
+ *
+ * 由 [ScopeScreen] provide；页面内容可用它实现需要主动滚动的交互（例如拖拽排序时
+ * 「拖到列表上下边缘自动滚动」）。不在页面列表内时为 null，调用点必须做空值回落。
+ */
+internal val LocalScopeListState = compositionLocalOf<LazyListState?> { null }
 
 /** 搜索跳转目标：position 为 LazyColumn 槽位（与 [PrefIndexItem.slot] 对应） */
 data class ScrollTarget(val key: String, val position: Int)
@@ -914,24 +924,28 @@ fun ScopeScreen(
             )
         }
     }
-    if (onRefresh != null) {
-        var refreshing by remember { mutableStateOf(false) }
-        val scope = rememberCoroutineScope()
-        PullToRefreshBox(
-            isRefreshing = refreshing,
-            onRefresh = {
-                scope.launch {
-                    refreshing = true
-                    try {
-                        onRefresh()
-                    } finally {
-                        refreshing = false
+    // 列表状态下发到页面内容：LazyColumn 的 item 内容是本 provider 的后代，因此页面里的
+    // 自定义内容（如排序列表）也能拿到它，用于「拖到列表边缘自动滚动」这类主动滚动交互。
+    CompositionLocalProvider(LocalScopeListState provides listState) {
+        if (onRefresh != null) {
+            var refreshing by remember { mutableStateOf(false) }
+            val scope = rememberCoroutineScope()
+            PullToRefreshBox(
+                isRefreshing = refreshing,
+                onRefresh = {
+                    scope.launch {
+                        refreshing = true
+                        try {
+                            onRefresh()
+                        } finally {
+                            refreshing = false
+                        }
                     }
-                }
-            },
-            modifier = modifier,
-        ) { list(Modifier.fillMaxSize()) }
-    } else {
-        list(modifier)
+                },
+                modifier = modifier,
+            ) { list(Modifier.fillMaxSize()) }
+        } else {
+            list(modifier)
+        }
     }
 }

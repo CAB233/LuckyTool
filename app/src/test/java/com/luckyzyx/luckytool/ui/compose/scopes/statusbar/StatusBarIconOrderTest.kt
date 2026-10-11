@@ -171,4 +171,36 @@ class StatusBarIconOrderTest {
         assertTrue("排序列不应再留在图标页：$keys", STATUS_BAR_ICON_ORDER_KEY !in keys)
         assertTrue("排序列不应再留在图标页：$keys", STATUS_BAR_ICON_ORDER_LEFT_KEY !in keys)
     }
+
+    /**
+     * 拖到列表上下边缘自动滚动：远离边缘不滚，越靠边越快，方向由落在哪一侧决定。
+     * `visualTop` 是被拖行的窗口 Y，`viewport` 是窗口高度，`edge` 是触发自动滚动的边缘宽度。
+     */
+    @Test
+    fun `auto scroll only kicks in near the viewport edges`() {
+        val viewport = 2000f
+        val edge = 300f
+        val max = 40f
+        // 中间：不滚
+        assertEquals(0f, autoScrollStep(1000f, viewport, edge, max), 0.001f)
+        // 上边缘区内：向上滚（负），越靠上越快
+        val upper = autoScrollStep(150f, viewport, edge, max)
+        assertTrue("上边缘应向上滚，实际 $upper", upper < 0f)
+        assertTrue("越靠上越快", autoScrollStep(90f, viewport, edge, max) < upper)
+        // 下边缘区内：向下滚（正），越靠下越快
+        val lower = autoScrollStep(1800f, viewport, edge, max)
+        assertTrue("下边缘应向下滚，实际 $lower", lower > 0f)
+        assertTrue("越靠下越快", autoScrollStep(1900f, viewport, edge, max) > lower)
+    }
+
+    @Test
+    fun `auto scroll speed is clamped and invalid geometry never scrolls`() {
+        // 贴住边缘 = 满速；越界（手指拖出屏幕）也只维持满速
+        assertEquals(-40f, autoScrollStep(0f, 2000f, 300f, 40f), 0.001f)
+        assertEquals(-40f, autoScrollStep(-500f, 2000f, 300f, 40f), 0.001f)
+        assertEquals(40f, autoScrollStep(2000f, 2000f, 300f, 40f), 0.001f)
+        // 边缘宽度/速度非法时不滚（窗口高度拿不到时调用点也会直接跳过）
+        assertEquals(0f, autoScrollStep(10f, 2000f, 0f, 40f), 0.001f)
+        assertEquals(0f, autoScrollStep(10f, 2000f, 300f, 0f), 0.001f)
+    }
 }

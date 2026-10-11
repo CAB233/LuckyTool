@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -31,22 +33,28 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.luckyzyx.luckytool.R
+import com.luckyzyx.luckytool.ui.compose.components.LocalScopeListState
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import kotlin.math.roundToInt
+import kotlinx.coroutines.isActive
 import top.yukonga.miuix.kmp.basic.HorizontalDivider as MiuixHorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
@@ -75,6 +83,32 @@ const val STATUS_BAR_ICON_ORDER_CLOCK_ITEM = "clock"
  * 拖拽时用位移换算「跨过几行」，因此必须与行的实际高度一致（[OrderItemRowHeight]）。
  */
 private val OrderItemHeight = 64.dp
+
+/** 被拖行进入距列表可视区上下边缘这个范围时开始自动滚动 */
+private val AutoScrollEdge = 150.dp
+
+/** 自动滚动最快时每帧的位移（贴住边缘时） */
+private val AutoScrollMaxSpeed = 12.dp
+
+/**
+ * 自动滚动的每帧位移（纯函数，便于单测）。
+ *
+ * [visualTop] 是此刻被拖行的窗口 Y，[viewportHeight] 是窗口高度，[edge] 是触发自动滚动的边缘宽度，
+ * [maxSpeed] 是贴住边缘时的每帧位移。返回值正 = 向列表下方滚（内容上移），负 = 向上滚，0 = 不滚。
+ */
+internal fun autoScrollStep(
+    visualTop: Float,
+    viewportHeight: Float,
+    edge: Float,
+    maxSpeed: Float,
+): Float {
+    if (edge <= 0f || maxSpeed <= 0f) return 0f
+    val overflowTop = edge - visualTop
+    if (overflowTop > 0f) return -maxSpeed * (overflowTop / edge).coerceIn(0f, 1f)
+    val overflowBottom = visualTop - (viewportHeight - edge)
+    if (overflowBottom > 0f) return maxSpeed * (overflowBottom / edge).coerceIn(0f, 1f)
+    return 0f
+}
 
 /**
  * 状态栏图标槽位表（宿主 `config_statusBarIcons` 的顺序与名字）。
@@ -304,7 +338,23 @@ fun StatusBarIconOrderZones(
     var draggingItem by remember(session) { mutableStateOf<String?>(null) }
     var dragFrom by remember(session) { mutableIntStateOf(-1) }
     val dragDelta = remember(session) { mutableFloatStateOf(0f) }
-    val step = with(LocalDensity.current) { OrderItemHeight.toPx() }
+    val density = LocalDensity.current
+    val step = with(density) { OrderItemHeight.toPx() }
+
+    // 页面列表状态（拖到边缘时要主动滚动它）与自动滚动的几何参数
+    val pageListState = LocalScopeListState.current
+    val viewportHeight = LocalWindowInfo.current.containerSize.height.toFloat()
+    val autoScrollEdge = with(density) { AutoScrollEdge.toPx() }
+    val autoScrollSpeed = with(density) { AutoScrollMaxSpeed.toPx() }
+
+    // 每行的窗口 Y：拖动开始时用它推算被拖行此刻的窗口位置。普通 map（不参与快照，避免逐帧重组）。
+    val rowTops = remember(session) { HashMap<String, Float>() }
+
+    /** 拖动开始时被拖行的窗口 Y */
+    val dragRowTop = remember(session) { FloatArray(1) }
+
+    /** 自动滚动累计量（正 = 内容上移）：要补进被拖行的位移，行才不会在滚动时脱离手指 */
+    val scrolledBy = remember(session) { FloatArray(1) }
 
     // 被拖项能落到的最末下标：时钟只能在左区内移动，其余槽位可以跨区
     fun maxIndexFor(item: String): Int =
@@ -360,6 +410,7 @@ fun StatusBarIconOrderZones(
         draggingItem = null
         dragFrom = -1
         dragDelta.floatValue = 0f
+        scrolledBy[0] = 0f
     }
 
     /** 松手落位：换位（跨区时区界同步增减），然后写回偏好，宿主侧实时生效 */
@@ -375,30 +426,55 @@ fun StatusBarIconOrderZones(
     // afterLongPress = true：长按整行开始拖动；false：按住手柄立即拖动。
     // pointerInput 的 key 与位置无关，拖动期间即使发生重组也不会重启手势检测器。
     val dragModifierFor: (String, Boolean) -> Modifier = { item, afterLongPress ->
-        Modifier.pointerInput(session, afterLongPress) {
-            val onStart = {
-                draggingItem = item
-                dragFrom = items.indexOf(item)
-                dragDelta.floatValue = 0f
+        Modifier
+            // 记住每一行的窗口 Y：拖动开始时被拖行的位置是自动滚动的判据
+            .onGloballyPositioned { rowTops[item] = it.positionInWindow().y }
+            .pointerInput(session, afterLongPress) {
+                val onStart = {
+                    draggingItem = item
+                    dragFrom = items.indexOf(item)
+                    dragDelta.floatValue = 0f
+                    dragRowTop[0] = rowTops[item] ?: 0f
+                    scrolledBy[0] = 0f
+                }
+                val onDrag: (PointerInputChange, Offset) -> Unit = { change, amount ->
+                    change.consume()
+                    dragDelta.floatValue += amount.y
+                }
+                if (afterLongPress) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = { onStart() },
+                        onDragCancel = { resetDrag() },
+                        onDragEnd = { commitDrag() },
+                        onDrag = onDrag,
+                    )
+                } else {
+                    detectDragGestures(
+                        onDragStart = { onStart() },
+                        onDragCancel = { resetDrag() },
+                        onDragEnd = { commitDrag() },
+                        onDrag = onDrag,
+                    )
+                }
             }
-            val onDrag: (PointerInputChange, Offset) -> Unit = { change, amount ->
-                change.consume()
-                dragDelta.floatValue += amount.y
-            }
-            if (afterLongPress) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { onStart() },
-                    onDragCancel = { resetDrag() },
-                    onDragEnd = { commitDrag() },
-                    onDrag = onDrag,
-                )
-            } else {
-                detectDragGestures(
-                    onDragStart = { onStart() },
-                    onDragCancel = { resetDrag() },
-                    onDragEnd = { commitDrag() },
-                    onDrag = onDrag,
-                )
+    }
+
+    // 拖到列表上下边缘自动滚动：指针停在边缘区就按「离边缘多近」逐帧滚页面，越靠边越快。
+    // 页面滚动 delta 后内容整体上移 delta，被拖行必须补同样位移（见 scrolledBy），否则它会脱离手指；
+    // 位移同样参与落位下标计算，因此长距离搬运在一次手势里就能完成。
+    LaunchedEffect(draggingItem, session) {
+        val listState = pageListState ?: return@LaunchedEffect
+        if (draggingItem == null || viewportHeight <= 0f) return@LaunchedEffect
+        while (isActive && draggingItem != null) {
+            withFrameNanos { }
+            // 窗口 Y = 拖动开始时的行位置 + 手指位移（自动滚动的补偿量在两者里抵消）
+            val visualTop = dragRowTop[0] + (dragDelta.floatValue - scrolledBy[0])
+            val dy = autoScrollStep(visualTop, viewportHeight, autoScrollEdge, autoScrollSpeed)
+            if (dy == 0f) continue
+            val consumed = listState.scrollBy(dy)
+            if (consumed != 0f) {
+                dragDelta.floatValue += consumed
+                scrolledBy[0] += consumed
             }
         }
     }
