@@ -1,6 +1,14 @@
 package com.luckyzyx.luckytool.ui.compose.scopes.statusbar
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
+import com.luckyzyx.luckytool.ui.compose.components.PrefRow
+import com.luckyzyx.luckytool.ui.compose.components.PrefRowInset
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
 import com.luckyzyx.luckytool.utils.A13
 import com.luckyzyx.luckytool.utils.ModulePrefs
@@ -23,6 +31,34 @@ object StatusBarIconPage {
     ) {
         val c = requireNotNull(context) { "ScopeScreen 未注入 Context" }
         val osCode = getOSVersionCode
+        // 图标位置排序
+        category(c.getString(R.string.statusbar_icon_order))
+        custom(
+            key = STATUS_BAR_ICON_ORDER_KEY,
+            title = c.getString(R.string.statusbar_icon_order),
+        ) {
+            val saved by state.stringFlow(STATUS_BAR_ICON_ORDER_KEY, "")
+                .collectAsStateWithLifecycle()
+            var showDialog by remember { mutableStateOf(false) }
+            PrefRowInset {
+                PrefRow(
+                    title = stringResource(R.string.statusbar_icon_order),
+                    summary = stringResource(R.string.statusbar_icon_order_summary),
+                    onClick = { showDialog = true },
+                )
+            }
+            if (showDialog) {
+                StatusBarIconOrderDialog(
+                    savedOrder = saved,
+                    onDismiss = { showDialog = false },
+                    onApply = { value ->
+                        state.set(STATUS_BAR_ICON_ORDER_KEY, value)
+                        sendValue(STATUS_BAR_ICON_ORDER_KEY, value)
+                        showDialog = false
+                    },
+                )
+            }
+        }
         // WIFI
         category(c.getString(R.string.StatusBarWIFIIcon))
         switch(

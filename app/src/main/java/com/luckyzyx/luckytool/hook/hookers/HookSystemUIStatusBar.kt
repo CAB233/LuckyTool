@@ -3,6 +3,7 @@ package com.luckyzyx.luckytool.hook.hookers
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.scopes.systemui.CustomMusicFluidCloudWhitelist
 import com.luckyzyx.luckytool.hook.scopes.systemui.DisableMediaMusicFluidCloudBlacklist
+import com.luckyzyx.luckytool.hook.scopes.systemui.StatusBarIconOrder
 import com.luckyzyx.luckytool.hook.statusbar.StatusBarBattery
 import com.luckyzyx.luckytool.hook.statusbar.StatusBarClock
 import com.luckyzyx.luckytool.hook.statusbar.StatusBarControlCenter
@@ -41,6 +42,9 @@ class HookSystemUIStatusBar(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
 
         //状态栏图标
         loadHooker(StatusBarIcon)
+
+        //状态栏图标位置排序（始终加载：运行期由 dataChannel 推送新顺序）
+        loadHooker(StatusBarIconOrder)
 
         //状态栏控制中心
         loadHooker(StatusBarControlCenter)
