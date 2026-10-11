@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -133,6 +135,10 @@ internal fun SortFilterSheetMaterial(
  * - 排序 `FilterChip` 组 → `MiuixRadioItem`（单选语义：`sortMode == index` 选中，点击回调同 `onSortChange(index)`）；
  * - `filterContent` 槽位原样透传（由调用方按线提供各自的过滤控件），非空时才显示「筛选」小节标题。
  * 库无 Chip 组件，故用 preference 行件表达，属已登记的主题级差异。
+ *
+ * 内容必须可滚动：库的 `BottomSheetColumn` 只是 `heightIn(max = 窗口高 - topInset)` 的普通 Column，
+ * 行数多到超过窗口高度时，末尾行会被父 Column 按剩余高度压扁——`BasicComponent` 的 16dp 内边距会先
+ * 吃掉标题的高度（标题先整体消失），固定尺寸的复选框稍后才被裁掉，看上去就是「只剩勾选框、没有文字」。
  */
 @Composable
 internal fun SortFilterSheetMiuix(
@@ -152,6 +158,7 @@ internal fun SortFilterSheetMiuix(
         Column(
             Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(start = 16.dp, end = 16.dp, bottom = 32.dp)
         ) {
             MiuixPrefCategoryHeader(stringResource(R.string.appinfo_sort_by))
