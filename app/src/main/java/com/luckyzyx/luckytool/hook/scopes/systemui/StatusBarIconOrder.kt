@@ -138,12 +138,15 @@ object StatusBarIconOrder : YukiBaseHooker() {
     override fun onHook() {
         // 需要重启作用域才会装载/卸载本 hooker
         if (!preferences(ModulePrefs).getBoolean(ENABLE_KEY, false)) return
+        // 装载时先把偏好读进来：**重启作用域后不需要任何 dataChannel 推送，按存好的顺序生效**
+        //（dataChannel 只负责「运行期改一次就实时生效」，不是唯一入口）
         val initial = normalizeOrders(
             parseOrder(preferences(ModulePrefs).getString(LEFT_KEY, "")),
             parseOrder(preferences(ModulePrefs).getString(RIGHT_KEY, "")),
         )
         leftOrder = initial.first
         rightOrder = initial.second
+        YLog.debug("StatusBarIconOrder: loaded left=${leftOrder} right=${rightOrder}")
         hookIconList()
         hookIconController()
         hookIconManager()
@@ -226,6 +229,20 @@ object StatusBarIconOrder : YukiBaseHooker() {
                     statusBarView = view
                     runCatching { applyZones(refresh = false) }
                         .onFailure { YLog.debug("StatusBarIconOrder: layout apply failed -> $it") }
+                    // 布局装好后再按偏好重建一次图标：**重启作用域后不需要任何推送**，
+                    // 直接按存好的左右区顺序生效（与 dataChannel 运行期推送走同一条 applyZones）
+                    Handler(Looper.getMainLooper()).post {
+                        // 再读一次偏好：装载到 inflate 之间若又改过，以最新偏好为准（prefs 是唯一真相）
+                        val orders = normalizeOrders(
+                            parseOrder(preferences(ModulePrefs).getString(LEFT_KEY, "")),
+                            parseOrder(preferences(ModulePrefs).getString(RIGHT_KEY, "")),
+                        )
+                        leftOrder = orders.first
+                        rightOrder = orders.second
+                        YLog.debug("StatusBarIconOrder: startup apply left=${leftOrder} right=${rightOrder}")
+                        runCatching { applyZones(refresh = true) }
+                            .onFailure { YLog.debug("StatusBarIconOrder: startup apply failed -> $it") }
+                    }
                 }
             }
         }
