@@ -1,8 +1,6 @@
 package com.luckyzyx.luckytool.hook.hookers
 
-import android.os.Build
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import org.lsposed.corepatch.Config
 import org.lsposed.corepatch.hook.ApkSignatureVerifierHook
@@ -33,9 +31,9 @@ import org.lsposed.lsparanoid.Obfuscate
 object HookCorePatch : YukiBaseHooker() {
 
     override fun onHook() {
-        YLog.debug("onSystemServerStarting: Current sdk version is ${Build.VERSION.SDK_INT}")
+//        YLog.debug("onSystemServerStarting: Current sdk version is ${Build.VERSION.SDK_INT}")
         Config.bind(preferences(ModulePrefs))
-        Config.printAllConfig()
+//        Config.printAllConfig()
 
         loadHooker(ApkSignatureVerifierHook)
         loadHooker(ApkSigningBlockUtilsHook)
