@@ -699,7 +699,14 @@ fun logcatToFile(file: File): Boolean {
  * @param packName 原 dataChannel 目标包，现仅作兼容保留（不再按包路由）
  */
 fun Context.sendPrefsValue(packName: String, key: String, newValue: Any) {
-    dataChannel(packName).put(key, newValue)
+    // dataChannel 同样跨进程：集合不能把 Kotlin 单例实现（emptySet()/emptyList()）送过去，
+    // 统一复制成 java.util 实现后传输（值类型与语义不变）
+    val safeValue = when (newValue) {
+        is Set<*> -> HashSet(newValue)
+        is List<*> -> ArrayList(newValue)
+        else -> newValue
+    }
+    dataChannel(packName).put(key, safeValue)
 }
 
 /**

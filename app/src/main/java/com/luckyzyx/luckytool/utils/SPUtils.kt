@@ -55,10 +55,22 @@ fun Context.getStringSet(
     }
 }
 
+/**
+ * 跨进程传输安全的集合副本。
+ *
+ * remote prefs（libxposed RemotePreferences）是把写入值打包进 Bundle 经 Binder 交给框架进程执行的，
+ * 接收侧按 Serializable 反序列化，而 Parcel 的默认类解析走 bootstrap 类加载器：Kotlin 单例集合
+ * （`emptySet()` 得到的 `kotlin.collections.EmptySet`）与 androidx 集合都不在 boot 路径上，解析不到就抛
+ * `android.os.BadParcelableException: ... ClassNotFoundException ... EmptySet`，这一次 prefs 更新连同
+ * 同批的其它键一起失败（表现为设置写不进宿主进程）。写入前统一复制成 java.util.HashSet：
+ * 值类型与语义都不变，也不再把 Kotlin 实现泄漏给框架。
+ */
+internal fun Set<String>.toPrefsSafeSet(): HashSet<String> = HashSet(this)
+
 fun Context.putStringSet(prefsName: String, key: String, value: Set<String>): Boolean {
     return try {
         val prefs = appPrefs(prefsName)
-        prefs.edit().putStringSet(key, value).commit()
+        prefs.edit().putStringSet(key, value.toPrefsSafeSet()).commit()
     } catch (t: Throwable) {
         LogUtils.e("SPUtils", "putStringSet $key -> $value", "$t", true)
         false

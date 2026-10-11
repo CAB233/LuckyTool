@@ -129,7 +129,12 @@ class PrefState private constructor(
             is Int -> editor.putInt(key, value)
             is Long -> editor.putLong(key, value)
             is Float -> editor.putFloat(key, value)
-            is Set<*> -> @Suppress("UNCHECKED_CAST") editor.putStringSet(key, value as Set<String>)
+            // 集合必须复制成 java.util.HashSet 再写：remote prefs 经 Binder 传输后由框架侧反序列化，
+            // Kotlin 单例集合（emptySet()）会因 bootstrap 类加载器解析不到而抛 BadParcelableException
+            is Set<*> -> {
+                @Suppress("UNCHECKED_CAST")
+                editor.putStringSet(key, (value as Set<String>).toPrefsSafeSet())
+            }
             else -> return false
         }
         val committed = editor.commit()
