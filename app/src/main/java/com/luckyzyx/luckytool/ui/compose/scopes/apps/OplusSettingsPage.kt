@@ -4,11 +4,6 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.canhub.cropper.CropImageOptions
 import com.canhub.cropper.CropImageView
@@ -455,7 +450,7 @@ object OplusSettingsPage {
             key = "remove_dpi_restart_recovery",
             title = c.getString(R.string.remove_dpi_restart_recovery),
             summary = c.getString(R.string.remove_dpi_restart_recovery_summary),
-            onChange = { v -> c.sendPrefsValue("android", "remove_dpi_restart_recovery", v) },
+            onChange = { v -> c.sendPrefsValue("system", "remove_dpi_restart_recovery", v) },
         )
     }
 }

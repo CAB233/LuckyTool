@@ -3,17 +3,12 @@ package com.luckyzyx.luckytool.ui.compose.scopes.apps
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.compose.components.AppPickerDialog
@@ -191,14 +186,14 @@ object OplusGesturePage {
             key = "action_button_nothing_enable",
             title = c.getString(R.string.action_button_nothing_enable),
             onChange = { newValue ->
-                c.sendPrefsValue("android", "action_button_nothing_enable", newValue)
+                c.sendPrefsValue("system", "action_button_nothing_enable", newValue)
             },
         )
         switch(
             key = "action_button_ring_cycle_enable",
             title = c.getString(R.string.action_button_ring_cycle_enable),
             onChange = { newValue ->
-                c.sendPrefsValue("android", "action_button_ring_cycle_enable", newValue)
+                c.sendPrefsValue("system", "action_button_ring_cycle_enable", newValue)
                 restart?.invoke()
             },
         )
@@ -211,7 +206,7 @@ object OplusGesturePage {
                 default = "ring_vibrate_silent",
                 summary = c.getString(R.string.current_mode) + ": %s",
                 onChange = { newValue ->
-                    c.sendPrefsValue("android", "action_button_ring_cycle_mode", newValue)
+                    c.sendPrefsValue("system", "action_button_ring_cycle_mode", newValue)
                 },
             )
         }

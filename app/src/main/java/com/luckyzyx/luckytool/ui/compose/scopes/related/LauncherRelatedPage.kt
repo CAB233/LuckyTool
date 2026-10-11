@@ -213,7 +213,7 @@ object LauncherRelatedPage {
             default = "0",
             summary = c.getString(R.string.current_mode) + ": %s",
             onChange = { value ->
-                c.sendPrefsValue("android", "custom_app_floating_window_display_mode", value)
+                c.sendPrefsValue("system", "custom_app_floating_window_display_mode", value)
                 if ((value.toIntOrNull() ?: 0) >= 2) {
                     ShellUtils.fastCmd("settings put global enable_non_resizable_multi_window 1")
                 }
@@ -232,21 +232,21 @@ object LauncherRelatedPage {
                 key = "force_enable_multi_window_mode",
                 title = c.getString(R.string.force_enable_multi_window_mode),
                 summary = c.getString(R.string.need_restart_system),
-                onChange = { c.sendPrefsValue("android", "force_enable_multi_window_mode", it) },
+                onChange = { c.sendPrefsValue("system", "force_enable_multi_window_mode", it) },
             )
             slider(
                 key = "custom_multi_window_display_upper_limit",
                 title = c.getString(R.string.custom_multi_window_display_upper_limit),
                 valueRange = 0..20,
                 default = 2,
-                onChange = { c.sendPrefsValue("android", "custom_multi_window_display_upper_limit", it) },
+                onChange = { c.sendPrefsValue("system", "custom_multi_window_display_upper_limit", it) },
             )
         }
         if (osCode in 26..33) {
             switch(
                 key = "force_all_apps_support_split_screen",
                 title = c.getString(R.string.force_all_apps_support_split_screen),
-                onChange = { c.sendPrefsValue("android", "force_all_apps_support_split_screen", it) },
+                onChange = { c.sendPrefsValue("system", "force_all_apps_support_split_screen", it) },
             )
         }
         // 抽屉布局

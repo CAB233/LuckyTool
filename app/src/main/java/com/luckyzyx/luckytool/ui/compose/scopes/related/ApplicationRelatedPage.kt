@@ -99,7 +99,7 @@ object ApplicationRelatedPage {
             // 条件可见性由 state.revision 驱动（list 内部先 state.set → revision 前进 →
             // ScopeScreen 重组重跑构建 lambda），因此无需 recreate 刷新页面
             onChange = { value ->
-                c.sendPrefsValue("android", "set_multi_app_support_mode", value)
+                c.sendPrefsValue("system", "set_multi_app_support_mode", value)
                 c.sendPrefsValue(MULTI_APP, "set_multi_app_support_mode", value)
             },
         )
@@ -148,7 +148,7 @@ object ApplicationRelatedPage {
                 c.getString(R.string.need_restart_system),
             ),
             onChange = { value ->
-                c.sendPrefsValue("android", "set_wlan_sla_whitelist_mode", value)
+                c.sendPrefsValue("system", "set_wlan_sla_whitelist_mode", value)
             },
         )
         if (state.getString("set_wlan_sla_whitelist_mode", "0") != "0") {
@@ -156,7 +156,7 @@ object ApplicationRelatedPage {
                 key = "remove_wlan_sla_blacklist",
                 title = c.getString(R.string.remove_wlan_sla_blacklist),
                 onChange = { value ->
-                    c.sendPrefsValue("android", "remove_wlan_sla_blacklist", value)
+                    c.sendPrefsValue("system", "remove_wlan_sla_blacklist", value)
                 },
             )
             wlanWhitelist(c, key = "custom_wlan_sla_whitelist")
@@ -295,7 +295,7 @@ object ApplicationRelatedPage {
                         checked = checked,
                         onCheckedChange = { v ->
                             state.set(archivingKey, v)
-                            c.sendPrefsValue("android", archivingKey, v)
+                            c.sendPrefsValue("system", archivingKey, v)
                             c.sendPrefsValue("com.android.settings", archivingKey, v)
                         },
                         summary = stringResource(R.string.disable_app_archiving_summary),
@@ -309,7 +309,7 @@ object ApplicationRelatedPage {
                             colors = itemColors(slot),
                             onCheckedChange = { v ->
                                 state.set(archivingKey, v)
-                                c.sendPrefsValue("android", archivingKey, v)
+                                c.sendPrefsValue("system", archivingKey, v)
                                 c.sendPrefsValue("com.android.settings", archivingKey, v)
                             },
                         )

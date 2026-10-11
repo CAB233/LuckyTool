@@ -90,13 +90,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
-import top.yukonga.miuix.kmp.basic.Text as MiuixText
-import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
-import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
+import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
 
 /**
  * P4 特殊页：隐藏应用 Intent（旧 HideAppIntentFragment 1:1 迁移）。
@@ -393,7 +393,7 @@ internal fun LazyItemScope.HideAppIntentContent() {
                         checked = context.getBoolean(IntentPrefs, HIDE_APP_INTENT_ENABLE_KEY, false),
                         onCheckedChange = { v ->
                             context.putBoolean(IntentPrefs, HIDE_APP_INTENT_ENABLE_KEY, v)
-                            context.sendPrefsValue("android", HIDE_APP_INTENT_ENABLE_KEY, v)
+                            context.sendPrefsValue("system", HIDE_APP_INTENT_ENABLE_KEY, v)
                         },
                     )
                 }
