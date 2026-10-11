@@ -93,6 +93,25 @@ class PrefStateTest {
     }
 
     @Test
+    fun `clearing all prefs refreshes flows without crashing the listener`() = runBlocking {
+        // clear() 以 key == null 回调监听器（SPUtils.clearPrefs / clearAllPrefs 走的就是这条路）
+        raw.edit().putString("str", "value").putBoolean("bool", true).commit()
+        val state = state()
+        val stringFlow = state.stringFlow("str", "dft")
+        val booleanFlow = state.booleanFlow("bool", false)
+        assertEquals("value", stringFlow.first())
+        assertTrue(booleanFlow.first())
+        val revisionBefore = state.revision.value
+
+        raw.edit().clear().commit()
+
+        // 清空后所有类型化槽都要回落默认值，且 revision 递增（页面据此重建）
+        assertEquals("dft", stringFlow.first())
+        assertFalse(booleanFlow.first())
+        assertTrue(state.revision.value > revisionBefore)
+    }
+
+    @Test
     fun `all flow types mirror external commits`() = runBlocking {
         val state = state()
         val s = state.stringFlow("s")

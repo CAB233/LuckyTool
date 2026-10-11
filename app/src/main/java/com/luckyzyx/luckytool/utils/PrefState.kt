@@ -41,8 +41,14 @@ class PrefState private constructor(
     }
 
     private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        // 不把原始值直接塞进槽：值可能是错误类型，交给各类型自己的读法（带回落）处理
-        refreshers[key]?.toList()?.forEach { it() }
+        if (key == null) {
+            // clear() 会以 key == null 回调（SPUtils.clearPrefs / clearAllPrefs 即此路径）：
+            // 整份数据已清空，所有键都要按自己的读法重读一遍，不能拿 null 去查 refreshers
+            refreshers.values.forEach { list -> list.toList().forEach { it() } }
+        } else {
+            // 不把原始值直接塞进槽：值可能是错误类型，交给各类型自己的读法（带回落）处理
+            refreshers[key]?.toList()?.forEach { it() }
+        }
         bump()
     }
 
