@@ -41,10 +41,21 @@ object CorePatchPage {
         restartEnabled = false,
     ) {
         val c = requireNotNull(context) { "ScopeScreen 未注入 Context" }
-        custom(key = "ColorOSCorePatchTip", title = c.getString(R.string.ColorOSCorePatchTip), bare = true) {
+        custom(
+            key = "ColorOSCorePatchTip",
+            title = c.getString(R.string.ColorOSCorePatchTip),
+            // 提示卡是「非选项行」的独立卡片，用 standalone 独占一张卡片。
+            // 不能用 bare：bare 是分类标题专用的裸渲染，渲染缝会给它统一 offset(-CardHorizontalInset)
+            // 来抵消列表级内缩，卡片左边缘因此被推成贴屏（右侧反而多留 24dp）。
+            standalone = true,
+        ) {
             PrefCard(
                 title = stringResource(R.string.ColorOSCorePatchTip),
-                modifier = Modifier.padding(horizontal = 16.dp),
+                // Miuix 线：12dp 水平内缩由列表级 contentPadding 单一提供，卡片不再自带 padding；
+                // material 线：列表无水平内缩，卡片自带 16dp（与 switch/list 通行内缩一致）。
+                modifier = Modifier.padding(
+                    horizontal = if (LocalUiMode.current == UiMode.Miuix) 0.dp else 16.dp,
+                ),
             )
         }
         category(c.getString(R.string.corepatch))
