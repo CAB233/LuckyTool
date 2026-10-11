@@ -38,14 +38,12 @@ object StatusBarIconOrderPage {
                 "\n" + c.getString(R.string.need_restart_scope),
         )
         if (state.getBoolean(STATUS_BAR_ICON_ORDER_ENABLED_KEY, false)) {
-            // 拖拽规则说明（与开关同一张卡片）
-            custom { StatusBarIconOrderHint() }
             // 排列：左右两个区域的拖拽列表，松手即写回偏好，宿主侧经 dataChannel 实时生效
             category(c.getString(R.string.statusbar_icon_order_category_arrange))
             custom {
                 val left by state.stringFlow(STATUS_BAR_ICON_ORDER_LEFT_KEY, "")
                     .collectAsStateWithLifecycle()
-                val right by state.stringFlow(STATUS_BAR_ICON_ORDER_KEY, "")
+                val right by state.stringFlow(STATUS_BAR_ICON_ORDER_RIGHT_KEY, "")
                     .collectAsStateWithLifecycle()
                 StatusBarIconOrderZones(
                     leftRaw = left,
@@ -53,8 +51,8 @@ object StatusBarIconOrderPage {
                     onApply = { newLeft, newRight ->
                         state.set(STATUS_BAR_ICON_ORDER_LEFT_KEY, newLeft)
                         sendValue(STATUS_BAR_ICON_ORDER_LEFT_KEY, newLeft)
-                        state.set(STATUS_BAR_ICON_ORDER_KEY, newRight)
-                        sendValue(STATUS_BAR_ICON_ORDER_KEY, newRight)
+                        state.set(STATUS_BAR_ICON_ORDER_RIGHT_KEY, newRight)
+                        sendValue(STATUS_BAR_ICON_ORDER_RIGHT_KEY, newRight)
                     },
                 )
             }

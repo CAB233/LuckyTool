@@ -55,13 +55,13 @@ import com.luckyzyx.luckytool.ui.compose.components.LocalScopeListState
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import kotlinx.coroutines.isActive
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.basic.HorizontalDivider as MiuixHorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 右区顺序偏好键（宿主 `statusIcons` 容器内的图标顺序，逗号分隔槽位名；空 = 宿主默认顺序） */
-const val STATUS_BAR_ICON_ORDER_KEY = "statusbar_icon_order"
+const val STATUS_BAR_ICON_ORDER_RIGHT_KEY = "statusbar_icon_order_right"
 
 /** 左区顺序偏好键（被搬到左侧容器的图标顺序，逗号分隔槽位名；空 = 仅时钟在左侧） */
 const val STATUS_BAR_ICON_ORDER_LEFT_KEY = "statusbar_icon_order_left"
@@ -260,6 +260,7 @@ internal fun zoneSplit(leftRaw: String, rightRaw: String): Pair<List<String>, Li
         .map { it.trim() }
         .filter { it.isNotEmpty() && (it == clock || it in known) }
         .distinct()
+
     val leftSaved = parse(leftRaw)
     val rightSaved = parse(rightRaw)
     val clockInRight = clock in rightSaved && clock !in leftSaved
@@ -291,9 +292,9 @@ internal fun zoneDrop(items: MutableList<String>, leftCount: Int, from: Int, to:
     if (from !in items.indices || to !in items.indices || from == to) return leftCount
     val moved = items.removeAt(from)
     items.add(to, moved)
-    var next = when {
-        from < leftCount && to >= leftCount -> leftCount - 1
-        from >= leftCount && to < leftCount -> leftCount + 1
+    var next = when (leftCount) {
+        in (from + 1)..to -> leftCount - 1
+        in (to + 1)..from -> leftCount + 1
         else -> leftCount
     }
     // 占位条目被顶出下标 0 = 左区已有真实图标，占位不再需要
@@ -308,33 +309,6 @@ internal fun zoneDrop(items: MutableList<String>, leftCount: Int, from: Int, to:
         next = 1
     }
     return next
-}
-
-/** 开关卡片里的长说明：解释长按手柄拖动与跨区搬运的规则（对齐设计稿） */
-@Composable
-fun StatusBarIconOrderHint() {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        ZoneDivider(modifier = Modifier.padding(horizontal = 16.dp))
-        if (LocalUiMode.current == UiMode.Miuix) {
-            MiuixText(
-                text = stringResource(R.string.statusbar_icon_order_drag_hint),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                color = MiuixTheme.colorScheme.onBackgroundVariant,
-                style = MiuixTheme.textStyles.footnote1,
-            )
-        } else {
-            Text(
-                text = stringResource(R.string.statusbar_icon_order_drag_hint),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
 }
 
 /**
@@ -444,12 +418,12 @@ fun StatusBarIconOrderZones(
                 val left = when {
                     // 左区只有占位：落在占位槽（to=0）则左区变为 1，否则仍为空
                     hasMarker -> if (to == 0) 1 else 0
-                    from < leftCount && to >= leftCount -> leftCount - 1
-                    from >= leftCount && to < leftCount -> leftCount + 1
+                    leftCount in (from + 1)..to -> leftCount - 1
+                    leftCount in (to + 1)..from -> leftCount + 1
                     else -> leftCount
                 }
                 // 被拖项从右区落入左区（含占位槽）时右区少一项
-                val leavesRight = from >= leftCount && to < leftCount
+                val leavesRight = leftCount in (to + 1)..from
                 left to (rightSize - if (leavesRight) 1 else 0)
             }
         }
@@ -469,7 +443,8 @@ fun StatusBarIconOrderZones(
         resetDrag()
         if (from !in items.indices || to !in items.indices || from == to) return
         leftCount = zoneDrop(items, leftCount, from, to)
-        val leftItems = items.take(leftCount).filterNot { it == STATUS_BAR_ICON_ORDER_LEFT_EMPTY_MARKER }
+        val leftItems =
+            items.take(leftCount).filterNot { it == STATUS_BAR_ICON_ORDER_LEFT_EMPTY_MARKER }
         onApply(leftItems.joinToString(","), items.drop(leftCount).joinToString(","))
     }
 
@@ -756,8 +731,27 @@ private fun OrderItemRow(
     handleDragModifier: Modifier,
 ) {
     when (LocalUiMode.current) {
-        UiMode.Miuix -> MiuixOrderItemRow(number, label, slot, dragging, highlighted, rowOffset, rowDragModifier, handleDragModifier)
-        UiMode.Material -> MaterialOrderItemRow(number, label, slot, dragging, highlighted, rowOffset, rowDragModifier, handleDragModifier)
+        UiMode.Miuix -> MiuixOrderItemRow(
+            number,
+            label,
+            slot,
+            dragging,
+            highlighted,
+            rowOffset,
+            rowDragModifier,
+            handleDragModifier
+        )
+
+        UiMode.Material -> MaterialOrderItemRow(
+            number,
+            label,
+            slot,
+            dragging,
+            highlighted,
+            rowOffset,
+            rowDragModifier,
+            handleDragModifier
+        )
     }
 }
 

@@ -218,7 +218,7 @@ class StatusBarIconOrderTest {
             "page:${StatusBarIconOrderPage.PAGE_KEY}" in keys,
         )
         // 排序的行不再长在功能页里：旧的排序行键与左区键都不该出现在图标页索引中
-        assertTrue("排序列不应再留在图标页：$keys", STATUS_BAR_ICON_ORDER_KEY !in keys)
+        assertTrue("排序列不应再留在图标页：$keys", STATUS_BAR_ICON_ORDER_RIGHT_KEY !in keys)
         assertTrue("排序列不应再留在图标页：$keys", STATUS_BAR_ICON_ORDER_LEFT_KEY !in keys)
     }
 
