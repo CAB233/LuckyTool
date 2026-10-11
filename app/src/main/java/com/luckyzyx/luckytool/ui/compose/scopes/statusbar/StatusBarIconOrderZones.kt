@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
@@ -45,6 +46,7 @@ import androidx.compose.ui.zIndex
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
+import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.HorizontalDivider as MiuixHorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
@@ -224,51 +226,22 @@ internal fun zoneSplit(leftRaw: String, rightRaw: String): Pair<List<String>, Li
     return left to right
 }
 
-/** 一次拖动位移的结果（`leftCount` 会因跨区搬运而改变） */
-internal data class ZoneMove(val leftCount: Int, val moved: Boolean)
-
 /**
- * 一次相邻位移：同区内交换，或跨过区界搬运到另一个区。
+ * 松手落位：把 [items] 里 [from] 位置的项移到 [to]（两者都是移动前的下标），返回新的左区项数。
  *
- * [items] = 左区 + 右区 的扁平列表，[leftCount] = 左区项数，[index] = 被拖动项在扁平列表里的下标，
- * [down] = 向下移一行。夹在中间的三条边界规则：
- * - 左区至少要留一项（[STATUS_BAR_ICON_ORDER_CLOCK_ITEM] 就在左区，时钟不能搬去右区）；
- * - 从右区往上越过区界 = 变成左区末项（`leftCount + 1`）；
- * - 从左区往下越过区界 = 变成右区首项（`leftCount - 1`）。
+ * 用「先摘后插」，所以 [to] 也用移动前的下标：`[A,B,C,D]` 把 1 移到 3 得到 `[A,C,D,B]`。
+ * 跨区（左区项落到右区下标，或反之）时区界随之增减，因此左区永远至少含时钟一项。
+ * 下标越界或原地不动时不改动 [items]，原样返回 [leftCount]。
  */
-internal fun zoneMove(items: MutableList<String>, leftCount: Int, index: Int, down: Boolean): ZoneMove {
-    if (index !in items.indices) return ZoneMove(leftCount, false)
-    if (down) {
-        if (index < leftCount - 1) {
-            items[index] = items[index + 1].also { items[index + 1] = items[index] }
-            return ZoneMove(leftCount, true)
-        }
-        if (index == leftCount - 1) {
-            // 左区末项：要么留在左区（至少给时钟留一项），要么整体交给右区
-            if (leftCount <= 1) return ZoneMove(leftCount, false)
-            if (items[index] == STATUS_BAR_ICON_ORDER_CLOCK_ITEM) return ZoneMove(leftCount, false)
-            return ZoneMove(leftCount - 1, true)
-        }
-        if (index < items.lastIndex) {
-            items[index] = items[index + 1].also { items[index + 1] = items[index] }
-            return ZoneMove(leftCount, true)
-        }
-        return ZoneMove(leftCount, false)
+internal fun zoneDrop(items: MutableList<String>, leftCount: Int, from: Int, to: Int): Int {
+    if (from !in items.indices || to !in items.indices || from == to) return leftCount
+    val moved = items.removeAt(from)
+    items.add(to, moved)
+    return when {
+        from < leftCount && to >= leftCount -> leftCount - 1
+        from >= leftCount && to < leftCount -> leftCount + 1
+        else -> leftCount
     }
-    if (index > leftCount) {
-        items[index] = items[index - 1].also { items[index - 1] = items[index] }
-        return ZoneMove(leftCount, true)
-    }
-    if (index == leftCount) {
-        // 右区首项：越过区界成为左区末项
-        if (items.size <= leftCount) return ZoneMove(leftCount, false)
-        return ZoneMove(leftCount + 1, true)
-    }
-    if (index > 0) {
-        items[index] = items[index - 1].also { items[index - 1] = items[index] }
-        return ZoneMove(leftCount, true)
-    }
-    return ZoneMove(leftCount, false)
 }
 
 /** 开关卡片里的长说明：解释长按手柄拖动与跨区搬运的规则（对齐设计稿） */
@@ -301,16 +274,16 @@ fun StatusBarIconOrderHint() {
 /**
  * 两区域排序列表（左区 / 右区，各自带序号）。
  *
- * 拖动方式有两种，走同一套位移状态机：按住右侧手柄立即拖动（手柄热区 48dp），或长按任意一行拖动。
- * 位移累计满一行就交换一次，越满一行就跨过区界在两侧之间搬运；松手时把两个区一起写回偏好，
- * 宿主侧经 dataChannel 实时生效。拖拽期间的列表是本地状态（[items]），偏好值变化（含本次写回）
- * 会重建 [session] 让本次编辑作废，避免本地状态与已生效顺序分叉。
+ * 拖动方式两种，走同一套状态机：按住右侧手柄立即拖动（48dp 热区），或长按任意一行拖动。
  *
- * 两个与手感相关的实现要点：
- * - 行必须包在 [key] 里：交换后行在列表里换了位置，只有 key 才能让 Compose 复用同一组节点，
- *   否则 `pointerInput` 会被重建，正在进行的拖动会在第一次交换时被取消（表现为「拖不动 / 一拖就卡住」）。
- * - 未满一行的位移（[dragOffset]）直接作为被拖行的 `translationY`，行才始终贴着手指；
- *   否则行只在交换瞬间跳到手指位置，中间看着像卡顿。
+ * 与手感有关的两条硬约束（也是早期版本「一拖就丢状态」的原因）：
+ * - **拖动期间不改动列表结构**：只有被拖行的 `translationY` 跟随手指，其余行按落位下标让出一行
+ *   （[OrderItemRow] 的 `rowOffset`，全部在 `graphicsLayer` 的 lambda 里读取 = 绘制阶段，
+ *   因此逐帧拖动不触发重组）。旧实现每满一行就交换一次列表，行在左右两个 `forEach` 之间
+ *   搬家时组合节点被销毁重建，手势检测器随之取消——表现就是拖到半路状态丢失。
+ * - **松手才落位**：目标下标由位移换算（时钟不能离开左区，其余可跨区），换位与写回偏好只发生一次。
+ *
+ * 区头计数在拖动期间实时反映落位结果（[liveCounts] 只在跨区那一刻变化，不逐帧重组）。
  */
 @Composable
 fun StatusBarIconOrderZones(
@@ -329,65 +302,101 @@ fun StatusBarIconOrderZones(
     }
     var leftCount by remember(session) { mutableIntStateOf(initial.first.size) }
     var draggingItem by remember(session) { mutableStateOf<String?>(null) }
-    // 未满一行的残留位移（像素），作为被拖行的视觉偏移；拖满一行就交换一次并扣掉一行
-    val dragOffset = remember(session) { mutableFloatStateOf(0f) }
+    var dragFrom by remember(session) { mutableIntStateOf(-1) }
+    val dragDelta = remember(session) { mutableFloatStateOf(0f) }
     val step = with(LocalDensity.current) { OrderItemHeight.toPx() }
 
+    // 被拖项能落到的最末下标：时钟只能在左区内移动，其余槽位可以跨区
+    fun maxIndexFor(item: String): Int =
+        if (item == STATUS_BAR_ICON_ORDER_CLOCK_ITEM) {
+            (leftCount - 1).coerceAtLeast(0)
+        } else {
+            items.lastIndex.coerceAtLeast(0)
+        }
+
+    /** 落位下标：位移换算成行数，再夹进可达范围 */
+    fun targetIndex(from: Int, delta: Float): Int {
+        val item = draggingItem ?: return from
+        return (from + (delta / step).roundToInt()).coerceIn(0, maxIndexFor(item))
+    }
+
+    /** 行的绘制偏移：被拖行贴手指（到端点就停住），其余行按落位下标让出一行 */
+    fun offsetFor(index: Int): Float {
+        val item = draggingItem ?: return 0f
+        val from = dragFrom
+        if (from !in items.indices) return 0f
+        val delta = dragDelta.floatValue
+        val to = targetIndex(from, delta)
+        if (index == from) {
+            return delta.coerceIn((0 - from) * step, (maxIndexFor(item) - from) * step)
+        }
+        return when {
+            from < to && index in (from + 1)..to -> -step
+            to < from && index in to until from -> step
+            else -> 0f
+        }
+    }
+
+    // 区头计数：拖动期间实时显示落位后的数量，但只在跨区那一刻才变化
+    val liveCounts by remember(session) {
+        derivedStateOf {
+            val from = dragFrom
+            val item = draggingItem
+            if (item == null || from !in items.indices) {
+                leftCount to (items.size - leftCount)
+            } else {
+                val to = targetIndex(from, dragDelta.floatValue)
+                val left = when {
+                    from < leftCount && to >= leftCount -> leftCount - 1
+                    from >= leftCount && to < leftCount -> leftCount + 1
+                    else -> leftCount
+                }
+                left to (items.size - left)
+            }
+        }
+    }
+
+    fun resetDrag() {
+        draggingItem = null
+        dragFrom = -1
+        dragDelta.floatValue = 0f
+    }
+
+    /** 松手落位：换位（跨区时区界同步增减），然后写回偏好，宿主侧实时生效 */
+    fun commitDrag() {
+        val from = dragFrom
+        val to = targetIndex(from, dragDelta.floatValue)
+        resetDrag()
+        if (from !in items.indices || to !in items.indices || from == to) return
+        leftCount = zoneDrop(items, leftCount, from, to)
+        onApply(items.take(leftCount).joinToString(","), items.drop(leftCount).joinToString(","))
+    }
+
     // afterLongPress = true：长按整行开始拖动；false：按住手柄立即拖动。
-    // 两者的 pointerInput key 都不含位置信息，交换后不会重启手势检测器。
+    // pointerInput 的 key 与位置无关，拖动期间即使发生重组也不会重启手势检测器。
     val dragModifierFor: (String, Boolean) -> Modifier = { item, afterLongPress ->
         Modifier.pointerInput(session, afterLongPress) {
             val onStart = {
                 draggingItem = item
-                dragOffset.floatValue = 0f
-            }
-            val onCancel = {
-                draggingItem = null
-                dragOffset.floatValue = 0f
-            }
-            val onFinish = {
-                draggingItem = null
-                dragOffset.floatValue = 0f
-                onApply(
-                    items.take(leftCount).joinToString(","),
-                    items.drop(leftCount).joinToString(","),
-                )
+                dragFrom = items.indexOf(item)
+                dragDelta.floatValue = 0f
             }
             val onDrag: (PointerInputChange, Offset) -> Unit = { change, amount ->
                 change.consume()
-                var pending = dragOffset.floatValue + amount.y
-                while (pending >= step) {
-                    val move = zoneMove(items, leftCount, items.indexOf(item), down = true)
-                    if (!move.moved) {
-                        pending = 0f
-                        break
-                    }
-                    leftCount = move.leftCount
-                    pending -= step
-                }
-                while (pending <= -step) {
-                    val move = zoneMove(items, leftCount, items.indexOf(item), down = false)
-                    if (!move.moved) {
-                        pending = 0f
-                        break
-                    }
-                    leftCount = move.leftCount
-                    pending += step
-                }
-                dragOffset.floatValue = pending
+                dragDelta.floatValue += amount.y
             }
             if (afterLongPress) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { onStart() },
-                    onDragCancel = { onCancel() },
-                    onDragEnd = { onFinish() },
+                    onDragCancel = { resetDrag() },
+                    onDragEnd = { commitDrag() },
                     onDrag = onDrag,
                 )
             } else {
                 detectDragGestures(
                     onDragStart = { onStart() },
-                    onDragCancel = { onCancel() },
-                    onDragEnd = { onFinish() },
+                    onDragCancel = { resetDrag() },
+                    onDragEnd = { commitDrag() },
                     onDrag = onDrag,
                 )
             }
@@ -395,42 +404,6 @@ fun StatusBarIconOrderZones(
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        ZoneHeader(
-            text = stringResource(R.string.statusbar_icon_order_zone_left, leftCount),
-            topPadding = 12.dp,
-        )
-        items.take(leftCount).forEachIndexed { index, item ->
-            key(item) {
-                OrderItemRow(
-                    number = index + 1,
-                    label = StatusBarIconSlots.label(context, item),
-                    slot = item,
-                    dragging = draggingItem == item,
-                    dragOffset = { if (draggingItem == item) dragOffset.floatValue else 0f },
-                    rowDragModifier = dragModifierFor(item, true),
-                    handleDragModifier = dragModifierFor(item, false),
-                )
-            }
-        }
-        ZoneDivider(modifier = Modifier.padding(horizontal = 16.dp))
-        ZoneHeader(
-            text = stringResource(R.string.statusbar_icon_order_zone_right, items.size - leftCount),
-            topPadding = 8.dp,
-        )
-        items.drop(leftCount).forEachIndexed { index, item ->
-            key(item) {
-                OrderItemRow(
-                    number = index + 1,
-                    label = StatusBarIconSlots.label(context, item),
-                    slot = item,
-                    dragging = draggingItem == item,
-                    dragOffset = { if (draggingItem == item) dragOffset.floatValue else 0f },
-                    rowDragModifier = dragModifierFor(item, true),
-                    handleDragModifier = dragModifierFor(item, false),
-                )
-            }
-        }
-        ZoneDivider(modifier = Modifier.padding(horizontal = 16.dp))
         OrderResetRow(
             onReset = {
                 // 右区清空即宿主默认顺序，左区只留时钟 = 与本功能装载前的布局一致
@@ -441,6 +414,42 @@ fun StatusBarIconOrderZones(
                 onApply(STATUS_BAR_ICON_ORDER_CLOCK_ITEM, "")
             },
         )
+        ZoneDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        ZoneHeader(
+            text = stringResource(R.string.statusbar_icon_order_zone_left, liveCounts.first),
+            topPadding = 12.dp,
+        )
+        items.take(leftCount).forEachIndexed { index, item ->
+            key(item) {
+                OrderItemRow(
+                    number = index + 1,
+                    label = StatusBarIconSlots.label(context, item),
+                    slot = item,
+                    dragging = draggingItem == item,
+                    rowOffset = { offsetFor(index) },
+                    rowDragModifier = dragModifierFor(item, true),
+                    handleDragModifier = dragModifierFor(item, false),
+                )
+            }
+        }
+        ZoneDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        ZoneHeader(
+            text = stringResource(R.string.statusbar_icon_order_zone_right, liveCounts.second),
+            topPadding = 8.dp,
+        )
+        items.drop(leftCount).forEachIndexed { index, item ->
+            key(item) {
+                OrderItemRow(
+                    number = index + 1,
+                    label = StatusBarIconSlots.label(context, item),
+                    slot = item,
+                    dragging = draggingItem == item,
+                    rowOffset = { offsetFor(leftCount + index) },
+                    rowDragModifier = dragModifierFor(item, true),
+                    handleDragModifier = dragModifierFor(item, false),
+                )
+            }
+        }
     }
 }
 
@@ -533,7 +542,8 @@ private fun ZoneDivider(modifier: Modifier = Modifier) {
 /**
  * 一行条目：序号 + 展示名 + 槽位名 + 右侧拖拽手柄；高度固定，供拖拽换算行数。
  *
- * [dragOffset] 是「未满一行的位移」，只在绘制阶段读取（`graphicsLayer`），因此拖动不会带来逐帧重组。
+ * [rowOffset] 是这一行相对静止位置的绘制偏移（被拖行跟随手指，其余行让位），只在绘制阶段读取
+ * （`graphicsLayer` 的 lambda），因此拖动期间不会逐帧重组。
  * [rowDragModifier] 挂在整行（长按拖动），[handleDragModifier] 挂在手柄 48dp 热区（立即拖动）。
  */
 @Composable
@@ -542,13 +552,13 @@ private fun OrderItemRow(
     label: String,
     slot: String,
     dragging: Boolean,
-    dragOffset: () -> Float,
+    rowOffset: () -> Float,
     rowDragModifier: Modifier,
     handleDragModifier: Modifier,
 ) {
     when (LocalUiMode.current) {
-        UiMode.Miuix -> MiuixOrderItemRow(number, label, slot, dragging, dragOffset, rowDragModifier, handleDragModifier)
-        UiMode.Material -> MaterialOrderItemRow(number, label, slot, dragging, dragOffset, rowDragModifier, handleDragModifier)
+        UiMode.Miuix -> MiuixOrderItemRow(number, label, slot, dragging, rowOffset, rowDragModifier, handleDragModifier)
+        UiMode.Material -> MaterialOrderItemRow(number, label, slot, dragging, rowOffset, rowDragModifier, handleDragModifier)
     }
 }
 
@@ -558,7 +568,7 @@ private fun MiuixOrderItemRow(
     label: String,
     slot: String,
     dragging: Boolean,
-    dragOffset: () -> Float,
+    rowOffset: () -> Float,
     rowDragModifier: Modifier,
     handleDragModifier: Modifier,
 ) {
@@ -567,7 +577,7 @@ private fun MiuixOrderItemRow(
             .fillMaxWidth()
             .height(OrderItemHeight)
             .zIndex(if (dragging) 1f else 0f)
-            .graphicsLayer { translationY = dragOffset() }
+            .graphicsLayer { translationY = rowOffset() }
             .then(
                 if (dragging) {
                     Modifier.background(MiuixTheme.colorScheme.onBackground.copy(alpha = 0.06f))
@@ -614,7 +624,7 @@ private fun MaterialOrderItemRow(
     label: String,
     slot: String,
     dragging: Boolean,
-    dragOffset: () -> Float,
+    rowOffset: () -> Float,
     rowDragModifier: Modifier,
     handleDragModifier: Modifier,
 ) {
@@ -623,7 +633,7 @@ private fun MaterialOrderItemRow(
             .fillMaxWidth()
             .height(OrderItemHeight)
             .zIndex(if (dragging) 1f else 0f)
-            .graphicsLayer { translationY = dragOffset() }
+            .graphicsLayer { translationY = rowOffset() }
             .then(
                 if (dragging) {
                     Modifier.background(MaterialTheme.colorScheme.surfaceVariant)

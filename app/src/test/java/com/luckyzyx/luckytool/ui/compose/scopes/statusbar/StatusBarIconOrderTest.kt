@@ -104,29 +104,37 @@ class StatusBarIconOrderTest {
         assertTrue("ghost" !in right)
     }
 
+    /** 松手落位：同区内换位、跨区时区界同步增减（时钟由 UI 限制在左区，因此左区永远至少一项） */
     @Test
-    fun `zone move swaps inside a zone and carries across the border`() {
-        val items = mutableListOf("clock", "network_speed", "battery", "wifi")
-        // 左区内下移：相邻交换
-        assertEquals(ZoneMove(2, true), zoneMove(items, 2, 0, down = true))
-        assertEquals(listOf("network_speed", "clock", "battery", "wifi"), items)
-        // 右区首项上移越过区界 → 变成左区末项（没有交换）
-        assertEquals(ZoneMove(3, true), zoneMove(items, 2, 2, down = false))
-        assertEquals(listOf("network_speed", "clock", "battery", "wifi"), items)
-        // 左区末项下移越过区界 → 变成右区首项
-        assertEquals(ZoneMove(2, true), zoneMove(items, 3, 2, down = true))
+    fun `zone drop reorders inside a zone and carries across the border`() {
+        // 左区内下移：clock 与 network_speed 互换，左区项数不变
+        val inside = mutableListOf("clock", "network_speed", "battery", "wifi")
+        assertEquals(2, zoneDrop(inside, 2, 0, 1))
+        assertEquals(listOf("network_speed", "clock", "battery", "wifi"), inside)
+
+        // 左区项搬到右区末尾：区界左移
+        val toRight = mutableListOf("clock", "network_speed", "battery", "wifi")
+        assertEquals(1, zoneDrop(toRight, 2, 1, 3))
+        assertEquals(listOf("clock", "battery", "wifi", "network_speed"), toRight)
+
+        // 右区项搬到左区最前：区界右移
+        val toLeft = mutableListOf("clock", "battery", "wifi")
+        assertEquals(2, zoneDrop(toLeft, 1, 1, 0))
+        assertEquals(listOf("battery", "clock", "wifi"), toLeft)
     }
 
     @Test
-    fun `zone move keeps the clock on the left and stops at both ends`() {
-        // 时钟不能搬去右区
-        assertEquals(ZoneMove(2, false), zoneMove(mutableListOf("network_speed", "clock"), 2, 1, down = true))
-        // 左区只剩时钟时不能再让出左区
-        assertEquals(ZoneMove(1, false), zoneMove(mutableListOf("clock"), 1, 0, down = true))
-        // 两端边界与非法下标
-        assertEquals(ZoneMove(1, false), zoneMove(mutableListOf("clock", "wifi"), 1, 1, down = true))
-        assertEquals(ZoneMove(1, false), zoneMove(mutableListOf("clock", "wifi"), 1, 0, down = false))
-        assertEquals(ZoneMove(0, false), zoneMove(mutableListOf(), 0, 0, down = true))
+    fun `zone drop ignores a no-op or an invalid target`() {
+        val items = mutableListOf("clock", "battery")
+        // 原地不动：不改列表，也不触发写回
+        assertEquals(1, zoneDrop(items, 1, 0, 0))
+        assertEquals(listOf("clock", "battery"), items)
+        // 下标越界
+        assertEquals(1, zoneDrop(items, 1, 0, 5))
+        assertEquals(1, zoneDrop(items, 1, 5, 0))
+        assertEquals(listOf("clock", "battery"), items)
+        // 空列表
+        assertEquals(0, zoneDrop(mutableListOf(), 0, 0, 1))
     }
 
     /**
