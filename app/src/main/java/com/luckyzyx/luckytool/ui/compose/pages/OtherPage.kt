@@ -37,8 +37,6 @@ import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
@@ -55,6 +53,7 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -76,6 +75,7 @@ import com.luckyzyx.luckytool.ui.compose.components.AppPickerDialog
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.PrefIconBadge
+import com.luckyzyx.luckytool.ui.compose.components.TopBarActionButton
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialPageScaffold
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
@@ -139,12 +139,11 @@ fun OtherPage(activity: MainActivity) {
     MaterialPageScaffold(
         title = stringResource(R.string.nav_other),
         actions = {
-            IconButton(onClick = { showOptimizePicker = true }) {
-                Icon(
-                    Icons.Filled.AutoFixHigh,
-                    contentDescription = "优化App",
-                )
-            }
+            TopBarActionButton(
+                onClick = { showOptimizePicker = true },
+                contentDescription = "优化App",
+                painter = rememberVectorPainter(Icons.Filled.AutoFixHigh),
+            )
         },
     ) { padding ->
         val layoutDirection = LocalLayoutDirection.current

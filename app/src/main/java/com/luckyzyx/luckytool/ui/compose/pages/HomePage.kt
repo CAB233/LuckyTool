@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,6 +48,7 @@ import com.luckyzyx.luckytool.service.GlobalFuncService
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
+import com.luckyzyx.luckytool.ui.compose.components.TopBarActionButton
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialPageScaffold
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialTonalCard
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefDefaults
@@ -170,25 +170,23 @@ fun HomePage(activity: MainActivity) {
     MaterialPageScaffold(
         title = stringResource(R.string.app_name),
         actions = {
-            IconButton(onClick = { showRestartMenu = true }) {
-                Icon(
-                    painterResource(R.drawable.ic_baseline_refresh_24),
-                    contentDescription = stringResource(R.string.menu_reboot),
-                )
-            }
-            IconButton(onClick = {
-                aboutText = if (settings.getBoolean("hidden_function", false)) {
-                    "忆清鸣、luckyzyx T"
-                } else {
-                    "忆清鸣、luckyzyx"
-                }
-                showAbout = true
-            }) {
-                Icon(
-                    painterResource(R.drawable.ic_baseline_info_24),
-                    contentDescription = stringResource(R.string.menu_settings),
-                )
-            }
+            TopBarActionButton(
+                onClick = { showRestartMenu = true },
+                contentDescription = stringResource(R.string.menu_reboot),
+                painter = painterResource(R.drawable.ic_baseline_refresh_24),
+            )
+            TopBarActionButton(
+                onClick = {
+                    aboutText = if (settings.getBoolean("hidden_function", false)) {
+                        "忆清鸣、luckyzyx T"
+                    } else {
+                        "忆清鸣、luckyzyx"
+                    }
+                    showAbout = true
+                },
+                contentDescription = stringResource(R.string.menu_settings),
+                painter = painterResource(R.drawable.ic_baseline_info_24),
+            )
         },
     ) { padding ->
         val layoutDirection = LocalLayoutDirection.current

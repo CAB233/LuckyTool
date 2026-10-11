@@ -29,8 +29,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.SignalCellularAlt
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -76,6 +74,9 @@ import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.ScrollTarget
 import com.luckyzyx.luckytool.ui.compose.components.EdgeSwipeDismiss
 import com.luckyzyx.luckytool.ui.compose.components.PrefIconBadge
+import com.luckyzyx.luckytool.ui.compose.components.TopBarActionButton
+import com.luckyzyx.luckytool.ui.compose.components.TopBarOverflowItem
+import com.luckyzyx.luckytool.ui.compose.components.TopBarOverflowMenu
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialPageScaffold
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialTextField
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageContent
@@ -317,24 +318,21 @@ private fun FunctionTreeScreen(
     MaterialPageScaffold(
         title = stringResource(R.string.nav_function),
         actions = {
-            IconButton(onClick = onOpenSearch) {
-                Icon(
-                    painterResource(R.drawable.ic_baseline_search_24),
-                    contentDescription = stringResource(R.string.menu_search),
-                )
-            }
-            IconButton(onClick = onShowRestartMenu) {
-                Icon(
-                    painterResource(R.drawable.ic_baseline_refresh_24),
-                    contentDescription = stringResource(R.string.menu_reboot),
-                )
-            }
-            IconButton(onClick = onShowVersionInfo) {
-                Icon(
-                    painterResource(R.drawable.ic_baseline_extension_24),
-                    contentDescription = stringResource(R.string.menu_versioninfo),
-                )
-            }
+            TopBarActionButton(
+                onClick = onOpenSearch,
+                contentDescription = stringResource(R.string.menu_search),
+                painter = painterResource(R.drawable.ic_baseline_search_24),
+            )
+            TopBarActionButton(
+                onClick = onShowRestartMenu,
+                contentDescription = stringResource(R.string.menu_reboot),
+                painter = painterResource(R.drawable.ic_baseline_refresh_24),
+            )
+            TopBarActionButton(
+                onClick = onShowVersionInfo,
+                contentDescription = stringResource(R.string.menu_versioninfo),
+                painter = painterResource(R.drawable.ic_baseline_extension_24),
+            )
         },
     ) { padding ->
         val layoutDirection = LocalLayoutDirection.current
@@ -552,7 +550,6 @@ internal fun ScopePageHost(
     val context = LocalContext.current
     val spec = ScopePageRegistry[route.pageKey]
     var showRestartScope by remember { mutableStateOf(false) }
-    var showOverflowMenu by remember { mutableStateOf(false) }
 
     // 旧 Toolbar 菜单项平移：有图标且声明 showAsAction 的直接显示为图标按钮，其余收进溢出菜单
     val topActions = spec?.topActions.orEmpty()
@@ -563,48 +560,31 @@ internal fun ScopePageHost(
         onBack = onBack,
         actions = {
             if (spec?.restartEnabled == true) {
-                IconButton(
-                    onClick = { showRestartScope = true }
-                ) {
-                    Icon(
-                        painterResource(R.drawable.ic_baseline_refresh_24),
-                        contentDescription = stringResource(R.string.menu_reboot),
-                    )
-                }
+                TopBarActionButton(
+                    onClick = { showRestartScope = true },
+                    contentDescription = stringResource(R.string.menu_reboot),
+                    painter = painterResource(R.drawable.ic_baseline_refresh_24),
+                )
             }
             topActions.forEach { action ->
                 if (action.showAsAction && action.icon != 0) {
-                    IconButton(onClick = { spec?.actionHandler?.invoke(action.key) }) {
-                        Icon(
-                            painterResource(action.icon),
-                            contentDescription = stringResource(action.labelRes),
-                        )
-                    }
+                    TopBarActionButton(
+                        onClick = { spec?.actionHandler?.invoke(action.key) },
+                        contentDescription = stringResource(action.labelRes),
+                        painter = painterResource(action.icon),
+                    )
                 }
             }
             if (overflowActions.isNotEmpty()) {
-                Box {
-                    IconButton(onClick = { showOverflowMenu = true }) {
-                        Icon(
-                            Icons.Filled.MoreHoriz,
-                            contentDescription = stringResource(R.string.menu_more),
+                TopBarOverflowMenu(
+                    items = overflowActions.map { action ->
+                        TopBarOverflowItem(
+                            label = stringResource(action.labelRes),
+                            onClick = { spec?.actionHandler?.invoke(action.key) },
                         )
-                    }
-                    DropdownMenu(
-                        expanded = showOverflowMenu,
-                        onDismissRequest = { showOverflowMenu = false },
-                    ) {
-                        overflowActions.forEach { action ->
-                            DropdownMenuItem(
-                                text = { Text(stringResource(action.labelRes)) },
-                                onClick = {
-                                    showOverflowMenu = false
-                                    spec?.actionHandler?.invoke(action.key)
-                                },
-                            )
-                        }
-                    }
-                }
+                    },
+                    contentDescription = stringResource(R.string.menu_more),
+                )
             }
         },
     ) { padding ->
