@@ -95,6 +95,27 @@ class StatusBarIconOrderTest {
         assertEquals(listOf("clock", "network_speed"), left)
     }
 
+    /** 时钟可以搬到右区：此时左区可以为空，右区里时钟按保存顺序停在其它槽位之间 */
+    @Test
+    fun `clock can be moved to the right zone`() {
+        val (left, right) = zoneSplit("", "clock,battery")
+        assertTrue(left.isEmpty())
+        assertEquals("clock", right[0])
+        assertEquals("battery", right[1])
+        // 49 个宿主槽位 + `clock` 伪条目（clock 本身不是宿主槽位）
+        assertEquals(StatusBarIconSlots.defaultOrder.size + 1, right.size)
+        assertTrue("clock" !in StatusBarIconSlots.defaultOrder)
+    }
+
+    /** 两边都写了时钟时以左区为准，右区里的时钟被清掉 */
+    @Test
+    fun `the clock prefers the left zone when both zones claim it`() {
+        val (left, right) = zoneSplit("clock,network_speed", "clock,battery")
+        assertEquals(listOf("clock", "network_speed"), left)
+        assertTrue("clock" !in right)
+        assertEquals("battery", right[0])
+    }
+
     @Test
     fun `unknown entries are dropped from both zones`() {
         val (left, right) = zoneSplit("ghost,clock", "ghost,battery")
@@ -104,7 +125,7 @@ class StatusBarIconOrderTest {
         assertTrue("ghost" !in right)
     }
 
-    /** 松手落位：同区内换位、跨区时区界同步增减（时钟由 UI 限制在左区，因此左区永远至少一项） */
+    /** 松手落位：同区内换位、跨区时区界同步增减（时钟也能跨区，因此左区可以被搬空） */
     @Test
     fun `zone drop reorders inside a zone and carries across the border`() {
         // 左区内下移：clock 与 network_speed 互换，左区项数不变
@@ -121,6 +142,11 @@ class StatusBarIconOrderTest {
         val toLeft = mutableListOf("clock", "battery", "wifi")
         assertEquals(2, zoneDrop(toLeft, 1, 1, 0))
         assertEquals(listOf("battery", "clock", "wifi"), toLeft)
+
+        // 时钟搬到右区：左区被搬空
+        val clockToRight = mutableListOf("clock", "battery", "wifi")
+        assertEquals(0, zoneDrop(clockToRight, 1, 0, 1))
+        assertEquals(listOf("battery", "clock", "wifi"), clockToRight)
     }
 
     @Test

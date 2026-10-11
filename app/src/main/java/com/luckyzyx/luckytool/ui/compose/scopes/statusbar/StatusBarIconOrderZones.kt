@@ -63,7 +63,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /** 右区顺序偏好键（宿主 `statusIcons` 容器内的图标顺序，逗号分隔槽位名；空 = 宿主默认顺序） */
 const val STATUS_BAR_ICON_ORDER_KEY = "statusbar_icon_order"
 
-/** 左区顺序偏好键（被搬到左侧容器的图标顺序，逗号分隔槽位名，总是含 [STATUS_BAR_ICON_ORDER_CLOCK_ITEM]） */
+/** 左区顺序偏好键（被搬到左侧容器的图标顺序，逗号分隔槽位名；空 = 仅时钟在左侧） */
 const val STATUS_BAR_ICON_ORDER_LEFT_KEY = "statusbar_icon_order_left"
 
 /** 总开关：关闭时 hooker 不装载，改动需重启作用域（开关本身不做实时同步） */
@@ -73,7 +73,7 @@ const val STATUS_BAR_ICON_ORDER_ENABLED_KEY = "statusbar_icon_order_enabled"
  * 时钟伪条目。
  *
  * 宿主的时钟不是 `StatusBarIconList` 槽位，而是左侧容器里的 `clock_for_fake` 子 view，
- * 因此左区列表用它占一行：它的邻居顺序同样由本功能的左区顺序表达。
+ * 因此列表用它占一行：它的邻居顺序同样由本功能的区域顺序表达，它本身也可以搬到右区。
  */
 const val STATUS_BAR_ICON_ORDER_CLOCK_ITEM = "clock"
 
@@ -238,25 +238,30 @@ object StatusBarIconSlots {
 /**
  * 偏好值 → (左区列表, 右区列表)。
  *
- * - 左区：保存顺序里的合法项（[STATUS_BAR_ICON_ORDER_CLOCK_ITEM] 或已收录槽位），去重；时钟缺失时补到最前
- *   （时钟只能待在左区，缺失时也不能落进右区）。
+ * - 左区：保存顺序里的合法项（[STATUS_BAR_ICON_ORDER_CLOCK_ITEM] 或已收录槽位），去重。
  * - 右区：保存顺序里的合法项（排除左区项）+ 其余已收录槽位按宿主默认顺序补齐，
  *   因此本版本新增的槽位默认仍排在右侧尾部。
+ * - 时钟必须恰好在一个区域：两边都写了以左区为准，两边都没写则默认落在左区最前。
  * - 未收录的槽位名一律丢弃（宿主里本来就不存在，或未来版本才有）。
  */
 internal fun zoneSplit(leftRaw: String, rightRaw: String): Pair<List<String>, List<String>> {
     val known = StatusBarIconSlots.defaultOrder
     val clock = STATUS_BAR_ICON_ORDER_CLOCK_ITEM
-    val leftSaved = leftRaw.split(',')
+    fun parse(raw: String) = raw.split(',')
         .map { it.trim() }
         .filter { it.isNotEmpty() && (it == clock || it in known) }
         .distinct()
-    val left = if (clock in leftSaved) leftSaved else listOf(clock) + leftSaved
-    val rightSaved = rightRaw.split(',')
-        .map { it.trim() }
-        .filter { it.isNotEmpty() && it in known && it !in left }
-        .distinct()
-    val right = rightSaved + known.filterNot { it in left || it in rightSaved }
+    val leftSaved = parse(leftRaw)
+    val rightSaved = parse(rightRaw)
+    val clockInRight = clock in rightSaved && clock !in leftSaved
+    val left = when {
+        clockInRight -> leftSaved.filterNot { it == clock }
+        clock in leftSaved -> leftSaved
+        else -> listOf(clock) + leftSaved
+    }
+    val rightItems = (if (clockInRight) rightSaved else rightSaved.filterNot { it == clock })
+        .filterNot { it in left }
+    val right = rightItems + known.filterNot { it in left || it in rightItems }
     return left to right
 }
 
@@ -264,7 +269,7 @@ internal fun zoneSplit(leftRaw: String, rightRaw: String): Pair<List<String>, Li
  * 松手落位：把 [items] 里 [from] 位置的项移到 [to]（两者都是移动前的下标），返回新的左区项数。
  *
  * 用「先摘后插」，所以 [to] 也用移动前的下标：`[A,B,C,D]` 把 1 移到 3 得到 `[A,C,D,B]`。
- * 跨区（左区项落到右区下标，或反之）时区界随之增减，因此左区永远至少含时钟一项。
+ * 跨区（左区项落到右区下标，或反之）时区界随之增减；时钟也能跨区，因此左区可以被搬空。
  * 下标越界或原地不动时不改动 [items]，原样返回 [leftCount]。
  */
 internal fun zoneDrop(items: MutableList<String>, leftCount: Int, from: Int, to: Int): Int {
@@ -315,7 +320,7 @@ fun StatusBarIconOrderHint() {
  *   （[OrderItemRow] 的 `rowOffset`，全部在 `graphicsLayer` 的 lambda 里读取 = 绘制阶段，
  *   因此逐帧拖动不触发重组）。旧实现每满一行就交换一次列表，行在左右两个 `forEach` 之间
  *   搬家时组合节点被销毁重建，手势检测器随之取消——表现就是拖到半路状态丢失。
- * - **松手才落位**：目标下标由位移换算（时钟不能离开左区，其余可跨区），换位与写回偏好只发生一次。
+ * - **松手才落位**：目标下标由位移换算（时钟也能跨区，因此左区可以被搬空），换位与写回偏好只发生一次。
  *
  * 区头计数在拖动期间实时反映落位结果（[liveCounts] 只在跨区那一刻变化，不逐帧重组）。
  */
@@ -356,19 +361,9 @@ fun StatusBarIconOrderZones(
     /** 自动滚动累计量（正 = 内容上移）：要补进被拖行的位移，行才不会在滚动时脱离手指 */
     val scrolledBy = remember(session) { FloatArray(1) }
 
-    // 被拖项能落到的最末下标：时钟只能在左区内移动，其余槽位可以跨区
-    fun maxIndexFor(item: String): Int =
-        if (item == STATUS_BAR_ICON_ORDER_CLOCK_ITEM) {
-            (leftCount - 1).coerceAtLeast(0)
-        } else {
-            items.lastIndex.coerceAtLeast(0)
-        }
-
-    /** 落位下标：位移换算成行数，再夹进可达范围 */
-    fun targetIndex(from: Int, delta: Float): Int {
-        val item = draggingItem ?: return from
-        return (from + (delta / step).roundToInt()).coerceIn(0, maxIndexFor(item))
-    }
+    /** 落位下标：位移换算成行数，再夹进列表范围（时钟同样可以跨区，只看用户拖到哪） */
+    fun targetIndex(from: Int, delta: Float): Int =
+        (from + (delta / step).roundToInt()).coerceIn(0, items.lastIndex.coerceAtLeast(0))
 
     /** 行的绘制偏移：被拖行贴手指（到端点也继续贴着），其余行按落位下标让出一行 */
     fun offsetFor(index: Int): Float {
