@@ -3,21 +3,28 @@ package com.luckyzyx.luckytool.ui.compose.scopes.statusbar
 import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -25,12 +32,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
@@ -290,10 +301,16 @@ fun StatusBarIconOrderHint() {
 /**
  * 两区域排序列表（左区 / 右区，各自带序号）。
  *
- * 长按行（手柄图标所在处）后上下拖动：位移累计满一行就交换一次，越过区界即在两个区之间搬运；
- * 松手时把两个区一起写回偏好，宿主侧经 dataChannel 实时生效。
- * 拖拽期间的列表是本地状态（[items]），偏好值变化（含本次写回）会重建 [session] 让本次编辑作废，
- * 避免本地状态与已生效顺序分叉。
+ * 拖动方式有两种，走同一套位移状态机：按住右侧手柄立即拖动（手柄热区 48dp），或长按任意一行拖动。
+ * 位移累计满一行就交换一次，越满一行就跨过区界在两侧之间搬运；松手时把两个区一起写回偏好，
+ * 宿主侧经 dataChannel 实时生效。拖拽期间的列表是本地状态（[items]），偏好值变化（含本次写回）
+ * 会重建 [session] 让本次编辑作废，避免本地状态与已生效顺序分叉。
+ *
+ * 两个与手感相关的实现要点：
+ * - 行必须包在 [key] 里：交换后行在列表里换了位置，只有 key 才能让 Compose 复用同一组节点，
+ *   否则 `pointerInput` 会被重建，正在进行的拖动会在第一次交换时被取消（表现为「拖不动 / 一拖就卡住」）。
+ * - 未满一行的位移（[dragOffset]）直接作为被拖行的 `translationY`，行才始终贴着手指；
+ *   否则行只在交换瞬间跳到手指位置，中间看着像卡顿。
  */
 @Composable
 fun StatusBarIconOrderZones(
@@ -311,49 +328,69 @@ fun StatusBarIconOrderZones(
         }
     }
     var leftCount by remember(session) { mutableIntStateOf(initial.first.size) }
-    var draggingKey by remember(session) { mutableStateOf<String?>(null) }
+    var draggingItem by remember(session) { mutableStateOf<String?>(null) }
+    // 未满一行的残留位移（像素），作为被拖行的视觉偏移；拖满一行就交换一次并扣掉一行
+    val dragOffset = remember(session) { mutableFloatStateOf(0f) }
     val step = with(LocalDensity.current) { OrderItemHeight.toPx() }
 
-    // 长按手柄后上下拖动：位移累计满一行就交换一次（跨过区界即在两区之间搬运），松手时写回偏好
-    val dragModifierFor: (String) -> Modifier = { key ->
-        Modifier.pointerInput(key, session) {
-            var pending = 0f
-            detectDragGesturesAfterLongPress(
-                onDragStart = {
-                    draggingKey = key
-                    pending = 0f
-                },
-                onDragCancel = { draggingKey = null },
-                onDragEnd = {
-                    draggingKey = null
-                    onApply(
-                        items.take(leftCount).joinToString(","),
-                        items.drop(leftCount).joinToString(","),
-                    )
-                },
-                onDrag = { change, amount ->
-                    change.consume()
-                    pending += amount.y
-                    while (pending >= step) {
-                        val move = zoneMove(items, leftCount, items.indexOf(key), down = true)
-                        if (!move.moved) {
-                            pending = 0f
-                            break
-                        }
-                        leftCount = move.leftCount
-                        pending -= step
+    // afterLongPress = true：长按整行开始拖动；false：按住手柄立即拖动。
+    // 两者的 pointerInput key 都不含位置信息，交换后不会重启手势检测器。
+    val dragModifierFor: (String, Boolean) -> Modifier = { item, afterLongPress ->
+        Modifier.pointerInput(session, afterLongPress) {
+            val onStart = {
+                draggingItem = item
+                dragOffset.floatValue = 0f
+            }
+            val onCancel = {
+                draggingItem = null
+                dragOffset.floatValue = 0f
+            }
+            val onFinish = {
+                draggingItem = null
+                dragOffset.floatValue = 0f
+                onApply(
+                    items.take(leftCount).joinToString(","),
+                    items.drop(leftCount).joinToString(","),
+                )
+            }
+            val onDrag: (PointerInputChange, Offset) -> Unit = { change, amount ->
+                change.consume()
+                var pending = dragOffset.floatValue + amount.y
+                while (pending >= step) {
+                    val move = zoneMove(items, leftCount, items.indexOf(item), down = true)
+                    if (!move.moved) {
+                        pending = 0f
+                        break
                     }
-                    while (pending <= -step) {
-                        val move = zoneMove(items, leftCount, items.indexOf(key), down = false)
-                        if (!move.moved) {
-                            pending = 0f
-                            break
-                        }
-                        leftCount = move.leftCount
-                        pending += step
+                    leftCount = move.leftCount
+                    pending -= step
+                }
+                while (pending <= -step) {
+                    val move = zoneMove(items, leftCount, items.indexOf(item), down = false)
+                    if (!move.moved) {
+                        pending = 0f
+                        break
                     }
-                },
-            )
+                    leftCount = move.leftCount
+                    pending += step
+                }
+                dragOffset.floatValue = pending
+            }
+            if (afterLongPress) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { onStart() },
+                    onDragCancel = { onCancel() },
+                    onDragEnd = { onFinish() },
+                    onDrag = onDrag,
+                )
+            } else {
+                detectDragGestures(
+                    onDragStart = { onStart() },
+                    onDragCancel = { onCancel() },
+                    onDragEnd = { onFinish() },
+                    onDrag = onDrag,
+                )
+            }
         }
     }
 
@@ -362,28 +399,100 @@ fun StatusBarIconOrderZones(
             text = stringResource(R.string.statusbar_icon_order_zone_left, leftCount),
             topPadding = 12.dp,
         )
-        items.take(leftCount).forEachIndexed { index, key ->
-            OrderItemRow(
-                number = index + 1,
-                label = StatusBarIconSlots.label(context, key),
-                slot = key,
-                dragging = draggingKey == key,
-                dragModifier = dragModifierFor(key),
-            )
+        items.take(leftCount).forEachIndexed { index, item ->
+            key(item) {
+                OrderItemRow(
+                    number = index + 1,
+                    label = StatusBarIconSlots.label(context, item),
+                    slot = item,
+                    dragging = draggingItem == item,
+                    dragOffset = { if (draggingItem == item) dragOffset.floatValue else 0f },
+                    rowDragModifier = dragModifierFor(item, true),
+                    handleDragModifier = dragModifierFor(item, false),
+                )
+            }
         }
         ZoneDivider(modifier = Modifier.padding(horizontal = 16.dp))
         ZoneHeader(
             text = stringResource(R.string.statusbar_icon_order_zone_right, items.size - leftCount),
             topPadding = 8.dp,
         )
-        items.drop(leftCount).forEachIndexed { index, key ->
-            OrderItemRow(
-                number = index + 1,
-                label = StatusBarIconSlots.label(context, key),
-                slot = key,
-                dragging = draggingKey == key,
-                dragModifier = dragModifierFor(key),
-            )
+        items.drop(leftCount).forEachIndexed { index, item ->
+            key(item) {
+                OrderItemRow(
+                    number = index + 1,
+                    label = StatusBarIconSlots.label(context, item),
+                    slot = item,
+                    dragging = draggingItem == item,
+                    dragOffset = { if (draggingItem == item) dragOffset.floatValue else 0f },
+                    rowDragModifier = dragModifierFor(item, true),
+                    handleDragModifier = dragModifierFor(item, false),
+                )
+            }
+        }
+        ZoneDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        OrderResetRow(
+            onReset = {
+                // 右区清空即宿主默认顺序，左区只留时钟 = 与本功能装载前的布局一致
+                items.clear()
+                items.add(STATUS_BAR_ICON_ORDER_CLOCK_ITEM)
+                items.addAll(StatusBarIconSlots.defaultOrder)
+                leftCount = 1
+                onApply(STATUS_BAR_ICON_ORDER_CLOCK_ITEM, "")
+            },
+        )
+    }
+}
+
+/** 重置行：两个区域一起恢复宿主原生顺序 */
+@Composable
+private fun OrderResetRow(onReset: () -> Unit) {
+    val title = stringResource(R.string.statusbar_icon_order_reset)
+    val summary = stringResource(R.string.statusbar_icon_order_reset_summary)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(OrderItemHeight)
+            .clickable(onClick = onReset)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        when (LocalUiMode.current) {
+            UiMode.Miuix -> {
+                Column(modifier = Modifier.weight(1f)) {
+                    MiuixText(text = title, style = MiuixTheme.textStyles.main)
+                    MiuixText(
+                        text = summary,
+                        color = MiuixTheme.colorScheme.onBackgroundVariant,
+                        style = MiuixTheme.textStyles.footnote1,
+                    )
+                }
+                MiuixIcon(
+                    imageVector = Icons.Filled.RestartAlt,
+                    contentDescription = null,
+                    tint = MiuixTheme.colorScheme.onBackgroundVariant,
+                )
+            }
+
+            UiMode.Material -> {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = summary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Filled.RestartAlt,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -421,18 +530,25 @@ private fun ZoneDivider(modifier: Modifier = Modifier) {
     }
 }
 
-/** 一行条目：序号 + 展示名 + 槽位名 + 右侧拖拽手柄；高度固定，供拖拽换算行数 */
+/**
+ * 一行条目：序号 + 展示名 + 槽位名 + 右侧拖拽手柄；高度固定，供拖拽换算行数。
+ *
+ * [dragOffset] 是「未满一行的位移」，只在绘制阶段读取（`graphicsLayer`），因此拖动不会带来逐帧重组。
+ * [rowDragModifier] 挂在整行（长按拖动），[handleDragModifier] 挂在手柄 48dp 热区（立即拖动）。
+ */
 @Composable
 private fun OrderItemRow(
     number: Int,
     label: String,
     slot: String,
     dragging: Boolean,
-    dragModifier: Modifier,
+    dragOffset: () -> Float,
+    rowDragModifier: Modifier,
+    handleDragModifier: Modifier,
 ) {
     when (LocalUiMode.current) {
-        UiMode.Miuix -> MiuixOrderItemRow(number, label, slot, dragging, dragModifier)
-        UiMode.Material -> MaterialOrderItemRow(number, label, slot, dragging, dragModifier)
+        UiMode.Miuix -> MiuixOrderItemRow(number, label, slot, dragging, dragOffset, rowDragModifier, handleDragModifier)
+        UiMode.Material -> MaterialOrderItemRow(number, label, slot, dragging, dragOffset, rowDragModifier, handleDragModifier)
     }
 }
 
@@ -442,12 +558,16 @@ private fun MiuixOrderItemRow(
     label: String,
     slot: String,
     dragging: Boolean,
-    dragModifier: Modifier,
+    dragOffset: () -> Float,
+    rowDragModifier: Modifier,
+    handleDragModifier: Modifier,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(OrderItemHeight)
+            .zIndex(if (dragging) 1f else 0f)
+            .graphicsLayer { translationY = dragOffset() }
             .then(
                 if (dragging) {
                     Modifier.background(MiuixTheme.colorScheme.onBackground.copy(alpha = 0.06f))
@@ -455,8 +575,8 @@ private fun MiuixOrderItemRow(
                     Modifier
                 }
             )
-            .padding(horizontal = 16.dp)
-            .then(dragModifier),
+            .then(rowDragModifier)
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         MiuixText(
@@ -473,11 +593,18 @@ private fun MiuixOrderItemRow(
                 style = MiuixTheme.textStyles.footnote1,
             )
         }
-        MiuixIcon(
-            imageVector = Icons.Filled.Menu,
-            contentDescription = null,
-            tint = MiuixTheme.colorScheme.onBackgroundVariant,
-        )
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .then(handleDragModifier),
+            contentAlignment = Alignment.Center,
+        ) {
+            MiuixIcon(
+                imageVector = Icons.Filled.Menu,
+                contentDescription = null,
+                tint = MiuixTheme.colorScheme.onBackgroundVariant,
+            )
+        }
     }
 }
 
@@ -487,12 +614,16 @@ private fun MaterialOrderItemRow(
     label: String,
     slot: String,
     dragging: Boolean,
-    dragModifier: Modifier,
+    dragOffset: () -> Float,
+    rowDragModifier: Modifier,
+    handleDragModifier: Modifier,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(OrderItemHeight)
+            .zIndex(if (dragging) 1f else 0f)
+            .graphicsLayer { translationY = dragOffset() }
             .then(
                 if (dragging) {
                     Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
@@ -500,8 +631,8 @@ private fun MaterialOrderItemRow(
                     Modifier
                 }
             )
-            .padding(horizontal = 16.dp)
-            .then(dragModifier),
+            .then(rowDragModifier)
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -522,10 +653,17 @@ private fun MaterialOrderItemRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Icon(
-            imageVector = Icons.Filled.Menu,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .then(handleDragModifier),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Menu,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }

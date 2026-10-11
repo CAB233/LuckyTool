@@ -1212,10 +1212,12 @@
     <string name="statusbar_icon_order_category_arrange">排列</string>
     <string name="statusbar_icon_order_enable">啟用狀態列圖示排序</string>
     <string name="statusbar_icon_order_enable_summary">自訂狀態列圖示的位置與順序</string>
-    <string name="statusbar_icon_order_drag_hint">長按右邊手柄圖示可以上下拖動:拖到「右側區域」標題下面就是搬到右側,拖回「左側區域」標題下面就是搬回左側。關掉總開關後一切保持系統原生排序。</string>
+    <string name="statusbar_icon_order_drag_hint">按住右邊手柄圖示可以上下拖動(也可以長按整行拖動):拖到「右側區域」標題下面就是搬到右側,拖回「左側區域」標題下面就是搬回左側。關掉總開關後一切保持系統原生排序。</string>
     <string name="statusbar_icon_order_zone_left">左側區域(共 %1$d 項)</string>
     <string name="statusbar_icon_order_zone_right">右側區域(共 %1$d 項)</string>
     <string name="statusbar_icon_order_clock">時鐘</string>
+    <string name="statusbar_icon_order_reset">重設為系統預設順序</string>
+    <string name="statusbar_icon_order_reset_summary">左右兩個區域都恢復系統原生順序</string>
     <string name="status_bar_slot_logging">螢幕錄影</string>
     <string name="status_bar_slot_hotspot">熱點</string>
     <string name="status_bar_slot_data_saver">數據節省</string>

@@ -71,6 +71,12 @@ class StatusBarIconOrderTest {
         assertEquals(StatusBarIconSlots.defaultOrder, right)
     }
 
+    /** 「重置」写回的偏好（左区只剩时钟、右区清空）必须等于全新安装时的状态 */
+    @Test
+    fun `reset writes the same zones as a fresh install`() {
+        assertEquals(zoneSplit("", ""), zoneSplit(STATUS_BAR_ICON_ORDER_CLOCK_ITEM, ""))
+    }
+
     @Test
     fun `saved zones are restored in place and never overlap`() {
         val (left, right) = zoneSplit("network_speed,clock,mobile", "battery,vowifi")

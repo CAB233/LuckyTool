@@ -1442,10 +1442,12 @@
     <string name="statusbar_icon_order_category_arrange">Arrange</string>
     <string name="statusbar_icon_order_enable">Enable status bar icon order</string>
     <string name="statusbar_icon_order_enable_summary">Customize the position and order of the status bar icons</string>
-    <string name="statusbar_icon_order_drag_hint">Long-press the handle on the right to drag an item up or down: drop it below the “Right area” header to move it to the right, or back under the “Left area” header to return it to the left. Turning the master switch off keeps the system default order.</string>
+    <string name="statusbar_icon_order_drag_hint">Drag the handle on the right up or down (you can also long-press a row): drop it below the “Right area” header to move it to the right, or back under the “Left area” header to return it to the left. Turning the master switch off keeps the system default order.</string>
     <string name="statusbar_icon_order_zone_left">Left area (%1$d items)</string>
     <string name="statusbar_icon_order_zone_right">Right area (%1$d items)</string>
     <string name="statusbar_icon_order_clock">Clock</string>
+    <string name="statusbar_icon_order_reset">Reset to the system default</string>
+    <string name="statusbar_icon_order_reset_summary">Restore the native order in both areas</string>
     <string name="status_bar_slot_logging">Screen recording</string>
     <string name="status_bar_slot_hotspot">Hotspot</string>
     <string name="status_bar_slot_data_saver">Data saver</string>

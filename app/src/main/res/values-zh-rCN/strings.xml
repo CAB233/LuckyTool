@@ -1257,10 +1257,12 @@
     <string name="statusbar_icon_order_category_arrange">排列</string>
     <string name="statusbar_icon_order_enable">启用状态栏图标排序</string>
     <string name="statusbar_icon_order_enable_summary">自定义状态栏图标的位置与顺序</string>
-    <string name="statusbar_icon_order_drag_hint">长按右边手柄图标可以上下拖动:拖到「右侧区域」标题下面就是搬到右侧,拖回「左侧区域」标题下面就是搬回左侧。关掉总开关后一切保持系统原生排序。</string>
+    <string name="statusbar_icon_order_drag_hint">按住右边手柄图标可以上下拖动(也可以长按整行拖动):拖到「右侧区域」标题下面就是搬到右侧,拖回「左侧区域」标题下面就是搬回左侧。关掉总开关后一切保持系统原生排序。</string>
     <string name="statusbar_icon_order_zone_left">左侧区域(共 %1$d 项)</string>
     <string name="statusbar_icon_order_zone_right">右侧区域(共 %1$d 项)</string>
     <string name="statusbar_icon_order_clock">时钟</string>
+    <string name="statusbar_icon_order_reset">重置为系统默认顺序</string>
+    <string name="statusbar_icon_order_reset_summary">左右两个区域都恢复系统原生顺序</string>
     <string name="status_bar_slot_logging">屏幕录制</string>
     <string name="status_bar_slot_hotspot">热点</string>
     <string name="status_bar_slot_data_saver">流量节省</string>
