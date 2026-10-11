@@ -1,10 +1,8 @@
 package com.luckyzyx.luckytool.service
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.UserInfo
-import android.os.Build
 import android.os.IBinder
 import android.os.IUserManager
 import android.os.RemoteException
@@ -72,20 +70,11 @@ object UserService : BaseControllerService<IUserServiceController>() {
         return um
     }
 
-    @SuppressLint("ObsoleteSdkInt")
     fun getUsers(): MutableList<UserInfo> {
-        val um = getUserManager()
-        var users: MutableList<UserInfo> = LinkedList()
-        if (um == null) return users
-        users = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            um.getUsers(true, true, true)
-        } else {
-            try {
-                um.getUsers(true)
-            } catch (e: NoSuchMethodError) {
-                um.getUsers(true, true, true)
-            }
-        }
+        val um = getUserManager() ?: return LinkedList()
+        // IUserManager.getUsers 只有单参数重载，宿主内部即 getUsersInternal(true, excludeDying, true)，
+        // 调用多参数重载会在设备上抛 NoSuchMethodError 并导致 root 进程崩溃
+        val users = um.getUsers(true)
         val isLENOVO = SystemProperties.get("ro.lenovo.region").isNotBlank()
         if (isLENOVO) { // lenovo hides user [900, 910) for app cloning
             val gotUsers = BooleanArray(10)
