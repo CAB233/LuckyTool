@@ -53,6 +53,7 @@ import androidx.navigation.toRoute
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.EdgeSwipeDismiss
+import com.luckyzyx.luckytool.ui.compose.components.GateDialog
 import com.luckyzyx.luckytool.ui.compose.components.material.LocalBottomBarPresent
 import com.luckyzyx.luckytool.ui.compose.components.material.LocalShellBottomInset
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixBarItem
@@ -70,6 +71,7 @@ import com.luckyzyx.luckytool.ui.shell.LocalEnableSwipeDismiss
 import com.luckyzyx.luckytool.ui.shell.ShellBadgeState
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
+import kotlin.system.exitProcess
 import kotlinx.serialization.Serializable
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
@@ -377,6 +379,16 @@ fun MainShell(activity: MainActivity) {
                         floating = true,
                         floatingBlur = enableFloatingBottomBarBlur,
                         modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
+
+                // 启动阻塞门（Xposed 未激活 / 无 root / 系统不支持）：不可取消，确定退出进程
+                // Miuix 线的 OverlayDialog 由本 Scaffold 的 popup host 承载，因此必须组合在这里
+                activity.gateDialog?.let { spec ->
+                    GateDialog(
+                        spec = spec,
+                        onConfirm = { exitProcess(0) },
+                        onNeutral = { activity.gateDialog = null },
                     )
                 }
             }

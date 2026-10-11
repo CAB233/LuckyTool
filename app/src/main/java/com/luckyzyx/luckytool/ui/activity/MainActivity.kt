@@ -6,7 +6,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Process
 import androidx.activity.compose.setContent
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +26,7 @@ import com.luckyzyx.luckytool.service.UserService
 import com.luckyzyx.luckytool.ui.compose.FunctionRequest
 import com.luckyzyx.luckytool.ui.compose.LuckySplashHost
 import com.luckyzyx.luckytool.ui.compose.MainShell
+import com.luckyzyx.luckytool.ui.compose.components.GateDialogSpec
 import com.luckyzyx.luckytool.ui.service.XposedServiceBridge
 import com.luckyzyx.luckytool.ui.theme.LuckyAppTheme
 import com.luckyzyx.luckytool.utils.A12
@@ -39,14 +39,12 @@ import com.luckyzyx.luckytool.utils.PermissionUtils
 import com.luckyzyx.luckytool.utils.SDK
 import com.luckyzyx.luckytool.utils.SettingsPrefs
 import com.luckyzyx.luckytool.utils.ThemeUtils
-import com.luckyzyx.luckytool.utils.exitModule
 import com.luckyzyx.luckytool.utils.getBoolean
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.putBoolean
 import com.luckyzyx.luckytool.utils.verityPackage
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.lsposed.lsparanoid.Obfuscate
-import kotlin.system.exitProcess
 
 @Obfuscate
 @Suppress("PrivatePropertyName")
@@ -64,7 +62,8 @@ open class MainActivity : AppCompatActivity() {
     /** 跨 tab 跳转请求队列：Compose 页面 → Function 子树作用域页（MainShell 切 tab，FunctionPage 消费） */
     val functionNavRequests = MutableStateFlow<FunctionRequest?>(null)
 
-    private var checkSuDialog: AlertDialog? = null
+    /** 启动阻塞门对话框（Xposed 未激活 / 无 root / 系统不支持）：非空即由 MainShell 渲染，见 GateDialog */
+    var gateDialog by mutableStateOf<GateDialogSpec?>(null)
 
     private fun newIntent(context: Context): Intent {
         return Intent<MainActivity>(context)
@@ -88,7 +87,8 @@ open class MainActivity : AppCompatActivity() {
         setContent {
             LuckyAppTheme {
                 // 启动闪屏覆盖在主界面之上：主界面同时组合，闪屏淡出后立即可用
-                LuckySplashHost {
+                // 但有启动阻塞门时不播闪屏：它会盖住 MainShell 内 Miuix 线的场景内弹层
+                LuckySplashHost(showSplash = gateDialog == null) {
                     MainShell(this)
                 }
             }
@@ -110,13 +110,7 @@ open class MainActivity : AppCompatActivity() {
     private fun checkXposed() {
         XposedServiceBridge.awaitReady()
         if (!XposedServiceBridge.isModuleActive) {
-            AlertDialog.Builder(this).apply {
-                setCancelable(false)
-                setMessage(getString(R.string.unsupported_xposed))
-                setPositiveButton(android.R.string.ok) { _, _ -> exitProcess(0) }
-                setOnDismissListener { exitModule() }
-                show()
-            }
+            gateDialog = GateDialogSpec(message = getString(R.string.unsupported_xposed))
             return
         }
     }
@@ -128,14 +122,11 @@ open class MainActivity : AppCompatActivity() {
         putBoolean(ModulePrefs, "module_prefs", isSu)
         putBoolean(IntentPrefs, "intent_prefs", isSu)
         putBoolean(OtherPrefs, "other_prefs", isSu)
-        if (!isSu && (checkSuDialog == null || !checkSuDialog!!.isShowing)) {
-            checkSuDialog = AlertDialog.Builder(this).apply {
-                setCancelable(false)
-                setTitle(getString(R.string.no_root))
-                setMessage(getString(R.string.no_root_summary))
-                setPositiveButton(android.R.string.ok) { _, _ -> exitProcess(0) }
-                setOnDismissListener { exitModule() }
-            }.show()
+        if (!isSu && gateDialog == null) {
+            gateDialog = GateDialogSpec(
+                title = getString(R.string.no_root),
+                message = getString(R.string.no_root_summary),
+            )
             return
         }
         putBoolean(SettingsPrefs, "enable_module_print_logs", BuildConfig.DEBUG)
@@ -144,13 +135,13 @@ open class MainActivity : AppCompatActivity() {
 
     private fun checkOs() {
         val osCode = getOSVersionCode
-        AlertDialog.Builder(this).apply {
-            setCancelable(false)
-            setTitle(getString(R.string.unsupported_os))
-            setMessage(getString(R.string.unsupported_os_summary))
-            setPositiveButton(android.R.string.ok) { _, _ -> exitProcess(0) }
-            if (osCode > 0) setNeutralButton(getString(R.string.ignore), null)
-            if (osCode < 23 && isOnHomeTab) show()
+        if (osCode < 23 && isOnHomeTab) {
+            gateDialog = GateDialogSpec(
+                title = getString(R.string.unsupported_os),
+                message = getString(R.string.unsupported_os_summary),
+                // 与迁移前一致：osCode > 0 时额外提供「忽略」，点击只关闭对话框
+                neutralLabel = if (osCode > 0) getString(R.string.ignore) else null,
+            )
         }
     }
 

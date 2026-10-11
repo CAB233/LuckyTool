@@ -65,13 +65,23 @@ private val SplashLogoCorner = 28.dp
  * 因此冷启动没有白屏闪烁，观感是「纯色 → Logo 入场 → 淡出到主界面」。
  *
  * 仅冷启动播放一次：播放状态保存到 savedInstanceState，旋转屏幕 / restart() 重建不重播。
+ *
+ * @param showSplash 是否播放闪屏。本层绘制在 [content] **之上**，而启动阻塞门对话框
+ *（Xposed 未激活 / 无 root / 系统不支持）必须立刻可见，因此调用方在有阻塞门时传 false：
+ * 闪屏立即收起且不再重播（onResume 的 root 检查正是在闪屏期间发现无 root 的）。
  */
 @Composable
-fun LuckySplashHost(content: @Composable () -> Unit) {
-    var isSplashVisible by rememberSaveable { mutableStateOf(true) }
+fun LuckySplashHost(showSplash: Boolean = true, content: @Composable () -> Unit) {
+    var isSplashVisible by rememberSaveable { mutableStateOf(showSplash) }
     val splashAlpha = remember { Animatable(1f) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(showSplash) {
+        if (!showSplash) {
+            isSplashVisible = false
+            return@LaunchedEffect
+        }
+        // 已播完（或被上面的分支跳过）不再重播
+        if (!isSplashVisible) return@LaunchedEffect
         delay(SplashHoldMillis)
         // 整体淡出：主界面已经在下方组合完成，交叉淡出即可
         splashAlpha.animateTo(
