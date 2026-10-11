@@ -27,6 +27,9 @@ import java.lang.reflect.Method
 object StatusBarIconOrder : YukiBaseHooker() {
     private const val KEY = "statusbar_icon_order"
 
+    /** 总开关：关闭时不装载任何 hook（与页面上的开关同名） */
+    private const val ENABLE_KEY = "statusbar_icon_order_enabled"
+
     /** A15+ 把 StatusBarIconList/StatusBarIconControllerImpl 挪到 phone.ui 包，两代名字都兼容 */
     private val iconListClassNames = arrayOf(
         "com.android.systemui.statusbar.phone.ui.StatusBarIconList",
@@ -50,6 +53,8 @@ object StatusBarIconOrder : YukiBaseHooker() {
     private var iconController: Any? = null
 
     override fun onHook() {
+        // 需要重启作用域才会装载/卸载本 hooker
+        if (!preferences(ModulePrefs).getBoolean(ENABLE_KEY, false)) return
         userOrder = parseOrder(preferences(ModulePrefs).getString(KEY, ""))
         hookIconList()
         hookIconController()

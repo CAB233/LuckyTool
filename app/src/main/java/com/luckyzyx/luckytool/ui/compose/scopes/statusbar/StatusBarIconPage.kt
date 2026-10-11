@@ -33,30 +33,39 @@ object StatusBarIconPage {
         val osCode = getOSVersionCode
         // 图标位置排序
         category(c.getString(R.string.statusbar_icon_order))
-        custom(
-            key = STATUS_BAR_ICON_ORDER_KEY,
-            title = c.getString(R.string.statusbar_icon_order),
-        ) {
-            val saved by state.stringFlow(STATUS_BAR_ICON_ORDER_KEY, "")
-                .collectAsStateWithLifecycle()
-            var showDialog by remember { mutableStateOf(false) }
-            PrefRowInset {
-                PrefRow(
-                    title = stringResource(R.string.statusbar_icon_order),
-                    summary = stringResource(R.string.statusbar_icon_order_summary),
-                    onClick = { showDialog = true },
-                )
-            }
-            if (showDialog) {
-                StatusBarIconOrderDialog(
-                    savedOrder = saved,
-                    onDismiss = { showDialog = false },
-                    onApply = { value ->
-                        state.set(STATUS_BAR_ICON_ORDER_KEY, value)
-                        sendValue(STATUS_BAR_ICON_ORDER_KEY, value)
-                        showDialog = false
-                    },
-                )
+        // 总开关：hooker 只在开启时装载（onHook 里判断），因此关闭/开启都需要重启作用域
+        switch(
+            key = STATUS_BAR_ICON_ORDER_ENABLED_KEY,
+            title = c.getString(R.string.statusbar_icon_order_enable),
+            summary = c.getString(R.string.statusbar_icon_order_enable_summary),
+            onChange = { restart?.invoke() },
+        )
+        if (state.getBoolean(STATUS_BAR_ICON_ORDER_ENABLED_KEY, false)) {
+            custom(
+                key = STATUS_BAR_ICON_ORDER_KEY,
+                title = c.getString(R.string.statusbar_icon_order),
+            ) {
+                val saved by state.stringFlow(STATUS_BAR_ICON_ORDER_KEY, "")
+                    .collectAsStateWithLifecycle()
+                var showDialog by remember { mutableStateOf(false) }
+                PrefRowInset {
+                    PrefRow(
+                        title = stringResource(R.string.statusbar_icon_order),
+                        summary = stringResource(R.string.statusbar_icon_order_summary),
+                        onClick = { showDialog = true },
+                    )
+                }
+                if (showDialog) {
+                    StatusBarIconOrderDialog(
+                        savedOrder = saved,
+                        onDismiss = { showDialog = false },
+                        onApply = { value ->
+                            state.set(STATUS_BAR_ICON_ORDER_KEY, value)
+                            sendValue(STATUS_BAR_ICON_ORDER_KEY, value)
+                            showDialog = false
+                        },
+                    )
+                }
             }
         }
         // WIFI

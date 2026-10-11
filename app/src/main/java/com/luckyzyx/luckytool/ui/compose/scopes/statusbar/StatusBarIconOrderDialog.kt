@@ -44,6 +44,9 @@ import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 /** 状态栏图标排序偏好键（逗号分隔的 slot 名，空 = 宿主默认顺序） */
 const val STATUS_BAR_ICON_ORDER_KEY = "statusbar_icon_order"
 
+/** 状态栏图标排序总开关（关闭时 hooker 不装载，改动需重启作用域） */
+const val STATUS_BAR_ICON_ORDER_ENABLED_KEY = "statusbar_icon_order_enabled"
+
 /**
  * 状态栏图标槽位表（宿主 `config_statusBarIcons` 的顺序与名字）。
  *

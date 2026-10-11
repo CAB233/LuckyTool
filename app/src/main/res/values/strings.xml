@@ -1438,6 +1438,8 @@
 
     <!--StatusBarIconOrder-->
     <string name="statusbar_icon_order">Status bar icon order</string>
+    <string name="statusbar_icon_order_enable">Enable icon order</string>
+    <string name="statusbar_icon_order_enable_summary">Only when enabled the module reorders the status bar icons; toggling it needs a SystemUI restart</string>
     <string name="statusbar_icon_order_summary">Adjust the display order of the status bar icons; newly appearing icons keep their system default position</string>
     <string name="statusbar_icon_order_reset">Reset</string>
     <string name="statusbar_icon_order_move_up">Move up</string>

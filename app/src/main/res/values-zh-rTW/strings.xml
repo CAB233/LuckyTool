@@ -1208,6 +1208,8 @@
     <string name="custom_notification_side_spacing_vertical">自定义通知两侧间距(竖屏)</string>
     <!--StatusBarIconOrder-->
     <string name="statusbar_icon_order">狀態列圖示排序</string>
+    <string name="statusbar_icon_order_enable">啟用圖示排序</string>
+    <string name="statusbar_icon_order_enable_summary">開啟後才會按下方的順序排列狀態列圖示，切換開關需重啟系統介面</string>
     <string name="statusbar_icon_order_summary">調整圖示在狀態列上的顯示順序，新出現的圖示維持系統預設位置</string>
     <string name="statusbar_icon_order_reset">重設</string>
     <string name="statusbar_icon_order_move_up">上移</string>
