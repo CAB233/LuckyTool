@@ -1042,4 +1042,6 @@
     <string name="net_error">Невідома мережева помилка</string>
     <string name="net_other_error">Невідома помилка</string>
     <string name="no_error_message">Немає повідомлення про помилку</string>
+    <string name="select_color">Вибрати колір</string>
+    <string name="current_color">Поточний колір: %1$s</string>
 </resources>

@@ -1293,4 +1293,6 @@
     <string name="net_other_error">Bilinmeyen Türden  Hata !.</string>
     <string name="no_error_message">Belirti / İşaret vb Olan Hiçbir vs Hata mesajı Yok ! (Sıfır Sorun)...</string>
 
+    <string name="select_color">Renk seç</string>
+    <string name="current_color">Geçerli renk: %1$s</string>
 </resources>

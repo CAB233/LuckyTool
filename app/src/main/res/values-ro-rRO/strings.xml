@@ -1045,4 +1045,6 @@
     <string name="no_error_message">No error message</string>
     <string name="enable_notification_side_spacing">启用通知两侧间距</string>
     <string name="custom_notification_side_spacing_vertical">自定义通知两侧间距(竖屏)</string>
+    <string name="select_color">Selectați culoarea</string>
+    <string name="current_color">Culoarea actuală: %1$s</string>
 </resources>

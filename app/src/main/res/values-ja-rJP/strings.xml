@@ -1041,4 +1041,6 @@
     <string name="net_error">不明なネットワークエラー</string>
     <string name="net_other_error">不明なエラー</string>
     <string name="no_error_message">エラーメッセージなし</string>
+    <string name="select_color">色を選択</string>
+    <string name="current_color">現在の色: %1$s</string>
 </resources>

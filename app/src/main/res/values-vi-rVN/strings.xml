@@ -1044,4 +1044,6 @@
     <string name="net_error">Mạng không xác định</string>
     <string name="net_other_error">Lỗi không xác định</string>
     <string name="no_error_message">Thông báo lỗi</string>
+    <string name="select_color">Chọn màu</string>
+    <string name="current_color">Màu hiện tại: %1$s</string>
 </resources>

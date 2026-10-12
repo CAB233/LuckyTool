@@ -1269,4 +1269,6 @@
     <string name="status_bar_slot_airplane">飛航模式</string>
     <string name="status_bar_slot_oplus_satellite">衛星圖示</string>
     <string name="status_bar_slot_battery">電池</string>
+    <string name="select_color">選擇顏色</string>
+    <string name="current_color">目前顏色: %1$s</string>
 </resources>

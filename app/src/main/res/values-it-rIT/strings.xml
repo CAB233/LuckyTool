@@ -1041,4 +1041,6 @@
     <string name="net_error">Errore di Rete Sconosciuto</string>
     <string name="net_other_error">Errore sconosciuto</string>
     <string name="no_error_message">Nessun messaggio di errore</string>
+    <string name="select_color">Seleziona colore</string>
+    <string name="current_color">Colore attuale: %1$s</string>
 </resources>

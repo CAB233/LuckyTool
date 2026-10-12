@@ -1042,4 +1042,6 @@
     <string name="net_error">Neznámá chyba sítě</string>
     <string name="net_other_error">Neznámá chyba</string>
     <string name="no_error_message">Žádná chybová zpráva</string>
+    <string name="select_color">Vybrat barvu</string>
+    <string name="current_color">Aktuální barva: %1$s</string>
 </resources>

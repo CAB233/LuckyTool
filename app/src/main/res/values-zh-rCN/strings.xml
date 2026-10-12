@@ -1314,4 +1314,6 @@
     <string name="status_bar_slot_airplane">飞行模式</string>
     <string name="status_bar_slot_oplus_satellite">卫星图标</string>
     <string name="status_bar_slot_battery">电池</string>
+    <string name="select_color">选择颜色</string>
+    <string name="current_color">当前颜色: %1$s</string>
 </resources>
