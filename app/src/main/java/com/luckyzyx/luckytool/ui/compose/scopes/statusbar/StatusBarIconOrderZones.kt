@@ -257,12 +257,11 @@ object StatusBarIconSlots {
 /**
  * 偏好值 → (左区列表, 右区列表)。
  *
- * - 左区：保存顺序里的合法项（[STATUS_BAR_ICON_ORDER_CLOCK_ITEM]、[STATUS_BAR_ICON_ORDER_NOTIFY_ITEM]
- *   或已收录槽位），去重。
- * - 右区：保存顺序里的合法项（排除左区项）+ 其余已收录槽位按宿主默认顺序补齐，
- *   因此本版本新增的槽位默认仍排在右侧尾部。
- * - 时钟必须恰好在一个区域：两边都写了以左区为准，两边都没写则默认落在左区最前。
- * - 通知图标固定左区：缺失时补到左区末尾（与宿主默认「通知区排在左区内容之后」一致）。
+ * - 非锚点槽位：保存顺序里的合法项，去重；未写进任何一区的已收录槽位按宿主默认顺序补进右区
+ *   （本版本新增的槽位因此默认仍排在右侧尾部）。
+ * - 锚点（[STATUS_BAR_ICON_ORDER_CLOCK_ITEM] / [STATUS_BAR_ICON_ORDER_NOTIFY_ITEM]）可以跨区：
+ *   写进哪一区的顺序就落在哪一区（两边都写了以左区为准）；两边都没写时按宿主默认落在左区，
+ *   时钟补在左区最前、通知图标补在左区最后。锚点在原区里的相对位置会保留。
  * - 未收录的槽位名一律丢弃（宿主里本来就不存在，或未来版本才有）。
  */
 internal fun zoneSplit(leftRaw: String, rightRaw: String): Pair<List<String>, List<String>> {
@@ -276,33 +275,35 @@ internal fun zoneSplit(leftRaw: String, rightRaw: String): Pair<List<String>, Li
 
     val leftSaved = parse(leftRaw)
     val rightSaved = parse(rightRaw)
-    val clockInRight = clock in rightSaved && clock !in leftSaved
-    val leftBase = leftSaved.filterNot { it == notify }
-    val left = when {
-        clockInRight -> leftBase.filterNot { it == clock }
-        clock in leftBase -> leftBase
-        else -> listOf(clock) + leftBase
+    val left = leftSaved.filterNot { it == clock || it == notify }.toMutableList()
+    val right = rightSaved.filterNot { it == clock || it == notify }.toMutableList()
+    for (slot in known) if (slot !in left && slot !in right) right += slot
+
+    for (anchor in listOf(clock, notify)) {
+        val inLeft = anchor in leftSaved
+        val inRight = anchor in rightSaved
+        val toLeft = if (inLeft || inRight) inLeft else true
+        val source = if (toLeft) leftSaved else rightSaved
+        val target = if (toLeft) left else right
+        val at = when {
+            // 保留它原本在所属区里的相对位置
+            anchor in source ->
+                source.take(source.indexOf(anchor)).count { it in target }
+                    .coerceIn(0, target.size)
+            // 补位：通知图标补在左区最后（宿主默认），其余补在该区最前
+            toLeft && anchor == notify -> target.size
+            else -> 0
+        }
+        target.add(at, anchor)
     }
-    // 通知图标固定左区，位置沿用保存顺序，缺失时补到末尾
-    val notifyAt = leftSaved.indexOf(notify)
-    val leftWithNotify = if (notifyAt < 0) {
-        left + notify
-    } else {
-        val before = leftSaved.take(notifyAt).count { it != notify && it in left }
-        left.toMutableList().apply { add(before.coerceIn(0, size), notify) }
-    }
-    val rightItems = (if (clockInRight) rightSaved else rightSaved.filterNot { it == clock })
-        .filterNot { it == notify }
-        .filterNot { it in leftWithNotify }
-    val right = rightItems + known.filterNot { it in leftWithNotify || it in rightItems }
-    return leftWithNotify to right
+    return left to right
 }
 
 /**
  * 松手落位：把 [items] 里 [from] 位置的项移到 [to]（两者都是移动前的下标），返回新的左区项数。
  *
  * 用「先摘后插」，所以 [to] 也用移动前的下标：`[A,B,C,D]` 把 1 移到 3 得到 `[A,C,D,B]`。
- * 跨区（左区项落到右区下标，或反之）时区界随之增减；时钟也能跨区，因此左区可以被搬空。
+ * 跨区（左区项落到右区下标，或反之）时区界随之增减；时钟与通知图标都能跨区，因此左区可以被搬空。
  *
  * 左区为空时列表由 [STATUS_BAR_ICON_ORDER_LEFT_EMPTY_MARKER] 占住下标 0（此时 [leftCount] = 1）：
  * - 拖到占位槽（[to] = 0）= 放进左侧：图标顶替占位条目（占位被顶出下标 0 后移除）；
@@ -313,15 +314,11 @@ internal fun zoneSplit(leftRaw: String, rightRaw: String): Pair<List<String>, Li
  */
 internal fun zoneDrop(items: MutableList<String>, leftCount: Int, from: Int, to: Int): Int {
     if (from !in items.indices || to !in items.indices || from == to) return leftCount
-    // 「通知图标」固定左区：越界目标夹回左区范围（宿主右区是系统图标簇，装不下通知区）
-    val pinnedNotify = items[from] == STATUS_BAR_ICON_ORDER_NOTIFY_ITEM && leftCount > 0
-    val target = if (pinnedNotify) to.coerceIn(0, leftCount - 1) else to
-    if (target == from) return leftCount
     val moved = items.removeAt(from)
-    items.add(target, moved)
+    items.add(to, moved)
     var next = when (leftCount) {
-        in (from + 1)..target -> leftCount - 1
-        in (target + 1)..from -> leftCount + 1
+        in (from + 1)..to -> leftCount - 1
+        in (to + 1)..from -> leftCount + 1
         else -> leftCount
     }
     // 占位条目被顶出下标 0 = 左区已有真实图标，占位不再需要

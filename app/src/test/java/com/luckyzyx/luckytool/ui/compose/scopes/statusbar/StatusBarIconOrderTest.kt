@@ -78,18 +78,20 @@ class StatusBarIconOrderTest {
         assertEquals(zoneSplit("", ""), zoneSplit(STATUS_BAR_ICON_ORDER_CLOCK_ITEM, ""))
     }
 
-    /** 通知图标在左区的位置由保存顺序决定：可以排到时钟前面 */
+    /** 通知图标在所属区里的位置由保存顺序决定：可以排到时钟前面，也可以落在右区 */
     @Test
-    fun `notification icons keep their saved place inside the left zone`() {
+    fun `notification icons keep their saved place inside their zone`() {
         val (left, _) = zoneSplit("$STATUS_BAR_ICON_ORDER_NOTIFY_ITEM,clock,network_speed", "")
         assertEquals(
             listOf(STATUS_BAR_ICON_ORDER_NOTIFY_ITEM, "clock", "network_speed"),
             left,
         )
-        // 即使保存时被写进右区，也会被拉回左区
-        val (pulled, right) = zoneSplit("clock", "$STATUS_BAR_ICON_ORDER_NOTIFY_ITEM,battery")
-        assertEquals(listOf("clock", STATUS_BAR_ICON_ORDER_NOTIFY_ITEM), pulled)
-        assertTrue(STATUS_BAR_ICON_ORDER_NOTIFY_ITEM !in right)
+        // 写进右区的通知图标留在右区：它和时钟一样是锚点，不再被拉回左区
+        val (pulledLeft, pulledRight) =
+            zoneSplit("clock", "$STATUS_BAR_ICON_ORDER_NOTIFY_ITEM,battery")
+        assertEquals(listOf("clock"), pulledLeft)
+        assertEquals(STATUS_BAR_ICON_ORDER_NOTIFY_ITEM, pulledRight[0])
+        assertEquals("battery", pulledRight[1])
     }
 
     @Test
@@ -197,19 +199,24 @@ class StatusBarIconOrderTest {
         assertEquals(listOf(marker, "clock", "battery"), noOp)
     }
 
-    /** 通知图标固定左区：拖向右区会被夹回左区范围，左区内仍可任意移动 */
+    /** 通知图标和时钟一样能跨区：拖到右区就落在右区，拖回左区还能与时钟互换 */
     @Test
-    fun `notification icons stay inside the left zone`() {
+    fun `notification icons can be carried across the border`() {
         val notify = STATUS_BAR_ICON_ORDER_NOTIFY_ITEM
-        // 拖到右区（to = 3）被夹回左区末位 1，等于原地不动
+        // 拖到右区（to = 3）：区界左移，通知图标离开左区
         val toRight = mutableListOf("clock", notify, "battery", "wifi")
-        assertEquals(2, zoneDrop(toRight, 2, 1, 3))
-        assertEquals(listOf("clock", notify, "battery", "wifi"), toRight)
+        assertEquals(1, zoneDrop(toRight, 2, 1, 3))
+        assertEquals(listOf("clock", "battery", "wifi", notify), toRight)
 
         // 左区内仍可与时钟互换位置
         val inside = mutableListOf("clock", notify, "battery")
         assertEquals(2, zoneDrop(inside, 2, 1, 0))
         assertEquals(listOf(notify, "clock", "battery"), inside)
+
+        // 右区里的通知图标再拖回左区最前：区界右移
+        val back = mutableListOf("clock", "battery", notify)
+        assertEquals(2, zoneDrop(back, 1, 2, 0))
+        assertEquals(listOf(notify, "clock", "battery"), back)
     }
 
     @Test
