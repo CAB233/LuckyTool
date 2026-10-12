@@ -41,6 +41,25 @@ import java.lang.reflect.Method
  * `getChildAt(i)` 永远返回正确的图标 view（不论其真实父容器在哪），`addView` 仍按宿主给的全局下标入列。
  * 虚拟容器本身不在布局树里，不参与测量。
  *
+ * ## 宿主布局契约（动这里之前先看，全是踩过的坑）
+ *
+ * | 容器 | 类型 / 布局参数 | 约束 |
+ * | --- | --- | --- |
+ * | `status_bar_start_side_except_heads_up` | StartSideExceptHeadsUpLayout（LinearLayout），子 view 全 `wrap_content`、**无 `layout_weight`** | 插段容器安全；`onLayout` 只做 pivot + `super`（StartSideExceptHeadsUpLayout.java:136）→ 子 view 顺序即布局顺序 |
+ * | `system_icons` | LinearLayout（`wrap_content`），内含 `statusIcons`（**`0dp` + `layout_weight = 1`**）+ 电池 include | **不能随便插容器**：`statusIcons` 靠权重吃剩余宽度，旁边多一个容器就抢它的宽度 |
+ * | `statusIcons` | StatusIconContainer（AlphaOptimizedLinearLayout） | 子 view 必须是 `StatusIconDisplayable` 且带 `R.id.status_bar_view_state_tag`（StatusIconContainer.java:440 / :442 强转 + 无 null 检查）→ **绝不能把我们的段容器放进去** |
+ *
+ * `StatusIconContainer` 的定位方式（StatusIconContainer.java:276-286 / :423-494）：`onLayout` 把每个子 view
+ * 都 layout 到 `x = 0`，再由 `updateStates()` 按「**子 view 顺序 + 自己的宽度**」重算每个图标的
+ * `translationX`（:438-451，从右往左累加）→ ①子 view 顺序就是布局顺序，原地重排是安全的；
+ * ②容器宽度一变所有图标位置跟着变（宽度被抢成 0 时全叠在一处）；③图标一旦离开 `statusIcons`，
+ * 就没有人再更新它的 state，那个 `translationX` 会留着（看上去就是「图标全叠在右上角」），
+ * 必须自己清掉 → [resetHostIconTransform]。
+ *
+ * 生命周期：宿主不少 view 挂在 ColorOS `SysuiLifecycle` 的 attach/detach 回调上，普通 `removeView`
+ * 会把它们打成 DESTROYED（再 attach 抛 `State is 'DESTROYED' and cannot be moved to RESUMED`）
+ * → 搬 view 一律走 [detachQuietly] / [moveChildInPlace]。
+ *
  * ## 锚点（时钟 / 通知图标）
  * 时钟（`clock_for_fake`）与通知图标组（`status_bar_start_side_content_for_fake`）都不是槽位，
  * 而是宿主布局里的独立 view，顺序里的 `clock` / `notifications` 伪条目代表它们。
@@ -307,6 +326,8 @@ object StatusBarIconOrder : YukiBaseHooker() {
             ensureGroups()
             reconcile()
             if (refresh) refreshIcons()
+            // 布局跑完再打结构日志：这时 statusIcons 的宽度才是真实值
+            statusIconsView?.post { dumpStructure("applied(refresh=$refresh)") }
         }.onFailure { YLog.debug("StatusBarIconOrder: applyZones failed -> $it") }
     }
 
@@ -511,6 +532,21 @@ object StatusBarIconOrder : YukiBaseHooker() {
     private fun isChildAt(parent: ViewGroup, index: Int, view: View): Boolean =
         index in 0 until parent.childCount && parent.getChildAt(index) === view
 
+    /**
+     * 图标离开宿主 `statusIcons`、进入我们自己的段容器时，清掉它身上的 `translationX`。
+     *
+     * `StatusIconContainer` 的 `StatusIconState`（ViewState）会给每个子 view 设 `translationX`，值是按
+     * **`statusIcons` 自己的宽度**算出来的（StatusIconContainer.java:119 / :438-451）。图标被搬走之后
+     * 没有人再更新它的 state，这个位移就一直留着，在新的容器里把图标整体推到一起 → 看上去就是
+     * 「移动数据 / WIFI / 电池全叠在右上角」。
+     *
+     * 只清位移：`alpha` / `visibleState` 是宿主表示「这个图标该不该显示」的状态，不能碰。
+     */
+    private fun resetHostIconTransform(group: ZoneIconGroup, view: View, parent: ViewGroup) {
+        if (group.rightGroup !== statusIconsView || parent === statusIconsView) return
+        view.translationX = 0f
+    }
+
     private fun detachViews(vararg groups: ViewGroup?) {
         for (group in groups) (group?.parent as? ViewGroup)?.removeView(group)
     }
@@ -625,6 +661,8 @@ object StatusBarIconOrder : YukiBaseHooker() {
                         )
                     }.onFailure { YLog.debug("StatusBarIconOrder: reorder add failed -> $it") }
                 }
+                // 搬进我们自己的段容器后，宿主留下的位移必须清掉（理由见 resetHostIconTransform）
+                resetHostIconTransform(group, child, container)
             }
         }
     }
@@ -640,6 +678,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
                 index.coerceIn(0, target.childCount),
                 params ?: child.layoutParams
             )
+            resetHostIconTransform(group, child, target)
         }.onFailure {
             YLog.debug("StatusBarIconOrder: attach icon failed -> $it")
             runCatching { group.rightGroup.addView(child, params ?: child.layoutParams) }
@@ -659,6 +698,40 @@ object StatusBarIconOrder : YukiBaseHooker() {
 
     private fun childrenOf(group: ViewGroup): List<View> =
         (0 until group.childCount).mapNotNull { group.getChildAt(it) }
+
+    /** view 的可读名字：优先用资源 id 名（宿主 view 都有），拿不到就退回类名 */
+    private fun viewName(view: View): String = runCatching {
+        val id = view.id
+        if (id != View.NO_ID) view.resources.getResourceEntryName(id) else view.javaClass.simpleName
+    }.getOrElse { view.javaClass.simpleName }
+
+    private fun childSummary(group: ViewGroup?): String =
+        if (group == null) "null" else (0 until group.childCount).joinToString(",") { viewName(group.getChildAt(it)) }
+
+    /**
+     * 结构自检：把真实布局树的关键部分打进日志。
+     *
+     * 真机上「没反应 / 图标叠在一起」这类问题只能靠真实结构判断（开发机没有设备），
+     * 所以每次对账后都打一行：顺序、实际摆好的锚点、两个容器的子 view、`statusIcons` 的宽度与槽位。
+     * 出问题时直接看这一行就知道是顺序没生效、还是容器被塞坏（宽度变 0 就会叠在一起）。
+     */
+    private fun dumpStructure(note: String) {
+        runCatching {
+            val icons = statusIconsView ?: return
+            val root = statusBarView ?: return
+            val systemIcons = root.findViewById<ViewGroup>(idOf(root, "system_icons"))
+            val startSide = root.findViewById<ViewGroup>(idOf(root, "status_bar_start_side_except_heads_up"))
+            val slots = (0 until icons.childCount).joinToString(",") { slotOf(icons.getChildAt(it)) ?: "?" }
+            YLog.debug(
+                "StatusBarIconOrder: $note zonesActive=$zonesActive" +
+                    " left=$leftOrder placedL=$placedLeftAnchors" +
+                    " right=$rightOrder placedR=$placedRightAnchors" +
+                    " startSide=[${childSummary(startSide)}]" +
+                    " systemIcons=[${childSummary(systemIcons)}]" +
+                    " statusIcons(w=${icons.width},n=${icons.childCount})=[$slots]"
+            )
+        }.onFailure { YLog.debug("StatusBarIconOrder: dumpStructure failed -> $it") }
+    }
 
     /** 宿主资源 id 只能按名字取（模块里没有 com.android.systemui 的 R） */
     private fun idOf(view: View, name: String): Int =
