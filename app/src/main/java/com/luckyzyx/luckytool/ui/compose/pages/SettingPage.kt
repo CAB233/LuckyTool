@@ -157,48 +157,75 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                 .padding(padding)
         }
         val scopeContent: @Composable () -> Unit = {
+            // 行参数在非 Composable 的构建 lambda 内求值（那里没有 Composer），字符串先在这里取一次
+            val themeTitle = stringResource(R.string.theme_title)
+            val settingsUiModeTitle = stringResource(R.string.settings_ui_mode)
+            val settingsUiModeSummary = stringResource(R.string.settings_ui_mode_summary)
+            val themePaletteTitle = stringResource(R.string.theme_palette)
+            val themePaletteSummary = stringResource(R.string.theme_palette_summary)
+            val otherSettingsTitle = stringResource(R.string.other_settings)
+            val autoCheckUpdateTitle = stringResource(R.string.auto_check_update)
+            val autoCheckUpdateSummary = stringResource(R.string.auto_check_update_summary)
+            val biometricUnlockTitle = stringResource(R.string.enable_biometric_unlock_verification)
+            val tileAutoStartTitle = stringResource(R.string.tile_auto_start)
+            val tileAutoStartSummary = stringResource(R.string.tile_auto_start_summary)
+            val hideModuleIconTitle = stringResource(R.string.hide_desktop_module_icon)
+            val hideModuleIconSummary = stringResource(R.string.hide_desktop_module_icon_summary)
+            val backupRestoreClearTitle = stringResource(R.string.backup_restore_clear)
+            val backupDataTitle = stringResource(R.string.backup_data)
+            val restoreDataTitle = stringResource(R.string.restore_data)
+            val clearAllDataTitle = stringResource(R.string.clear_all_data)
+            val clearAllDataSummary = stringResource(R.string.clear_all_data_summary)
+            val aboutTitle = stringResource(R.string.about_title)
+            val donateTitle = stringResource(R.string.donate)
+            val donateSummary = stringResource(R.string.donate_summary)
+            val feedbackDownloadTitle = stringResource(R.string.feedback_download)
+            val feedbackDownloadSummary = stringResource(R.string.feedback_download_summary)
+            val participateTranslationTitle = stringResource(R.string.participate_translation)
+            val participateTranslationSummary =
+                stringResource(R.string.participate_translation_summary)
             ScopeScreen(
                 state = settings,
                 modifier = scopeModifier,
             ) {
                 // ---------------- 主题 ----------------
                 // 主题模式 / 主题色 / 调色风格 / 色彩规格 / 动态取色 全部迁至独立主题页（对齐 KernelSU colorpalette）
-                category(context.getString(R.string.theme_title))
+                category(themeTitle)
                 // 界面风格切换（Material / Miuix）：放在设置页而不是主题页，
                 // 保证切到 Miuix 后仍能在这里切回 Material。顺序对齐 KernelSU：界面风格在上，主题入口在下
                 list(
                     key = ThemeController.KEY_UI_MODE,
-                    title = context.getString(R.string.settings_ui_mode),
+                    title = settingsUiModeTitle,
                     entries = UiMode.entries.map { it.name }.toTypedArray(),
                     entryValues = UiMode.entries.map { it.value }.toTypedArray(),
                     default = UiMode.DEFAULT_VALUE,
-                    summary = context.getString(R.string.settings_ui_mode_summary),
+                    summary = settingsUiModeSummary,
                     leading = { PrefIconBadge(Icons.Filled.Style, Color(0xFF9C27B0)) },
                     onChange = { ThemePrefs.notifyChanged() },
                 )
                 // 主题入口：Miuix 线为箭头（对齐 KernelSU），material 线保留取值行；
                 // 取值随 revision 重建而刷新（主题页改完返回立即刷新）
                 click(
-                    title = context.getString(R.string.theme_palette),
-                    summary = context.getString(R.string.theme_palette_summary),
+                    title = themePaletteTitle,
+                    summary = themePaletteSummary,
                     leading = { PrefIconBadge(Icons.Filled.Palette, Color(0xFF673AB7)) },
                     value = settings.stringFlow("palette_style", "TonalSpot").value,
                     onClick = onOpenTheme,
                 )
 
                 // ---------------- 其他 ----------------
-                category(context.getString(R.string.other_settings))
+                category(otherSettingsTitle)
                 switch(
                     key = "auto_check_update",
-                    title = context.getString(R.string.auto_check_update),
-                    summary = context.getString(R.string.auto_check_update_summary),
+                    title = autoCheckUpdateTitle,
+                    summary = autoCheckUpdateSummary,
                     default = true,
                     leading = { PrefIconBadge(Icons.Filled.SystemUpdate, Color(0xFF4285F4)) },
                 )
                 if (deviceSecure) {
                     switch(
                         key = "enable_biometric_unlock_verification",
-                        title = context.getString(R.string.enable_biometric_unlock_verification),
+                        title = biometricUnlockTitle,
                         leading = { PrefIconBadge(Icons.Filled.Fingerprint, Color(0xFF00ACC1)) },
                         beforeApply = { enable, apply ->
                             if (enable) {
@@ -214,15 +241,15 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                 }
                 switch(
                     key = "tile_auto_start",
-                    title = context.getString(R.string.tile_auto_start),
-                    summary = context.getString(R.string.tile_auto_start_summary),
+                    title = tileAutoStartTitle,
+                    summary = tileAutoStartSummary,
                     default = true,
                     leading = { PrefIconBadge(Icons.Filled.Widgets, Color(0xFF4CAF50)) },
                 )
                 switch(
                     key = "hide_desktop_module_icon",
-                    title = context.getString(R.string.hide_desktop_module_icon),
-                    summary = context.getString(R.string.hide_desktop_module_icon_summary),
+                    title = hideModuleIconTitle,
+                    summary = hideModuleIconSummary,
                     leading = { PrefIconBadge(Icons.Filled.HideImage, Color(0xFF607D8B)) },
                     onChange = { value ->
                         AppUtils(context).setComponentDisabled(
@@ -236,9 +263,9 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                 )
 
                 // ---------------- 备份/恢复/清除 ----------------
-                category(context.getString(R.string.backup_restore_clear))
+                category(backupRestoreClearTitle)
                 click(
-                    title = context.getString(R.string.backup_data),
+                    title = backupDataTitle,
                     leading = { PrefIconBadge(Icons.Filled.Backup, Color(0xFF4285F4)) },
                     onClick = {
                         FileUtils.checkDownloadDir(context, "LuckyTool").apply {
@@ -255,7 +282,7 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                     },
                 )
                 click(
-                    title = context.getString(R.string.restore_data),
+                    title = restoreDataTitle,
                     leading = { PrefIconBadge(Icons.Filled.Restore, Color(0xFF34A853)) },
                     onClick = {
                         FileUtils.checkDownloadDir(context, "LuckyTool").apply {
@@ -266,29 +293,29 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                     },
                 )
                 click(
-                    title = context.getString(R.string.clear_all_data),
-                    summary = context.getString(R.string.clear_all_data_summary),
+                    title = clearAllDataTitle,
+                    summary = clearAllDataSummary,
                     leading = { PrefIconBadge(Icons.Filled.DeleteSweep, Color(0xFFEA4335)) },
                     onClick = { showClearDialog = true },
                 )
 
                 // ---------------- 关于 ----------------
-                category(context.getString(R.string.about_title))
+                category(aboutTitle)
                 click(
-                    title = context.getString(R.string.donate),
-                    summary = context.getString(R.string.donate_summary),
+                    title = donateTitle,
+                    summary = donateSummary,
                     leading = { PrefIconBadge(Icons.Filled.VolunteerActivism, Color(0xFFE91E63)) },
                     onClick = { showDonateList = true },
                 )
                 click(
-                    title = context.getString(R.string.feedback_download),
-                    summary = context.getString(R.string.feedback_download_summary),
+                    title = feedbackDownloadTitle,
+                    summary = feedbackDownloadSummary,
                     leading = { PrefIconBadge(Icons.Filled.Feedback, Color(0xFF00ACC1)) },
                     onClick = { showFeedbackDialog = true },
                 )
                 click(
-                    title = context.getString(R.string.participate_translation),
-                    summary = context.getString(R.string.participate_translation_summary),
+                    title = participateTranslationTitle,
+                    summary = participateTranslationSummary,
                     leading = { PrefIconBadge(Icons.Filled.Translate, Color(0xFF00897B)) },
                     onClick = {
                         context.openUrl("https://github.com/luckyzyx/LuckyTool-Localization")

@@ -449,6 +449,9 @@ private fun FunctionSearchScreen(onBack: () -> Unit, onOpen: (ScopeRoute) -> Uni
             val queryNow = query
             val entriesNow = entries
             val filteredNow = filtered
+            // 行参数在非 Composable 的构建 lambda 内求值（那里没有 Composer），字符串先在这里取一次
+            val searchIndexLoadingText = stringResource(R.string.search_index_loading)
+            val searchNoResultsText = stringResource(R.string.search_no_results)
             ScopeScreen(state = settings, modifier = scopeModifier) {
                 // 搜索框不是「选项行」，独占一张卡片（否则会与紧随其后的结果行拼在一起）
                 custom(key = "search_field", standalone = true) {
@@ -480,10 +483,10 @@ private fun FunctionSearchScreen(onBack: () -> Unit, onOpen: (ScopeRoute) -> Uni
                     )
                 }
                 if (queryNow.isNotBlank() && entriesNow.isEmpty()) {
-                    click(title = context.getString(R.string.search_index_loading))
+                    click(title = searchIndexLoadingText)
                 }
                 if (queryNow.isNotBlank() && entriesNow.isNotEmpty() && filteredNow.isEmpty()) {
-                    click(title = context.getString(R.string.search_no_results))
+                    click(title = searchNoResultsText)
                 }
                 filteredNow.forEach { entry ->
                     click(

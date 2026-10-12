@@ -167,35 +167,48 @@ fun OtherPage(activity: MainActivity) {
             // 否则 AIDL 控制器连上后入口不出现，需要切页才显示
             val touchModeNow = tileController?.checkTouchMode() == true
             val hasAdbNow = adbController != null
+            // 行参数在非 Composable 的构建 lambda 内求值（那里没有 Composer），字符串先在这里取一次
+            val quickEntryTitle = stringResource(R.string.quick_entry)
+            val quickEntrySummary = stringResource(R.string.quick_entry_summary)
+            val tileListTitle = stringResource(R.string.tile_list)
+            val tileListSummary = stringResource(R.string.tile_list_summary)
+            val tileListClickTips = stringResource(R.string.tile_list_click_tips)
+            val setModuleShortcutsTitle = stringResource(R.string.set_module_shortcuts)
+            val setModuleShortcutsSummary = stringResource(R.string.set_module_shortcuts_summary)
+            val fpsTitle = stringResource(R.string.fps_title)
+            val fpsSummary = stringResource(R.string.fps_summary)
+            val touchSamplingTitle = stringResource(R.string.set_touch_sampling_rate_tile_level)
+            val touchSamplingSummary =
+                stringResource(R.string.set_touch_sampling_rate_tile_level_summary)
+            val remoteAdbTitle = stringResource(R.string.remote_adb_debug_title)
+            val remoteAdbSummary = stringResource(R.string.remote_adb_debug_summary)
             ScopeScreen(
                 state = settings,
                 modifier = scopeModifier,
             ) {
                 // 全部入口合并为一张分段卡片（KernelSU 主题页外观）
                 click(
-                    title = context.getString(R.string.quick_entry),
-                    summary = context.getString(R.string.quick_entry_summary),
+                    title = quickEntryTitle,
+                    summary = quickEntrySummary,
                     leading = { PrefIconBadge(Icons.Filled.Bolt, Color(0xFFFF9800)) },
                     onClick = {
-                        activity.requestFunctionNavigation(
-                            "quick_entry", context.getString(R.string.quick_entry)
-                        )
+                        activity.requestFunctionNavigation("quick_entry", quickEntryTitle)
                     },
                 )
                 if (SDK >= A13) {
                     click(
-                        title = context.getString(R.string.tile_list),
-                        summary = context.getString(R.string.tile_list_summary),
+                        title = tileListTitle,
+                        summary = tileListSummary,
                         leading = { PrefIconBadge(Icons.Filled.GridView, Color(0xFF4CAF50)) },
                         onClick = {
-                            context.showToast(context.getString(R.string.tile_list_click_tips))
+                            context.showToast(tileListClickTips)
                             showTileDialog = true
                         },
                     )
                 }
                 click(
-                    title = context.getString(R.string.set_module_shortcuts),
-                    summary = context.getString(R.string.set_module_shortcuts_summary),
+                    title = setModuleShortcutsTitle,
+                    summary = setModuleShortcutsSummary,
                     leading = {
                         PrefIconBadge(
                             Icons.AutoMirrored.Filled.AddToHomeScreen,
@@ -205,27 +218,25 @@ fun OtherPage(activity: MainActivity) {
                     onClick = { showShortcutDialog = true },
                 )
                 click(
-                    title = context.getString(R.string.fps_title),
-                    summary = context.getString(R.string.fps_summary),
+                    title = fpsTitle,
+                    summary = fpsSummary,
                     leading = { PrefIconBadge(Icons.Filled.Speed, Color(0xFFE91E63)) },
                     onClick = {
-                        activity.requestFunctionNavigation(
-                            "force_fps", context.getString(R.string.fps_title)
-                        )
+                        activity.requestFunctionNavigation("force_fps", fpsTitle)
                     },
                 )
                 if (touchModeNow) {
                     click(
-                        title = context.getString(R.string.set_touch_sampling_rate_tile_level),
-                        summary = context.getString(R.string.set_touch_sampling_rate_tile_level_summary),
+                        title = touchSamplingTitle,
+                        summary = touchSamplingSummary,
                         leading = { PrefIconBadge(Icons.Filled.TouchApp, Color(0xFF009688)) },
                         onClick = { showTouchDialog = true },
                     )
                 }
                 if (hasAdbNow) {
                     click(
-                        title = context.getString(R.string.remote_adb_debug_title),
-                        summary = context.getString(R.string.remote_adb_debug_summary),
+                        title = remoteAdbTitle,
+                        summary = remoteAdbSummary,
                         leading = { PrefIconBadge(Icons.Filled.Terminal, Color(0xFF607D8B)) },
                         onClick = { showAdbDialog = true },
                     )
@@ -290,6 +301,10 @@ private fun TileListDialog(context: Context, onDismiss: () -> Unit) {
         }?.toList() ?: emptyList()
     }
     val statusBarManager = remember { context.getSystemService(StatusBarManager::class.java) }
+    // 添加结果回调内没有 Composer，字符串先在这里取一次
+    val addFailText = stringResource(R.string.add_fail)
+    val addRepeatText = stringResource(R.string.add_repeat)
+    val addSuccessText = stringResource(R.string.add_success)
     when (LocalUiMode.current) {
         UiMode.Miuix -> OverlayDialog(
             show = true,
@@ -311,13 +326,13 @@ private fun TileListDialog(context: Context, onDismiss: () -> Unit) {
                             ) { resultCode ->
                                 when (resultCode) {
                                     StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_NOT_ADDED ->
-                                        context.showToast("$label ${context.getString(R.string.add_fail)}")
+                                        context.showToast("$label $addFailText")
 
                                     StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED ->
-                                        context.showToast("$label ${context.getString(R.string.add_repeat)}")
+                                        context.showToast("$label $addRepeatText")
 
                                     StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED ->
-                                        context.showToast("$label ${context.getString(R.string.add_success)}")
+                                        context.showToast("$label $addSuccessText")
                                 }
                             }
                             onDismiss()
@@ -348,13 +363,13 @@ private fun TileListDialog(context: Context, onDismiss: () -> Unit) {
                                     ) { resultCode ->
                                         when (resultCode) {
                                             StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_NOT_ADDED ->
-                                                context.showToast("$label ${context.getString(R.string.add_fail)}")
+                                                context.showToast("$label $addFailText")
 
                                             StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED ->
-                                                context.showToast("$label ${context.getString(R.string.add_repeat)}")
+                                                context.showToast("$label $addRepeatText")
 
                                             StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED ->
-                                                context.showToast("$label ${context.getString(R.string.add_success)}")
+                                                context.showToast("$label $addSuccessText")
                                         }
                                     }
                                     onDismiss()
@@ -621,6 +636,8 @@ private fun AdbDebugDialog(
     }
     var busy by remember { mutableStateOf(false) }
     var adbEnabled by remember { mutableStateOf(getPort != 0 && getPort != -1) }
+    // 开关回调与协程内没有 Composer，端口校验提示先在这里取一次
+    val portCannotNullText = stringResource(R.string.adb_debug_port_cannot_null)
 
     when (LocalUiMode.current) {
         UiMode.Miuix -> OverlayDialog(
@@ -633,13 +650,13 @@ private fun AdbDebugDialog(
                     if (checked) {
                         val portStr = portText
                         if (portStr.isBlank()) {
-                            adbTvText = context.getString(R.string.adb_debug_port_cannot_null)
+                            adbTvText = portCannotNullText
                         } else {
                             scope.launch {
                                 val port = portStr.toIntOrNull()
                                 if (port == null) {
                                     adbTvText =
-                                        context.getString(R.string.adb_debug_port_cannot_null)
+                                        portCannotNullText
                                     return@launch
                                 }
                                 busy = true
@@ -731,13 +748,13 @@ private fun AdbDebugDialog(
                                     val portStr = portText
                                     if (portStr.isBlank()) {
                                         adbTvText =
-                                            context.getString(R.string.adb_debug_port_cannot_null)
+                                            portCannotNullText
                                     } else {
                                         scope.launch {
                                             val port = portStr.toIntOrNull()
                                             if (port == null) {
                                                 adbTvText =
-                                                    context.getString(R.string.adb_debug_port_cannot_null)
+                                                    portCannotNullText
                                                 return@launch
                                             }
                                             busy = true

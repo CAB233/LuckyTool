@@ -209,6 +209,10 @@ fun HomePage(activity: MainActivity) {
             // 不会被列表追踪（旧症状：SYSTEMINFO 需切页后才显示）。
             val systemInfoNow = systemInfo
             val updateInfoNow = updateInfo
+            // 行参数在非 Composable 的构建 lambda 内求值（那里没有 Composer），字符串先在这里取一次
+            val loadingText = stringResource(R.string.loading)
+            val donateTitle = stringResource(R.string.donate_tv_title)
+            val donateSummary = stringResource(R.string.donate_tv__summary)
             ScopeScreen(state = settings, modifier = scopeModifier) {
                 // 状态卡沿用主色/灰色实心配色（保留原强调外观），bare 全宽自定义
                 custom(key = "status_card", bare = true) {
@@ -306,15 +310,15 @@ fun HomePage(activity: MainActivity) {
                     click(title = info, onClick = { updateClick?.invoke() })
                 }
                 click(
-                    title = systemInfoNow ?: context.getString(R.string.loading),
+                    title = systemInfoNow ?: loadingText,
                     onLongClick = {
                         context.copyStr(DeviceUtils.getOTACOnfigs())
                         context.showToast("Copy Device OTA Data Success!")
                     },
                 )
                 click(
-                    title = context.getString(R.string.donate_tv_title) + " by: 忆清鸣、luckyzyx",
-                    summary = context.getString(R.string.donate_tv__summary),
+                    title = donateTitle + " by: 忆清鸣、luckyzyx",
+                    summary = donateSummary,
                     onClick = {
                         context.openUrl(
                             if (zh) "https://docs.qq.com/doc/DS2ZDZlNIeUlpdlV1"

@@ -394,6 +394,10 @@ internal fun PrefScopeBuilder.DonateBody(c: Context) {
     }
 
     if (showSheet) {
+        // 排序项在 remember 计算块里组装（那里没有 Composer），字符串先在这里取一次
+        val sortTimeText = stringResource(R.string.donate_info_time)
+        val sortMoneyText = stringResource(R.string.donate_info_money)
+        val sortOrderText = stringResource(R.string.donate_info_order)
         if (miuix) {
             OverlayBottomSheet(
                 show = true,
@@ -403,11 +407,11 @@ internal fun PrefScopeBuilder.DonateBody(c: Context) {
                 Column(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)
                 ) {
-                    val sorts = remember(showDetail) {
+                    val sorts = remember(showDetail, sortTimeText, sortMoneyText, sortOrderText) {
                         val list = arrayListOf(
-                            c.getString(R.string.donate_info_time),
-                            c.getString(R.string.donate_info_money),
-                            c.getString(R.string.donate_info_order),
+                            sortTimeText,
+                            sortMoneyText,
+                            sortOrderText,
                         )
                         if (showDetail) list.removeLastOrNull()
                         list
@@ -475,11 +479,11 @@ internal fun PrefScopeBuilder.DonateBody(c: Context) {
                             },
                         )
                     }
-                    val sorts = remember(showDetail) {
+                    val sorts = remember(showDetail, sortTimeText, sortMoneyText, sortOrderText) {
                         val list = arrayListOf(
-                            c.getString(R.string.donate_info_time),
-                            c.getString(R.string.donate_info_money),
-                            c.getString(R.string.donate_info_order),
+                            sortTimeText,
+                            sortMoneyText,
+                            sortOrderText,
                         )
                         if (showDetail) list.removeLastOrNull()
                         list
