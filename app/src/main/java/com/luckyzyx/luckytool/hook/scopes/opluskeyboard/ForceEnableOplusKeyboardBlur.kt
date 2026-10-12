@@ -20,21 +20,24 @@ import org.lsposed.lsparanoid.Obfuscate
  *
  * 刻意不碰 `utils.h.j()`（折叠判断被分屏键盘、悬浮工具栏复用，`b()` 拦截后已无需它）与
  * `reflect.a.v()`（版本号还喂给 appcompat、应用更新等处，改它风险大于收益）。
+ *
+ * 类名/方法名是混淆名，不同机型 ROM 可能不同：这里刻意用 `toClass()` + `firstMethod()`，
+ * 找不到时直接抛由框架记录到模块日志，便于确认是否生效，不做静默兜底。
  */
 @Obfuscate
 object ForceEnableOplusKeyboardBlur : YukiBaseHooker() {
     override fun onHook() {
         //Source AbstractC0864f
-        "com.oplus.keyboard.base.util.AbstractC0864f".toClassOrNull()?.resolve()?.apply {
+        "com.oplus.keyboard.base.util.AbstractC0864f".toClass().resolve().apply {
             // 模糊总开关：OS 版本 + 系统开关 + 白名单 + 主题 + 折叠态全在此收敛
-            firstMethodOrNull { name = "b"; emptyParameters() }?.hook { intercept(true) }
+            firstMethod { name = "b"; emptyParameters() }.hook { intercept(true) }
             // 主题条件（内置默认主题且跟随系统），让总闸之外的调用方也保持一致
-            firstMethodOrNull { name = "c"; emptyParameters() }?.hook { intercept(true) }
+            firstMethod { name = "c"; emptyParameters() }.hook { intercept(true) }
         }
         //Source l
         // 系统「质感模糊」开关，驱动 f11731a 这个 LiveData
-        "com.oplus.keyboard.base.data.l".toClassOrNull()?.resolve()?.apply {
-            firstMethodOrNull { name = "i"; emptyParameters() }?.hook { intercept(true) }
+        "com.oplus.keyboard.base.data.l".toClass().resolve().apply {
+            firstMethod { name = "i"; emptyParameters() }.hook { intercept(true) }
         }
     }
 }
