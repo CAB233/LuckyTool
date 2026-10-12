@@ -75,6 +75,8 @@ object StatusBarClockPage {
                     dialogMessage = CUSTOM_FORMAT_HELP,
                     default = "HH:mm:ss",
                     notify = true,
+                    // 格式支持换行（`\n` = 双行显示），输入框允许最多三行
+                    maxLines = 3,
                     onChange = { restart?.invoke() },
                 )
                 // 旧逻辑：自定义格式含多行（带换行）才显示对齐选项
@@ -160,7 +162,7 @@ object StatusBarClockPage {
         }
     }
 
-    /** 与旧 EditTextPreference.dialogMessage 完全一致的格式速查表 */
+    /** 与旧 EditTextPreference.dialogMessage 一致的格式速查表（末尾换行说明为本页补充） */
     private val CUSTOM_FORMAT_HELP = """
         yyyy/MM/dd -> ${formatDate("yyyy/MM/dd")}
         y/M/d/E/a -> ${formatDate("y/M/d/E/a")}
@@ -181,5 +183,6 @@ object StatusBarClockPage {
         NNN -> 兔年二月初一
         NNNN -> 癸卯兔年二月初一
         FF -> 凌晨/上午/傍晚/晚上
+        换行 -> 双行显示
     """.trimIndent()
 }

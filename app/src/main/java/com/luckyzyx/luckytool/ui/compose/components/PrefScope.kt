@@ -18,7 +18,9 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
@@ -562,6 +564,7 @@ class PrefScopeBuilder internal constructor(
         keyboardType: KeyboardType = KeyboardType.Text,
         enabled: Boolean = true,
         notify: Boolean = false,
+        maxLines: Int = 1,
         onChange: ((String) -> Unit)? = null,
     ) = emit(key, key, title, summary) { slot ->
         val current by state.stringFlow(key, default).collectAsStateWithLifecycle()
@@ -593,6 +596,7 @@ class PrefScopeBuilder internal constructor(
                 summary = dialogMessage,
                 placeholder = hint,
                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                maxLines = maxLines,
             )
         } else {
             Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
@@ -610,19 +614,29 @@ class PrefScopeBuilder internal constructor(
                     onDismissRequest = { showDialog = false },
                     title = { Text(title) },
                     text = {
+                        // 长说明放进「可滚动 + 只吃剩余高度」区域，先测量输入框，
+                        // 避免说明把输入框挤出对话框（material 与 miuix 行为保持一致）
                         Column {
-                            dialogMessage?.let {
-                                Text(
-                                    it,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                            dialogMessage?.takeIf { it.isNotEmpty() }?.let {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f, fill = false)
+                                        .fillMaxWidth()
+                                        .verticalScroll(rememberScrollState()),
+                                ) {
+                                    Text(
+                                        it,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                             OutlinedTextField(
                                 value = text,
                                 onValueChange = { text = it },
                                 placeholder = hint?.let { { Text(it) } },
-                                singleLine = true,
+                                singleLine = maxLines == 1,
+                                maxLines = maxLines,
                                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
                                 modifier = Modifier.fillMaxWidth(),
                             )
