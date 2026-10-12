@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -96,6 +97,32 @@ fun LuckySplashHost(content: @Composable () -> Unit) {
                     .pointerInput(Unit) { detectTapGestures { } },
             )
         }
+    }
+}
+
+/**
+ * 启动期激活检测加载层：框架服务绑定是异步的，检测未出结果时盖住主界面，
+ * 避免用户对着「回落本地 prefs」的默认值操作；检测出结果（激活或超时）即从组合中移除，
+ * 所以不需要淡出动画。
+ *
+ * 配色与闪屏同源（[R.color.splash_background] / [R.color.splash_foreground]）：闪屏淡出后
+ * 只多出一个进度圈，不换底色。本层由 [LuckySplashHost] 的 content 组合、位于闪屏之下，
+ * 闪屏还在时用户看不到它。
+ */
+@Composable
+fun ActivationLoadingLayer(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(colorResource(R.color.splash_background))
+            // 吞掉触摸事件，避免误触覆盖层之下的主界面
+            .pointerInput(Unit) { detectTapGestures { } },
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator(
+            color = colorResource(R.color.splash_foreground),
+            strokeWidth = 3.dp,
+        )
     }
 }
 

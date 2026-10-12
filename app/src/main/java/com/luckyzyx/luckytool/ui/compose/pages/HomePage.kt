@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.BuildConfig
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.service.GlobalFuncService
@@ -96,7 +97,8 @@ fun HomePage(activity: MainActivity) {
     val zh = remember(context) { isZh(context) }
     val isDev = remember { settings.getBoolean("hidden_function", false) }
 
-    var moduleActive by remember { mutableStateOf(XposedServiceBridge.isModuleActive) }
+    // 激活状态直接跟随框架服务绑定/断开（观察式），不再靠进入页面时问一次
+    val moduleActive by XposedServiceBridge.isModuleActive.collectAsStateWithLifecycle()
     // 用缓存做种子：切回主页时避免 systemInfo 从 null 起步（闪现「加载中」再淡入）
     var systemInfo by remember { mutableStateOf(DeviceInfoCache.info) }
     var updateInfo by remember { mutableStateOf<String?>(null) }
@@ -111,10 +113,6 @@ fun HomePage(activity: MainActivity) {
     var showDonateList by remember { mutableStateOf(false) }
     var showQrType by remember { mutableStateOf(-1) }
     var updateStage by remember { mutableStateOf<UpdateStage?>(null) }
-
-    fun refreshModuleStatus() {
-        moduleActive = XposedServiceBridge.isModuleActive
-    }
 
     fun checkDexOptimize(controller: com.luckyzyx.luckytool.IGlobalFuncController?) {
         if (getOSVersionCode < 34) return
@@ -147,7 +145,6 @@ fun HomePage(activity: MainActivity) {
     // RootService 冷启动时 daemon 可能尚未就绪，首次 ON_RESUME 的 bind 回调未必能触发；
     // 用 LaunchedEffect(Unit) 补一次首载触发，确保无需重新切换页面即可加载数据。
     fun loadHomeData() {
-        refreshModuleStatus()
         GlobalFuncService.get(activity) { controller ->
             val ota = controller?.otaVersion
             // 缓存命中（OTA 版本未变化）：直接复用，避免每次进入主页都重新拉取设备信息
