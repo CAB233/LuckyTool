@@ -555,14 +555,14 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
     pendingRestoreJson?.let { json ->
         val osCode = json.optInt("osCode")
         val restoreMessage = """
-                    ${context.getString(R.string.data_backup_data_version)}: ${
+                    ${stringResource(R.string.data_backup_data_version)}: ${
             getOSVersionName(
                 osCode
             )
         }
-                    ${context.getString(R.string.data_current_system_version)}: $getOSVersionName
+                    ${stringResource(R.string.data_current_system_version)}: $getOSVersionName
                     
-                    ${context.getString(R.string.data_restore_version_tips)}
+                    ${stringResource(R.string.data_restore_version_tips)}
                     """.trimIndent()
         when (LocalUiMode.current) {
             UiMode.Miuix -> OverlayDialog(
