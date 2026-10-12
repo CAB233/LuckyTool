@@ -40,6 +40,7 @@ import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusGalleryPage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusGamesPage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusGesturePage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusHealthPage
+import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusKeyboardPage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusLinkerPage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusMMSPage
 import com.luckyzyx.luckytool.ui.compose.scopes.apps.OplusMarketPage
@@ -451,7 +452,7 @@ object ScopePageRegistry {
         }
     }
 
-    /** 功能树页面顺序（对齐旧 XposedFragment.loadPreferences 的 addFragmentPreference 顺序，49 页） */
+    /** 功能树页面顺序（对齐旧 XposedFragment.loadPreferences 的 addFragmentPreference 顺序，50 页） */
     val treeOrder: List<String> = listOf(
         "android_related",
         "statusbar",
@@ -502,6 +503,7 @@ object ScopePageRegistry {
         "ks_web",
         "adm",
         "gps_joy_stick",
+        "oplus_keyboard",
     )
 
     /**
@@ -586,6 +588,7 @@ object ScopePageRegistry {
         "ksWeb" to "ks_web",
         "adm" to "adm",
         "gpsJoyStick" to "gps_joy_stick",
+        "oplus_keyboard" to "oplus_keyboard",
         "multiAppFragment" to "multi_app",
         "zoomWindowFragment" to "zoom_window",
         "darkModeFragment" to "dark_mode",
@@ -617,6 +620,7 @@ object ScopePageRegistry {
         register(OplusGamesPage.spec)
         register(OplusGesturePage.spec)
         register(OplusHealthPage.spec)
+        register(OplusKeyboardPage.spec)
         register(OplusLinkerPage.spec)
         register(OplusMarketPage.spec)
         register(OplusMMSPage.spec)

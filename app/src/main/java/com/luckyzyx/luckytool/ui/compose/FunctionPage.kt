@@ -280,7 +280,7 @@ private fun TreeRowLeading(pageKey: String, title: String, packName: String?) {
     }
 }
 
-/** 功能树：49 页固定顺序（ScopePageRegistry.treeOrder），spec 手动不可见、单 App 作用域未安装或空索引页隐藏（selfRendered 特殊页除外） */
+/** 功能树：50 页固定顺序（ScopePageRegistry.treeOrder），spec 手动不可见、单 App 作用域未安装或空索引页隐藏（selfRendered 特殊页除外） */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FunctionTreeScreen(

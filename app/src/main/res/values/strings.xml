@@ -1499,4 +1499,6 @@
     <string name="status_bar_slot_airplane">Airplane mode</string>
     <string name="status_bar_slot_oplus_satellite">Satellite icon</string>
     <string name="status_bar_slot_battery">Battery</string>
+    <string name="force_enable_oplus_keyboard_blur">Force enable blur effect</string>
+    <string name="force_enable_oplus_keyboard_blur_summary">Force the Xiaobu keyboard to use the liquid glass blur, ignoring the system blur switch, the app whitelist, the built-in theme and the folding state.</string>
 </resources>

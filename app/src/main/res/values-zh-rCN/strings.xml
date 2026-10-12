@@ -1316,4 +1316,6 @@
     <string name="status_bar_slot_battery">电池</string>
     <string name="select_color">选择颜色</string>
     <string name="current_color">当前颜色: %1$s</string>
+    <string name="force_enable_oplus_keyboard_blur">强制启用模糊效果</string>
+    <string name="force_enable_oplus_keyboard_blur_summary">强制小布输入法使用液态玻璃模糊，忽略系统质感模糊开关、应用白名单、内置主题与折叠屏状态</string>
 </resources>
