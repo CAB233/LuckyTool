@@ -5,6 +5,8 @@ import android.os.UserHandle
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
+import com.highcapable.yukihookapi.hook.log.YLog
+import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import org.lsposed.lsparanoid.Obfuscate
@@ -66,18 +68,33 @@ class HookAppBadge(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                 }
             }
 
-            // CacheUtils.getCloneAppDrawable 在 C16 为公开类名、C17 混淆类中为
-            // b(UserHandle)，两版签名一致且各自全库唯一；统一经 DexKit 定位，
-            // 不依赖类名与版本，查找失败时静默降级。
-            dexKitBridge.findMethod {
-                matcher {
-                    paramTypes(classOf<UserHandle>())
-                    returnType(classOf<Drawable>())
+            // CacheUtils.getCloneAppDrawable：C16 及以下类名与方法名均未混淆，优先按名字定位；
+            // C17 起类名被混淆为 b(UserHandle)，名字定位失败时才回退到 DexKit。
+            // 两版都找不到时只记日志，不再抛异常中断其他 hook。
+            val cloneAppDrawable = "com.android.common.util.CacheUtils".toClassOrNull()?.resolve()
+                ?.firstMethodOrNull {
+                    name = "getCloneAppDrawable"
+                    returnType = Drawable::class
                 }
-            }.single().getMethodInstance(hostClassLoader!!).hook {
+            if (cloneAppDrawable != null) cloneAppDrawable.hook {
                 after {
                     if (isClone) result = null
                 }
+            } else {
+                val method = dexKitBridge.findMethod {
+                    matcher {
+                        paramTypes(classOf<UserHandle>())
+                        returnType(classOf<Drawable>())
+                    }
+                }.checkDataList("getCloneAppDrawable").firstOrNull()
+                    ?.getMethodInstance(hostClassLoader!!)
+                if (method != null) method.hook {
+                    after {
+                        if (isClone) result = null
+                    }
+                } else YLog.error(
+                    "getCloneAppDrawable -> findMethod isNullOrEmpty", tag = "LuckyTool"
+                )
             }
         }
     }
