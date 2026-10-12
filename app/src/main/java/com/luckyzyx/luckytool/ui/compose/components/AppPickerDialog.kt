@@ -167,6 +167,7 @@ fun AppPickerDialog(
     }
     val onConfirmSelected: () -> Unit = {
         onConfirm(filtered.filter { it.packageName in state.selected })
+        onDismiss()
     }
 
     when (LocalUiMode.current) {
