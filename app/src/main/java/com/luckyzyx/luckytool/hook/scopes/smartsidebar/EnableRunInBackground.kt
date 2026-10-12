@@ -2,6 +2,7 @@ package com.luckyzyx.luckytool.hook.scopes.smartsidebar
 
 import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.resolve
+import com.highcapable.kavaref.condition.type.Modifiers
 import com.highcapable.kavaref.extension.VariousClass
 import com.highcapable.kavaref.extension.createInstance
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
@@ -72,24 +73,39 @@ object EnableRunInBackground : YukiBaseHooker() {
             }
 
         //Source App
-        "com.coloros.common.App".toClass().resolve().apply {
-            firstMethod {
-                name = "setStaticContext"
-                parameters(Context::class)
-            }.intercept {
+        //C17 起 com.coloros.common.App 提供 setStaticContext(Context)/getIconContext()；
+        //C16 及以下没有这两个方法，只能在其静态 Context 字段上按需注入模块资源。
+        val appResolver = "com.coloros.common.App".toClassOrNull()?.resolve()
+        val setStaticContext = appResolver?.firstMethodOrNull {
+            name = "setStaticContext"
+            parameters(Context::class)
+        }
+        if (setStaticContext != null) {
+            setStaticContext.intercept {
                 val context = firstArg() as? Context
                 context?.injectModuleResources()
                 proceed()
             }
-            firstMethod {
+            appResolver?.firstMethodOrNull {
                 name = "getIconContext"
                 emptyParameters()
                 returnType = Context::class
-            }.intercept {
+            }?.intercept {
                 val context = proceed() as? Context
                 context?.injectModuleResources()
                 context
             }
+        } else {
+            //Source ImageDataHandleImpl
+            "com.oplus.smartsidebar.panelview.edgepanel.data.viewdatahandlers.ImageDataHandleImpl".toClassOrNull()
+                ?.resolve()?.firstMethodOrNull { name = "getToolAppIcon" }?.hook {
+                    before {
+                        "com.coloros.common.App".toClassOrNull()?.resolve()?.firstFieldOrNull {
+                            modifiers(Modifiers.STATIC)
+                            type = Context::class
+                        }?.get<Context>()?.injectModuleResources()
+                    }
+                }
         }
     }
 }
