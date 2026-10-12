@@ -5,7 +5,6 @@ import android.os.UserHandle
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
@@ -23,6 +22,7 @@ class HookAppBadge(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
     @Obfuscate
     class AppBadge(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
         override fun onHook() {
+            val osCode = getOSVersionCode
             val isShortcut = preferences(ModulePrefs).getBoolean("remove_app_shortcut_badge", false)
             val isWork = preferences(ModulePrefs).getBoolean("remove_app_work_badge", false)
             val isClone = preferences(ModulePrefs).getBoolean("remove_app_clone_badge", false)
@@ -68,31 +68,31 @@ class HookAppBadge(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                 }
             }
 
-            // CacheUtils.getCloneAppDrawable：C16 及以下类名与方法名均未混淆，优先按名字定位；
-            // C17 起类名被混淆为 b(UserHandle)，名字定位失败时才回退到 DexKit。
-            // 两版都找不到时只记日志，不再抛异常中断其他 hook。
-            val cloneAppDrawable = "com.android.common.util.CacheUtils".toClassOrNull()?.resolve()
-                ?.firstMethodOrNull {
-                    name = "getCloneAppDrawable"
-                    returnType = Drawable::class
-                }
-            if (cloneAppDrawable != null) cloneAppDrawable.hook {
-                after {
-                    if (isClone) result = null
-                }
-            } else {
-                val method = dexKitBridge.findMethod {
+            //Source CacheUtils
+            //C16 及以下类名与方法名均未混淆，按名字定位；C17 起类名被混淆为 b(UserHandle)，只能经 DexKit 定位
+            if (osCode >= 40) {
+                dexKitBridge.findMethod {
                     matcher {
                         paramTypes(classOf<UserHandle>())
                         returnType(classOf<Drawable>())
                     }
-                }.checkDataList("getCloneAppDrawable").singleOrNull()
-                    ?.getMethodInstance(hostClassLoader!!)
-                if (method != null) method.hook {
+                }.apply {
+                    checkDataList("getCloneAppDrawable")
+                }.single().getMethodInstance(hostClassLoader!!).hook {
                     after {
                         if (isClone) result = null
                     }
-                } else YLog.error("getCloneAppDrawable -> findMethod isNullOrEmpty")
+                }
+            } else {
+                "com.android.common.util.CacheUtils".toClass().resolve()
+                    .firstMethod {
+                        name = "getCloneAppDrawable"
+                        returnType = Drawable::class
+                    }.hook {
+                        after {
+                            if (isClone) result = null
+                        }
+                    }
             }
         }
     }
