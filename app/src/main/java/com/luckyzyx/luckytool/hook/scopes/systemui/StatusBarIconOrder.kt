@@ -408,13 +408,11 @@ object StatusBarIconOrder : YukiBaseHooker() {
         placeSequence(startSide, leftSequence, leftInsertAt)
 
         // 右区：`system_icons` 内、`statusIcons` 之前 → [第0段][锚点0][第1段][锚点1][statusIcons][电池]
+        // 每个段容器只在「它后面确实还有一个右区锚点」时才需要，最后一段就是宿主 `statusIcons` 本身
         val rightSequence = ArrayList<View>(4)
-        segment = 0
-        while (true) {
-            rightSegGroups.getOrNull(segment)?.let { rightSequence += it }
-            val anchor = rightAnchors.getOrNull(segment)?.second ?: break
-            rightSequence += anchor
-            segment++
+        for (index in rightAnchors.indices) {
+            rightSegGroups.getOrNull(index)?.let { rightSequence += it }
+            rightSequence += rightAnchors[index].second
         }
         if (systemIcons != null && statusIcons != null) {
             placeSequence(
@@ -423,11 +421,11 @@ object StatusBarIconOrder : YukiBaseHooker() {
                 systemIcons.indexOfChild(statusIcons).coerceAtLeast(0),
             )
         }
-        // 用不到的段容器摘掉：锚点变少时多出来的段留在布局树里，会把图标摆在错的位置
+        // 用不到的段容器摘掉：锚点变少时多出来的段留在布局树里，会占着父容器的宽度
         for (index in (leftAnchors.size + 1) until leftSegGroups.size) {
             detachViews(leftSegGroups[index])
         }
-        for (index in (rightAnchors.size + 1) until rightSegGroups.size) {
+        for (index in rightAnchors.size until rightSegGroups.size) {
             detachViews(rightSegGroups[index])
         }
         return true
@@ -536,8 +534,13 @@ object StatusBarIconOrder : YukiBaseHooker() {
             return leftSegGroups.getOrNull(leftSegmentOf(slot)) ?: leftSegGroups[0]
         }
         if (slot !in rightOrder) return null
-        // 右区：段号超出容器数（也就是最后一段）时返回 null，落回宿主 statusIcons
-        return rightSegGroups.getOrNull(rightSegmentOf(slot))
+        // 右区：段号 = 排在该 slot 之前的已摆好锚点数。**只有排在某个右区锚点之前的图标**
+        // 才需要额外容器；段号 ≥ 锚点数（即最后一段）时返回 null，落回宿主自己的容器 `statusIcons`。
+        // 右区一个锚点都没有时必须全部返回 null：宿主 `statusIcons` 是 `layout_weight = 1` 的，
+        // 旁边多出一个容器就会抢宽度，系统图标（信号 / WIFI / 电池）会被挤成一团叠在右上角。
+        val segment = rightSegmentOf(slot)
+        if (segment >= placedRightAnchors.size) return null
+        return rightSegGroups.getOrNull(segment)
     }
 
     /** 右区图标落在第几段：数 [rightOrder] 里排在该 slot 之前的已摆好右区锚点个数 */
