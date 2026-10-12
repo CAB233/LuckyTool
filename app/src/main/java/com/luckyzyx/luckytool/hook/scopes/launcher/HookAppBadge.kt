@@ -86,15 +86,13 @@ class HookAppBadge(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                         paramTypes(classOf<UserHandle>())
                         returnType(classOf<Drawable>())
                     }
-                }.checkDataList("getCloneAppDrawable").firstOrNull()
+                }.checkDataList("getCloneAppDrawable").singleOrNull()
                     ?.getMethodInstance(hostClassLoader!!)
                 if (method != null) method.hook {
                     after {
                         if (isClone) result = null
                     }
-                } else YLog.error(
-                    "getCloneAppDrawable -> findMethod isNullOrEmpty", tag = "LuckyTool"
-                )
+                } else YLog.error("getCloneAppDrawable -> findMethod isNullOrEmpty")
             }
         }
     }
