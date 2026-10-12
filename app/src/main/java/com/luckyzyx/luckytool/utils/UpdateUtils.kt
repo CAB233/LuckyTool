@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.FileProvider
@@ -149,17 +150,17 @@ fun UpdateChangelogDialog(
     onDismiss: () -> Unit,
     onDownload: () -> Unit
 ) {
-    val version = "${context.getString(R.string.version_name)}: ${info.name}(${info.code})"
-    val count = "${context.getString(R.string.download_count)}: ${info.downloadCount}"
-    val size = "${context.getString(R.string.file_size)}: ${formatFileSize(info.fileSize)}"
-    val time = "${context.getString(R.string.update_time)}: ${info.updateTime}"
+    val version = "${stringResource(R.string.version_name)}: ${info.name}(${info.code})"
+    val count = "${stringResource(R.string.download_count)}: ${info.downloadCount}"
+    val size = "${stringResource(R.string.file_size)}: ${formatFileSize(info.fileSize)}"
+    val time = "${stringResource(R.string.update_time)}: ${info.updateTime}"
     val finalText =
         "# LuckyTool v${info.name}\n- $version\n- $count\n- $size\n- $time\n${info.changeLog}"
     val markwon = remember(context) { Markwon.create(context) }
     when (LocalUiMode.current) {
         UiMode.Miuix -> OverlayDialog(
             show = true,
-            title = context.getString(R.string.check_update_hint),
+            title = stringResource(R.string.check_update_hint),
             onDismissRequest = { if (isDev) onDismiss() },
         ) {
             AndroidView(
@@ -175,7 +176,7 @@ fun UpdateChangelogDialog(
             )
             Row(modifier = Modifier.padding(top = 12.dp)) {
                 MiuixTextButton(
-                    text = context.getString(R.string.go_download_page),
+                    text = stringResource(R.string.go_download_page),
                     onClick = {
                         context.startActivity(Intent(Intent.ACTION_VIEW, info.downloadPage.toUri()))
                     },
@@ -183,7 +184,7 @@ fun UpdateChangelogDialog(
                 )
                 Spacer(Modifier.width(20.dp))
                 MiuixTextButton(
-                    text = context.getString(R.string.direct_update),
+                    text = stringResource(R.string.direct_update),
                     onClick = onDownload,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.textButtonColorsPrimary(),
@@ -193,7 +194,7 @@ fun UpdateChangelogDialog(
 
         UiMode.Material -> AlertDialog(
             onDismissRequest = { if (isDev) onDismiss() },
-            title = { Text(context.getString(R.string.check_update_hint)) },
+            title = { Text(stringResource(R.string.check_update_hint)) },
             text = {
                 AndroidView(
                     factory = { ctx -> android.widget.TextView(ctx) },
@@ -205,12 +206,12 @@ fun UpdateChangelogDialog(
                 )
             },
             confirmButton = {
-                TextButton(onClick = onDownload) { Text(context.getString(R.string.direct_update)) }
+                TextButton(onClick = onDownload) { Text(stringResource(R.string.direct_update)) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     context.startActivity(Intent(Intent.ACTION_VIEW, info.downloadPage.toUri()))
-                }) { Text(context.getString(R.string.go_download_page)) }
+                }) { Text(stringResource(R.string.go_download_page)) }
             }
         )
     }
@@ -231,7 +232,7 @@ fun UpdateDownloadSourceDialog(
     when (LocalUiMode.current) {
         UiMode.Miuix -> OverlayDialog(
             show = true,
-            title = context.getString(R.string.select_download_source),
+            title = stringResource(R.string.select_download_source),
             onDismissRequest = { if (isDev) onDismiss() },
         ) {
             Column {
@@ -247,7 +248,7 @@ fun UpdateDownloadSourceDialog(
 
         UiMode.Material -> AlertDialog(
             onDismissRequest = { if (isDev) onDismiss() },
-            title = { Text(context.getString(R.string.select_download_source)) },
+            title = { Text(stringResource(R.string.select_download_source)) },
             text = {
                 Column {
                     sources.forEach { (name, url) ->
@@ -280,7 +281,7 @@ fun UpdateDownloadedDialog(
     when (LocalUiMode.current) {
         UiMode.Miuix -> OverlayDialog(
             show = true,
-            title = context.getString(R.string.downloaded),
+            title = stringResource(R.string.downloaded),
             onDismissRequest = { if (isDev) onDismiss() },
         ) {
             MiuixText(
@@ -289,13 +290,13 @@ fun UpdateDownloadedDialog(
             )
             Row {
                 MiuixTextButton(
-                    text = context.getString(R.string.download_again),
+                    text = stringResource(R.string.download_again),
                     onClick = onDownloadAgain,
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.width(20.dp))
                 MiuixTextButton(
-                    text = context.getString(R.string.install),
+                    text = stringResource(R.string.install),
                     onClick = onInstall,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.textButtonColorsPrimary(),
@@ -305,14 +306,14 @@ fun UpdateDownloadedDialog(
 
         UiMode.Material -> AlertDialog(
             onDismissRequest = { if (isDev) onDismiss() },
-            title = { Text(context.getString(R.string.downloaded)) },
+            title = { Text(stringResource(R.string.downloaded)) },
             text = { Text("${apkFile.name}\n$size") },
             confirmButton = {
-                TextButton(onClick = onInstall) { Text(context.getString(R.string.install)) }
+                TextButton(onClick = onInstall) { Text(stringResource(R.string.install)) }
             },
             dismissButton = {
                 TextButton(onClick = onDownloadAgain) {
-                    Text(context.getString(R.string.download_again))
+                    Text(stringResource(R.string.download_again))
                 }
             }
         )
@@ -331,6 +332,13 @@ fun UpdateDownloadProgressDialog(
 ) {
     var progressText by remember { mutableStateOf("") }
     var downloadScope by remember { mutableStateOf<NetCoroutineScope?>(null) }
+    // 下载进度回调内没有 Composer，标签先在这里取一次
+    val downloadProgressLabel = stringResource(R.string.download_progress)
+    val downloadSpeedLabel = stringResource(R.string.download_speed)
+    val remainSizeLabel = stringResource(R.string.remain_size)
+    val downloadedLabel = stringResource(R.string.downloaded)
+    val usedTimeLabel = stringResource(R.string.used_time)
+    val remainTimeLabel = stringResource(R.string.remain_time)
     LaunchedEffect(Unit) {
         downloadScope = scopeNet {
             if (apkFile.exists()) {
@@ -345,12 +353,12 @@ fun UpdateDownloadProgressDialog(
                     override fun onProgress(p: Progress) {
                         val ps = p.progress()
                         progressText = """
-                            ${context.getString(R.string.download_progress)}: $ps%
-                            ${context.getString(R.string.download_speed)}: ${p.speedSize()}
-                            ${context.getString(R.string.remain_size)}: ${p.remainSize()}
-                            ${context.getString(R.string.downloaded)}: ${p.currentSize()} / ${p.totalSize()}
-                            ${context.getString(R.string.used_time)}: ${p.useTime()}
-                            ${context.getString(R.string.remain_time)}: ${p.remainTime()}
+                            $downloadProgressLabel: $ps%
+                            $downloadSpeedLabel: ${p.speedSize()}
+                            $remainSizeLabel: ${p.remainSize()}
+                            $downloadedLabel: ${p.currentSize()} / ${p.totalSize()}
+                            $usedTimeLabel: ${p.useTime()}
+                            $remainTimeLabel: ${p.remainTime()}
                         """.trimIndent()
                     }
                 })
@@ -362,13 +370,13 @@ fun UpdateDownloadProgressDialog(
     when (LocalUiMode.current) {
         UiMode.Miuix -> OverlayDialog(
             show = true,
-            title = context.getString(R.string.downloading),
+            title = stringResource(R.string.downloading),
             onDismissRequest = {},
         ) {
             Column {
                 MiuixText(text = progressText)
                 MiuixTextButton(
-                    text = context.getString(R.string.cancel_button),
+                    text = stringResource(R.string.cancel_button),
                     onClick = {
                         downloadScope?.cancel()
                         apkFile.delete()
@@ -380,7 +388,7 @@ fun UpdateDownloadProgressDialog(
 
         UiMode.Material -> AlertDialog(
             onDismissRequest = {},
-            title = { Text(context.getString(R.string.downloading)) },
+            title = { Text(stringResource(R.string.downloading)) },
             text = {
                 Column {
                     Text(progressText)
@@ -388,7 +396,7 @@ fun UpdateDownloadProgressDialog(
                         downloadScope?.cancel()
                         apkFile.delete()
                         onDismiss()
-                    }) { Text(context.getString(R.string.cancel_button)) }
+                    }) { Text(stringResource(R.string.cancel_button)) }
                 }
             },
             confirmButton = {}

@@ -65,11 +65,11 @@ object RestartMenuUtils {
     @Composable
     fun RestartMenuDialog(context: Context, onDismiss: () -> Unit) {
         val items = listOf(
-            context.getString(R.string.restart_scope),
-            context.getString(R.string.re_optimize_dex),
-            context.getString(R.string.reload_hooker),
-            context.getString(R.string.reboot),
-            context.getString(R.string.fast_reboot)
+            stringResource(R.string.restart_scope),
+            stringResource(R.string.re_optimize_dex),
+            stringResource(R.string.reload_hooker),
+            stringResource(R.string.reboot),
+            stringResource(R.string.fast_reboot)
         )
         var showConfirmScope by remember { mutableStateOf(false) }
         var showConfirmHooker by remember { mutableStateOf(false) }
@@ -166,7 +166,7 @@ object RestartMenuUtils {
             arrayOf(
                 R.string.reload_hooker,
                 R.string.reload_only_this_page_hooker
-            ).map { context.getString(it) }
+            ).map { stringResource(it) }
         } else {
             arrayOf(
                 R.string.restart_scope,
@@ -175,7 +175,7 @@ object RestartMenuUtils {
                 R.string.restart_only_this_page_scope,
                 R.string.optimize_only_this_page_scope,
                 R.string.reload_only_this_page_hooker
-            ).map { context.getString(it) }
+            ).map { stringResource(it) }
         }
         var showConfirmScope by remember { mutableStateOf(false) }
         var showConfirmHooker by remember { mutableStateOf(false) }
@@ -300,7 +300,7 @@ object RestartMenuUtils {
         val xposedScope = remember { context.resources.getStringArray(R.array.xposed_scope) }
         when (LocalUiMode.current) {
             UiMode.Miuix -> MiuixMessageDialog(
-                message = context.getString(R.string.restart_scope_message),
+                message = stringResource(R.string.restart_scope_message),
                 onConfirm = {
                     coroutineScope.launch(Dispatchers.Default) {
                         restartScope(context, xposedScope)
@@ -312,17 +312,17 @@ object RestartMenuUtils {
 
             UiMode.Material -> AlertDialog(
                 onDismissRequest = onDismiss,
-                text = { Text(context.getString(R.string.restart_scope_message)) },
+                text = { Text(stringResource(R.string.restart_scope_message)) },
                 confirmButton = {
                     TextButton(onClick = {
                         coroutineScope.launch(Dispatchers.Default) {
                             restartScope(context, xposedScope)
                         }
                         onDismiss()
-                    }) { Text(context.getString(android.R.string.ok)) }
+                    }) { Text(stringResource(android.R.string.ok)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = onDismiss) { Text(context.getString(android.R.string.cancel)) }
+                    TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
                 }
             )
         }
@@ -336,7 +336,7 @@ object RestartMenuUtils {
         val xposedScope = remember { context.resources.getStringArray(R.array.xposed_scope) }
         when (LocalUiMode.current) {
             UiMode.Miuix -> MiuixMessageDialog(
-                message = context.getString(R.string.reload_hooker_message),
+                message = stringResource(R.string.reload_hooker_message),
                 onConfirm = {
                     restartHooker(context, xposedScope)
                     onDismiss()
@@ -346,15 +346,15 @@ object RestartMenuUtils {
 
             UiMode.Material -> AlertDialog(
                 onDismissRequest = onDismiss,
-                text = { Text(context.getString(R.string.reload_hooker_message)) },
+                text = { Text(stringResource(R.string.reload_hooker_message)) },
                 confirmButton = {
                     TextButton(onClick = {
                         restartHooker(context, xposedScope)
                         onDismiss()
-                    }) { Text(context.getString(android.R.string.ok)) }
+                    }) { Text(stringResource(android.R.string.ok)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = onDismiss) { Text(context.getString(android.R.string.cancel)) }
+                    TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
                 }
             )
         }
@@ -485,6 +485,8 @@ object RestartMenuUtils {
         var current by remember { mutableStateOf(scopes) }
         var progressText by remember { mutableStateOf("") }
         var failedApps by remember { mutableStateOf(arrayMapOf<String, CharSequence>()) }
+        // 优化完成提示在 LaunchedEffect 回调里弹出（那里没有 Composer），字符串先在这里取一次
+        val dexCompletedText = stringResource(R.string.re_optimize_dex_completed)
         fun launch(target: ArrayMap<String, CharSequence>) {
             current = target
             failedApps = arrayMapOf()
@@ -494,22 +496,22 @@ object RestartMenuUtils {
             OptimizeStage.Confirm -> {
                 when (LocalUiMode.current) {
                     UiMode.Miuix -> MiuixMessageDialog(
-                        message = context.getString(R.string.re_optimize_dex_message),
+                        message = stringResource(R.string.re_optimize_dex_message),
                         onConfirm = { launch(current) },
                         onDismiss = onDismiss,
                     )
 
                     UiMode.Material -> AlertDialog(
                         onDismissRequest = onDismiss,
-                        text = { Text(context.getString(R.string.re_optimize_dex_message)) },
+                        text = { Text(stringResource(R.string.re_optimize_dex_message)) },
                         confirmButton = {
                             TextButton(onClick = { launch(current) }) {
-                                Text(context.getString(android.R.string.ok))
+                                Text(stringResource(android.R.string.ok))
                             }
                         },
                         dismissButton = {
                             TextButton(onClick = onDismiss) {
-                                Text(context.getString(android.R.string.cancel))
+                                Text(stringResource(android.R.string.cancel))
                             }
                         }
                     )
@@ -523,7 +525,7 @@ object RestartMenuUtils {
                             failedApps = failed
                             stage = OptimizeStage.Failed
                         } else {
-                            context.showToast(context.getString(R.string.re_optimize_dex_completed))
+                            context.showToast(dexCompletedText)
                             onDismiss()
                         }
                     }
@@ -531,7 +533,7 @@ object RestartMenuUtils {
                 when (LocalUiMode.current) {
                     UiMode.Miuix -> OverlayDialog(
                         show = true,
-                        title = context.getString(R.string.re_optimize_dex_optimizing),
+                        title = stringResource(R.string.re_optimize_dex_optimizing),
                         onDismissRequest = {},
                     ) {
                         Column(
@@ -551,7 +553,7 @@ object RestartMenuUtils {
 
                     UiMode.Material -> AlertDialog(
                         onDismissRequest = {},
-                        title = { Text(context.getString(R.string.re_optimize_dex_optimizing)) },
+                        title = { Text(stringResource(R.string.re_optimize_dex_optimizing)) },
                         text = {
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
@@ -575,8 +577,8 @@ object RestartMenuUtils {
             OptimizeStage.Failed -> {
                 when (LocalUiMode.current) {
                     UiMode.Miuix -> MiuixMessageDialog(
-                        title = context.getString(R.string.re_optimize_dex_failed),
-                        message = context.getString(
+                        title = stringResource(R.string.re_optimize_dex_failed),
+                        message = stringResource(
                             R.string.re_optimize_dex_faile_message,
                             failedApps.values.joinToString("\n")
                         ),
@@ -586,10 +588,10 @@ object RestartMenuUtils {
 
                     UiMode.Material -> AlertDialog(
                         onDismissRequest = onDismiss,
-                        title = { Text(context.getString(R.string.re_optimize_dex_failed)) },
+                        title = { Text(stringResource(R.string.re_optimize_dex_failed)) },
                         text = {
                             Text(
-                                context.getString(
+                                stringResource(
                                     R.string.re_optimize_dex_faile_message,
                                     failedApps.values.joinToString("\n")
                                 )
@@ -597,12 +599,12 @@ object RestartMenuUtils {
                         },
                         confirmButton = {
                             TextButton(onClick = { launch(failedApps) }) {
-                                Text(context.getString(android.R.string.ok))
+                                Text(stringResource(android.R.string.ok))
                             }
                         },
                         dismissButton = {
                             TextButton(onClick = onDismiss) {
-                                Text(context.getString(android.R.string.cancel))
+                                Text(stringResource(android.R.string.cancel))
                             }
                         }
                     )

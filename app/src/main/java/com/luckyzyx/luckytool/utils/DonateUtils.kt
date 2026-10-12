@@ -14,7 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
@@ -33,11 +33,10 @@ object DonateUtils {
 
     @Composable
     fun DonateQRDialog(type: Int, onDismiss: () -> Unit) {
-        val context = LocalContext.current
         val title = when (type) {
-            0 -> context.getString(R.string.qq)
-            1 -> context.getString(R.string.wechat)
-            2 -> context.getString(R.string.alipay)
+            0 -> stringResource(R.string.qq)
+            1 -> stringResource(R.string.wechat)
+            2 -> stringResource(R.string.alipay)
             else -> ""
         }
         val base64Str = when (type) {
@@ -59,11 +58,11 @@ object DonateUtils {
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         bitmap?.let { Image(it, contentDescription = title) }
-                        Text(context.getString(R.string.donate_message))
+                        Text(stringResource(R.string.donate_message))
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = onDismiss) { Text(context.getString(android.R.string.ok)) }
+                    TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.ok)) }
                 }
             )
         }
@@ -78,7 +77,6 @@ object DonateUtils {
  */
 @Composable
 private fun MiuixDonateQRDialog(title: String, bitmap: ImageBitmap?, onDismiss: () -> Unit) {
-    val context = LocalContext.current
     OverlayDialog(
         show = true,
         title = title,
@@ -90,10 +88,10 @@ private fun MiuixDonateQRDialog(title: String, bitmap: ImageBitmap?, onDismiss: 
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             bitmap?.let { Image(it, contentDescription = title) }
-            MiuixText(text = context.getString(R.string.donate_message))
+            MiuixText(text = stringResource(R.string.donate_message))
             Row(modifier = Modifier.fillMaxWidth()) {
                 MiuixTextButton(
-                    text = context.getString(android.R.string.ok),
+                    text = stringResource(android.R.string.ok),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.textButtonColorsPrimary(),
