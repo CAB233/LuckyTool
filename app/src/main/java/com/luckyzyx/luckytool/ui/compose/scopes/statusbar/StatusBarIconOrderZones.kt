@@ -536,12 +536,16 @@ fun StatusBarIconOrderZones(
     Column(modifier = Modifier.fillMaxWidth()) {
         OrderResetRow(
             onReset = {
-                // 右区清空即宿主默认顺序，左区只留时钟 = 与本功能装载前的布局一致
+                // 重置 = 全新安装状态：左区「时钟 + 通知图标」、右区宿主默认顺序。
+                // 必须用 zoneSplit 推出来的列表（含通知图标伪条目），不能只塞时钟——
+                // 只塞时钟会让本地列表缺掉「通知图标」那一行，而写回的左区键又和旧值相同时
+                // 不会触发 session 重建，那一行就再也回不来了。
+                val fresh = zoneSplit(STATUS_BAR_ICON_ORDER_CLOCK_ITEM, "")
                 items.clear()
-                items.add(STATUS_BAR_ICON_ORDER_CLOCK_ITEM)
-                items.addAll(StatusBarIconSlots.defaultOrder)
-                leftCount = 1
-                onApply(STATUS_BAR_ICON_ORDER_CLOCK_ITEM, "")
+                items.addAll(fresh.first)
+                items.addAll(fresh.second)
+                leftCount = fresh.first.size
+                onApply(fresh.first.joinToString(","), "")
             },
         )
         ZoneDivider(modifier = Modifier.padding(horizontal = 16.dp))
