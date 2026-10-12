@@ -37,6 +37,7 @@ import com.luckyzyx.luckytool.hook.hookers.HookNotificationManager
 import com.luckyzyx.luckytool.hook.hookers.HookOShare
 import com.luckyzyx.luckytool.hook.hookers.HookOplusCosa
 import com.luckyzyx.luckytool.hook.hookers.HookOplusGames
+import com.luckyzyx.luckytool.hook.hookers.HookOplusKeyboard
 import com.luckyzyx.luckytool.hook.hookers.HookOplusMMS
 import com.luckyzyx.luckytool.hook.hookers.HookOplusOta
 import com.luckyzyx.luckytool.hook.hookers.HookPackageInstaller
@@ -121,6 +122,7 @@ import java.io.File
         "com.oplus.keyguard.personality.clocks",
         "com.oplus.beaconlink",
         "com.heytap.speechassist",
+        "com.oplus.keyboard",
         "com.oplus.wirelesssettings",
         "com.heytap.health",
         "com.android.nfc",
@@ -258,6 +260,9 @@ class MainHook : YukiHookXposedModule {
 
         //小布助手
         loadApp("com.heytap.speechassist", HookSpeechAssist)
+
+        //小布输入法
+        loadApp("com.oplus.keyboard", HookOplusKeyboard)
 
         //小布识屏
         loadApp("com.coloros.directui", HookDirectUI)
