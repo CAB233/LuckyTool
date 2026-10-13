@@ -22,5 +22,15 @@ object OplusKeyboardPage {
             title = c.getString(R.string.force_enable_oplus_keyboard_blur),
             summary = c.getString(R.string.force_enable_oplus_keyboard_blur_summary),
         )
+        if (state.getBoolean("force_enable_oplus_keyboard_blur")) {
+            slider(
+                key = "oplus_keyboard_blur_radius",
+                title = c.getString(R.string.oplus_keyboard_blur_radius),
+                valueRange = 50..500,
+                step = 10,
+                default = 150,
+                summary = c.getString(R.string.oplus_keyboard_blur_radius_summary),
+            )
+        }
     }
 }

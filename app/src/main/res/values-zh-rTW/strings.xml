@@ -1273,4 +1273,6 @@
     <string name="current_color">目前顏色: %1$s</string>
     <string name="force_enable_oplus_keyboard_blur">強制啟用模糊效果</string>
     <string name="force_enable_oplus_keyboard_blur_summary">強制小布輸入法使用液態玻璃模糊，忽略系統質感模糊開關、應用白名單、內建主題與折疊螢幕狀態</string>
+    <string name="oplus_keyboard_blur_radius">模糊強度</string>
+    <string name="oplus_keyboard_blur_radius_summary">鍵盤向系統請求的模糊半徑，宿主內建值為 150，數值越大越模糊</string>
 </resources>

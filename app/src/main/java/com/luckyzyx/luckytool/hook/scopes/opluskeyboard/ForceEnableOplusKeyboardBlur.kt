@@ -2,6 +2,7 @@ package com.luckyzyx.luckytool.hook.scopes.opluskeyboard
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
+import com.luckyzyx.luckytool.utils.ModulePrefs
 import org.lsposed.lsparanoid.Obfuscate
 
 /**
@@ -18,6 +19,9 @@ import org.lsposed.lsparanoid.Obfuscate
  * - `l.i()` 是系统开关，`ImeApp` / `system_material_blur_enable` 观察者据此驱动 `f11731a`
  *   这个 LiveData，伪造之后告警/观察者路径不会出现「总闸为真但状态为假」的矛盾。
  *
+ * 模糊强度由 `ViewRootManager.setBlurRadius()` 决定（宿主固定请求 150，0 表示关闭），
+ * 模块设置里的滑条就改写这里的正数入参。
+ *
  * 刻意不碰 `utils.h.j()`（折叠判断被分屏键盘、悬浮工具栏复用，`b()` 拦截后已无需它）与
  * `reflect.a.v()`（版本号还喂给 appcompat、应用更新等处，改它风险大于收益）。
  *
@@ -31,7 +35,15 @@ import org.lsposed.lsparanoid.Obfuscate
  */
 @Obfuscate
 object ForceEnableOplusKeyboardBlur : YukiBaseHooker() {
+
+    /** 宿主内置的模糊半径，作为自定义项的默认值 */
+    private const val DEFAULT_BLUR_RADIUS = 150
+
     override fun onHook() {
+        //自定义模糊强度
+        val blurRadius =
+            preferences(ModulePrefs).getInt("oplus_keyboard_blur_radius", DEFAULT_BLUR_RADIUS)
+
         //Source f (jadx 里被改名成 AbstractC0864f，不要用后者)
         "com.oplus.keyboard.base.util.f".toClass().resolve().apply {
             // 模糊总开关：OS 版本 + 系统开关 + 白名单 + 主题 + 折叠态全在此收敛
@@ -43,6 +55,16 @@ object ForceEnableOplusKeyboardBlur : YukiBaseHooker() {
         // 系统「质感模糊」开关，驱动 f11731a 这个 LiveData
         "com.oplus.keyboard.base.data.l".toClass().resolve().apply {
             firstMethod { name = "i"; emptyParameters() }.hook { intercept(true) }
+        }
+        //Source ViewRootManager
+        // 模糊半径的唯一入口：宿主请求正数时才替换，保留 0 的关闭语义
+        "com.oplus.view.ViewRootManager".toClass().resolve().apply {
+            firstMethod { name = "setBlurRadius" }.hook {
+                before {
+                    val requested = args[0] as? Int ?: return@before
+                    if (requested > 0 && requested != blurRadius) args[0] = blurRadius
+                }
+            }
         }
     }
 }

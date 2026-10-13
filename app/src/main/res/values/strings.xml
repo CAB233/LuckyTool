@@ -1501,4 +1501,6 @@
     <string name="status_bar_slot_battery">Battery</string>
     <string name="force_enable_oplus_keyboard_blur">Force enable blur effect</string>
     <string name="force_enable_oplus_keyboard_blur_summary">Force the Xiaobu keyboard to use the liquid glass blur, ignoring the system blur switch, the app whitelist, the built-in theme and the folding state.</string>
+    <string name="oplus_keyboard_blur_radius">Blur strength</string>
+    <string name="oplus_keyboard_blur_radius_summary">The blur radius the keyboard asks the system for. The built-in value is 150, and a larger value blurs more.</string>
 </resources>
