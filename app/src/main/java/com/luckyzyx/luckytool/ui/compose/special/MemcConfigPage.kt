@@ -788,12 +788,6 @@ internal fun MemcPackageDialog(
                         readOnly = true,
                         singleLine = true,
                         label = "PackageName",
-                        trailingIcon = {
-                            MiuixIcon(
-                                painterResource(R.drawable.ic_baseline_extension_24),
-                                contentDescription = null,
-                            )
-                        },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -846,12 +840,6 @@ internal fun MemcPackageDialog(
                             readOnly = true,
                             singleLine = true,
                             label = { Text("PackageName") },
-                            trailingIcon = {
-                                Icon(
-                                    painterResource(R.drawable.ic_baseline_extension_24),
-                                    contentDescription = null,
-                                )
-                            },
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -1016,12 +1004,6 @@ internal fun MemcActivityDialog(
                         readOnly = true,
                         singleLine = true,
                         label = "PackageName",
-                        trailingIcon = {
-                            MiuixIcon(
-                                painterResource(R.drawable.ic_baseline_extension_24),
-                                contentDescription = null,
-                            )
-                        },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -1032,12 +1014,6 @@ internal fun MemcActivityDialog(
                         readOnly = true,
                         singleLine = true,
                         label = "ActivityName",
-                        trailingIcon = {
-                            MiuixIcon(
-                                painterResource(R.drawable.ic_baseline_extension_24),
-                                contentDescription = null,
-                            )
-                        },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -1083,12 +1059,6 @@ internal fun MemcActivityDialog(
                             readOnly = true,
                             singleLine = true,
                             label = { Text("PackageName") },
-                            trailingIcon = {
-                                Icon(
-                                    painterResource(R.drawable.ic_baseline_extension_24),
-                                    contentDescription = null,
-                                )
-                            },
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -1099,12 +1069,6 @@ internal fun MemcActivityDialog(
                             readOnly = true,
                             singleLine = true,
                             label = { Text("ActivityName") },
-                            trailingIcon = {
-                                Icon(
-                                    painterResource(R.drawable.ic_baseline_extension_24),
-                                    contentDescription = null,
-                                )
-                            },
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
