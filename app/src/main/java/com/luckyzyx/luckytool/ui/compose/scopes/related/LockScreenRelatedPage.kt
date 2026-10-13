@@ -12,7 +12,7 @@ import com.luckyzyx.luckytool.utils.sendPrefsValue
 
 /**
  * 锁屏相关页（旧 ui.fragment.scopes.related.LockScreenRelated 的 Compose 等价物）。
- * 逐项对齐：键、默认值、条件可见性、notify（sendPrefsValue）、restart 回调。
+ * 逐项对齐：键、默认值、条件可见性、notify（sendPrefsValue）。
  */
 object LockScreenRelatedPage {
 
@@ -56,7 +56,6 @@ object LockScreenRelatedPage {
             key = "remove_lock_screen_clock_component",
             title = c.getString(R.string.remove_lock_screen_clock_component),
             notify = true,
-            onChange = { restart?.invoke() },
         )
         if (!state.getBoolean("remove_lock_screen_clock_component")) {
             list(
@@ -82,7 +81,6 @@ object LockScreenRelatedPage {
                     entryValues = arrayOf("0", "1", "2"),
                     default = "0",
                     summary = c.getString(R.string.current_mode) + ": %s",
-                    onChange = { restart?.invoke() },
                 )
                 if (state.getString("lock_screen_custom_clock_component_style", "0") == "1") {
                     switch(
@@ -113,7 +111,6 @@ object LockScreenRelatedPage {
                 default = "0",
                 summary = c.getString(R.string.current_mode) + ": %s",
                 notify = true,
-                onChange = { restart?.invoke() },
             )
         }
         list(
@@ -124,7 +121,6 @@ object LockScreenRelatedPage {
             default = "0",
             summary = c.getString(R.string.current_mode) + ": %s",
             notify = true,
-            onChange = { restart?.invoke() },
         )
         if (SDK >= A13 && state.getString("set_lock_screen_charging_text_logo_style") != "2") {
             switch(
@@ -177,7 +173,6 @@ object LockScreenRelatedPage {
                 key = "remove_lock_screen_bottom_left_button",
                 title = c.getString(R.string.remove_lock_screen_bottom_left_button),
                 notify = true,
-                onChange = { restart?.invoke() },
             )
         }
         if (SDK < A14) {

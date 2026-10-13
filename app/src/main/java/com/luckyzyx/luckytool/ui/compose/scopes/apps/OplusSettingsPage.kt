@@ -85,7 +85,6 @@ object OplusSettingsPage {
                     c.getString(R.string.enable_video_memc_frame_insertion_summary),
                     c.getString(R.string.need_restart_system)
                 ),
-                onChange = { restart?.invoke() },
             )
             if (state.getBoolean("enable_video_memc_frame_insertion")) {
                 page(
@@ -239,14 +238,12 @@ object OplusSettingsPage {
                 entryValues = arrayOf("0", "1", "2", "3"),
                 default = "0",
                 summary = "%s",
-                onChange = { restart?.invoke() },
             )
             if (state.getString("set_processor_click_page", "0") == "3") {
                 switch(
                     key = "custom_processor_image_path_switch",
                     title = c.getString(R.string.custom_processor_image_path_switch),
                     summary = getColonSummary(c.getString(R.string.recommended_size), "624x352"),
-                    onChange = { restart?.invoke() },
                 )
                 if (state.getBoolean("custom_processor_image_path_switch")) {
                     val processorTitle = c.getString(R.string.customize_device_ota_card_background_path)
@@ -267,7 +264,6 @@ object OplusSettingsPage {
                                 if (path.isNotBlank()) {
                                     c.showToast(path)
                                     c.putString(ModulePrefs, it.first, path)
-                                    restart?.invoke()
                                 }
                             } else {
                                 LogUtils.e("CropImage", it.first, it.second.error.toString(), true)
@@ -333,7 +329,6 @@ object OplusSettingsPage {
                     key = "customize_device_ota_card_background",
                     title = c.getString(R.string.customize_device_ota_card_background),
                     summary = c.getString(R.string.customize_device_ota_card_background_summary),
-                    onChange = { restart?.invoke() },
                 )
                 if (state.getBoolean("customize_device_ota_card_background")) {
                     val otaTitle = c.getString(R.string.customize_device_ota_card_background_path)
@@ -354,7 +349,6 @@ object OplusSettingsPage {
                                 if (path.isNotBlank()) {
                                     c.showToast(path)
                                     c.putString(ModulePrefs, it.first, path)
-                                    restart?.invoke()
                                 }
                             } else {
                                 LogUtils.e("CropImage", it.first, it.second.error.toString(), true)
@@ -420,7 +414,6 @@ object OplusSettingsPage {
             switch(
                 key = "disable_cn_special_edition_setting",
                 title = c.getString(R.string.disable_cn_special_edition_setting),
-                onChange = { restart?.invoke() },
             )
         }
         if (state.getBoolean("disable_cn_special_edition_setting")) {

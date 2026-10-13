@@ -13,7 +13,7 @@ import com.topjohnwu.superuser.ShellUtils
 
 /**
  * 桌面相关页（旧 ui.fragment.scopes.related.LauncherRelated 的 Compose 等价物）。
- * 逐项对齐：键、默认值、条件可见性、notify（sendPrefsValue）、restart 回调。
+ * 逐项对齐：键、默认值、条件可见性、notify（sendPrefsValue）。
  */
 object LauncherRelatedPage {
 
@@ -46,7 +46,6 @@ object LauncherRelatedPage {
         switch(
             key = "allow_app_names_display_multiple_lines",
             title = c.getString(R.string.allow_app_names_display_multiple_lines),
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("allow_app_names_display_multiple_lines")) {
             slider(
@@ -93,7 +92,6 @@ object LauncherRelatedPage {
                         else -> emptyArray()
                     },
                 ),
-                onChange = { restart?.invoke() },
             )
         }
         if (SDK >= A13) {
@@ -129,7 +127,6 @@ object LauncherRelatedPage {
         switch(
             key = "enable_folder_layout_adjustment",
             title = c.getString(R.string.enable_folder_layout_adjustment),
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("enable_folder_layout_adjustment")) {
             slider(
@@ -217,7 +214,6 @@ object LauncherRelatedPage {
                 if ((value.toIntOrNull() ?: 0) >= 2) {
                     ShellUtils.fastCmd("settings put global enable_non_resizable_multi_window 1")
                 }
-                restart?.invoke()
             },
         )
         if (state.getString("custom_app_floating_window_display_mode", "0") == "3") {
@@ -254,7 +250,6 @@ object LauncherRelatedPage {
         switch(
             key = "enable_drawer_layout_adjustment",
             title = c.getString(R.string.enable_drawer_layout_adjustment),
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("enable_drawer_layout_adjustment")) {
             slider(
@@ -299,7 +294,6 @@ object LauncherRelatedPage {
             key = "launcher_layout_enable",
             title = c.getString(R.string.launcher_layout_enable),
             summary = c.getString(R.string.launcher_layout_row_colume),
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("launcher_layout_enable")) {
             slider(

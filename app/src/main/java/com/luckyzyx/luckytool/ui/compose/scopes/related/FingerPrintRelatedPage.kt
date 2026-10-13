@@ -56,7 +56,6 @@ object FingerPrintRelatedPage {
             key = "replace_fingerprint_icon_switch",
             title = c.getString(R.string.replace_fingerprint_icon_switch),
             summary = c.getString(R.string.replace_fingerprint_icon_switch_summary),
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("replace_fingerprint_icon_switch")) {
             val pathTitle = c.getString(R.string.replace_fingerprint_icon_path)
@@ -77,7 +76,6 @@ object FingerPrintRelatedPage {
                         if (resultPath.isNotBlank()) {
                             c.showToast(resultPath)
                             c.putString(ModulePrefs, it.first, resultPath)
-                            restart?.invoke()
                         }
                     } else {
                         LogUtils.e("CropImage", it.first, it.second.error.toString(), true)

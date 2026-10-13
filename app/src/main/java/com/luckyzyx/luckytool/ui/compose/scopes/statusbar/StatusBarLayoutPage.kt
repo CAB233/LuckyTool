@@ -34,7 +34,6 @@ object StatusBarLayoutPage {
         switch(
             key = "statusbar_layout_compatible_mode",
             title = c.getString(R.string.statusbar_layout_compatible_mode),
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("statusbar_layout_compatible_mode", false)) {
             slider(

@@ -29,7 +29,7 @@ import com.luckyzyx.luckytool.utils.getOSVersionCode
 /**
  * 声音相关页（旧 ui.fragment.scopes.related.SoundRelated 的 Compose 等价物）。
  * 逐项对齐：键、默认值、条件可见性（osCode = getOSVersionCode、SDK = Android API）、
- * notify（sendPrefsValue("com.android.systemui")）、restart 回调。
+ * notify（sendPrefsValue("com.android.systemui")）。
  * ColorPickerPreference 迁移为 custom：Compose ui/components/ColorPickerDialog，存储 #AARRGGBB
  * 字符串（默认 "#FFFFFFFF"，旧 setDefaultValue(Color.WHITE)），选色后 sendValue 通知 SystemUI。
  */
@@ -114,7 +114,6 @@ object SoundRelatedPage {
         switch(
             key = "enable_volume_bar_percent_display",
             title = c.getString(R.string.enable_volume_bar_percent_display),
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("enable_volume_bar_percent_display", false)) {
             custom(

@@ -6,7 +6,7 @@ import com.luckyzyx.luckytool.utils.ModulePrefs
 
 /**
  * 状态栏网速页（旧 ui.fragment.scopes.statusbar.StatusBarNetWorkSpeed 的 Compose 等价物）。
- * 逐项对齐：键、默认值、条件可见性、notify（sendPrefsValue）、restart 回调。
+ * 逐项对齐：键、默认值、条件可见性、notify（sendPrefsValue）。
  */
 object StatusBarNetWorkSpeedPage {
 
@@ -31,13 +31,11 @@ object StatusBarNetWorkSpeedPage {
             default = "0",
             summary = c.getString(R.string.current_mode) + ": %s",
             notify = true,
-            onChange = { restart?.invoke() },
         )
         switch(
             key = "statusbar_network_user_typeface",
             title = c.getString(R.string.use_user_typeface),
             notify = true,
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("statusbar_network_user_typeface")) {
             switch(

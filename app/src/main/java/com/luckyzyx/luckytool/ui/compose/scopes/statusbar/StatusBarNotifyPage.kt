@@ -18,7 +18,7 @@ import com.luckyzyx.luckytool.utils.sendPrefsValue
 
 /**
  * 状态栏通知页（旧 ui.fragment.scopes.statusbar.StatusBarNotify 的 Compose 等价物）。
- * 逐项对齐：键、默认值、条件可见性、notify（sendPrefsValue，目标包含 android）、restart 回调。
+ * 逐项对齐：键、默认值、条件可见性、notify（sendPrefsValue，目标包含 android）。
  */
 object StatusBarNotifyPage {
 
@@ -56,7 +56,6 @@ object StatusBarNotifyPage {
             switch(
                 key = "remove_small_window_reply_whitelist",
                 title = c.getString(R.string.remove_small_window_reply_whitelist),
-                onChange = { restart?.invoke() },
             )
             if (state.getBoolean("remove_small_window_reply_whitelist")) {
                 custom(
@@ -87,7 +86,6 @@ object StatusBarNotifyPage {
                                 val set = apps.map { it.packageName }.toSet()
                                 state.set("set_small_window_reply_blacklist_list", set)
                                 sendValue("set_small_window_reply_blacklist_list", set)
-                                restart?.invoke()
                             },
                         )
                     }

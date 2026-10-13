@@ -24,7 +24,6 @@ object OplusBatteryPage {
                 key = "open_battery_health",
                 title = c.getString(R.string.open_battery_health),
                 summary = c.getString(R.string.open_battery_health_summary),
-                onChange = { restart?.invoke() },
             )
             if (state.getBoolean("open_battery_health", false)) {
                 editText(

@@ -10,7 +10,7 @@ import com.luckyzyx.luckytool.utils.getOSVersionCode
 
 /**
  * 状态栏电池页（旧 ui.fragment.scopes.statusbar.StatusBarBattery 的 Compose 等价物）。
- * 逐项对齐：键、默认值、条件可见性、notify（sendPrefsValue）、restart 回调。
+ * 逐项对齐：键、默认值、条件可见性、notify（sendPrefsValue）。
  */
 object StatusBarBatteryPage {
 
@@ -30,7 +30,6 @@ object StatusBarBatteryPage {
         switch(
             key = "statusbar_power_user_typeface",
             title = c.getString(R.string.use_user_typeface),
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("statusbar_power_user_typeface")) {
             switch(
@@ -65,7 +64,6 @@ object StatusBarBatteryPage {
                     c.getString(R.string.battery_information_display_mode_summary),
                 ),
                 notify = true,
-                onChange = { restart?.invoke() },
             )
             if (state.getString("battery_information_display_mode", "0") != "0") {
                 switch(

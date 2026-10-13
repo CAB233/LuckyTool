@@ -75,7 +75,6 @@ object OplusSecuritypPermissionPage {
             title = c.getString(R.string.enable_always_allow_app_start_dialog),
             summary = c.getString(R.string.need_restart_system),
             enabled = !state.getBoolean("app_start_dialog_use_old_version"),
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("enable_always_allow_app_start_dialog")) {
             val removeListTitle = c.getString(R.string.remove_always_allow_app_start_list)

@@ -29,7 +29,7 @@ import com.luckyzyx.luckytool.utils.isZh
 /**
  * 控制中心页（旧 ui.fragment.scopes.statusbar.StatusBarControlCenter 的 Compose 等价物）。
  * 逐项对齐：键、默认值、条件可见性（osCode = getOSVersionCode、SDK = Android API）、
- * notify（sendPrefsValue("com.android.systemui")）、restart 回调。
+ * notify（sendPrefsValue("com.android.systemui")）。
  * ColorPickerPreference 迁移为 custom：点击弹 Compose ui/components/ColorPickerDialog，
  * 存储 #AARRGGBB 十六进制字符串（默认 "#FFFFFFFF"，旧 setDefaultValue(Color.WHITE)），
  * 选色后经 sendValue 通知 SystemUI。
@@ -53,7 +53,6 @@ object StatusBarControlCenterPage {
             switch(
                 key = "remove_control_center_clock_view",
                 title = c.getString(R.string.remove_control_center_clock_view),
-                onChange = { restart?.invoke() },
             )
         }
         switch(
@@ -90,7 +89,6 @@ object StatusBarControlCenterPage {
                 key = "statusbar_control_center_date_show_lunar",
                 title = c.getString(R.string.statusbar_control_center_date_show_lunar),
                 notify = true,
-                onChange = { restart?.invoke() },
             )
         }
         if (SDK >= A13 && isZh(c)) {
@@ -123,7 +121,6 @@ object StatusBarControlCenterPage {
             switch(
                 key = "enable_notification_side_spacing",
                 title = c.getString(R.string.enable_notification_side_spacing),
-                onChange = { restart?.invoke() },
             )
         }
         if (state.getBoolean("enable_notification_side_spacing", false)) {
@@ -198,7 +195,6 @@ object StatusBarControlCenterPage {
         switch(
             key = "enable_control_center_progress_percent_display",
             title = c.getString(R.string.enable_control_center_progress_percent_display),
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("enable_control_center_progress_percent_display", false)) {
             custom(

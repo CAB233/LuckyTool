@@ -6,7 +6,7 @@ import com.luckyzyx.luckytool.utils.formatDate
 
 /**
  * 状态栏时钟页（旧 ui.fragment.scopes.statusbar.StatusBarClock 的 Compose 等价物）。
- * 逐项对齐：键、默认值、条件可见性、notify（sendPrefsValue）、restart 回调。
+ * 逐项对齐：键、默认值、条件可见性、notify（sendPrefsValue）。
  */
 object StatusBarClockPage {
 
@@ -25,7 +25,6 @@ object StatusBarClockPage {
             entryValues = arrayOf("0", "1", "2"),
             default = "0",
             summary = c.getString(R.string.current_mode) + ": %s",
-            onChange = { restart?.invoke() },
         )
         when (state.getString("statusbar_clock_mode", "0")) {
             "1" -> {
@@ -40,7 +39,6 @@ object StatusBarClockPage {
                 switch(
                     key = "statusbar_clock_show_doublerow",
                     title = c.getString(R.string.statusbar_clock_show_doublerow),
-                    onChange = { restart?.invoke() },
                 )
                 if (state.getBoolean("statusbar_clock_show_doublerow")) {
                     list(
@@ -77,7 +75,6 @@ object StatusBarClockPage {
                     notify = true,
                     // 格式支持换行（`\n` = 双行显示），输入框允许最多三行
                     maxLines = 3,
-                    onChange = { restart?.invoke() },
                 )
                 // 旧逻辑：自定义格式含多行（带换行）才显示对齐选项
                 if ((state.getString("statusbar_clock_custom_format", "HH:mm:ss") ?: "HH:mm:ss").split("\n").size >= 2) {
@@ -111,7 +108,6 @@ object StatusBarClockPage {
             switch(
                 key = "statusbar_clock_custom_padding",
                 title = c.getString(R.string.statusbar_clock_custom_padding),
-                onChange = { restart?.invoke() },
             )
             if (state.getBoolean("statusbar_clock_custom_padding")) {
                 slider(
@@ -150,7 +146,6 @@ object StatusBarClockPage {
             switch(
                 key = "statusbar_clock_user_typeface",
                 title = c.getString(R.string.use_user_typeface),
-                onChange = { restart?.invoke() },
             )
             if (state.getBoolean("statusbar_clock_user_typeface")) {
                 switch(

@@ -207,7 +207,6 @@ class PrefScopeBuilder internal constructor(
 ) {
     internal var sendValue: (key: String, value: Any) -> Unit = { _, _ -> }
     internal var navigate: ((target: String, title: String?) -> Unit)? = null
-    internal var restart: (() -> Unit)? = null
     internal var context: Context? = null
     internal val highlightSlot = mutableStateOf<Int?>(null)
 
@@ -764,7 +763,7 @@ class PrefScopeBuilder internal constructor(
     }
 
     /**
-     * 逃生舱：任意自定义 Composable（ColorPicker、应用选择器等特殊控件用），receiver 可访问 state/restart 等。
+     * 逃生舱：任意自定义 Composable（ColorPicker、应用选择器等特殊控件用），receiver 可访问 state 等。
      *
      * [standalone] = true 时独占一张卡片（非「选项行」内容，如搜索框、页面级 body）；
      * 默认 false 时并入所在分组卡片——分类分组内不允许出现独立卡片。
@@ -800,7 +799,6 @@ fun ScopeScreen(
     sendValue: (key: String, value: Any) -> Unit = { _, _ -> },
     scrollTarget: ScrollTarget? = null,
     onNavigate: ((target: String, title: String?) -> Unit)? = null,
-    onRestart: (() -> Unit)? = null,
     onRefresh: (suspend () -> Unit)? = null,
     fullContent: (@Composable LazyItemScope.(PrefScopeBuilder) -> Unit)? = null,
     content: PrefScopeBuilder.() -> Unit,
@@ -816,7 +814,6 @@ fun ScopeScreen(
     val builder = remember(state) { PrefScopeBuilder(state) }
     builder.sendValue = sendValue
     builder.navigate = onNavigate
-    builder.restart = onRestart
     builder.context = LocalContext.current.applicationContext
     builder.beginBuild()
     builder.content()

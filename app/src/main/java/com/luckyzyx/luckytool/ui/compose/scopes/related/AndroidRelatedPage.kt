@@ -9,7 +9,7 @@ import com.luckyzyx.luckytool.utils.arraySummaryLine
 
 /**
  * Android 系统页（旧 ui.fragment.scopes.related.AndroidRelated 的 Compose 等价物）。
- * 逐项对齐：键、默认值、条件可见性、restart 回调。
+ * 逐项对齐：键、默认值、条件可见性。
  */
 object AndroidRelatedPage {
 
@@ -25,7 +25,6 @@ object AndroidRelatedPage {
             key = "remove_gms_usage_restrictions",
             title = c.getString(R.string.remove_gms_usage_restrictions),
             summary = arraySummaryLine(c.getString(R.string.need_restart_system)),
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("remove_gms_usage_restrictions", false)) {
             editText(
@@ -65,7 +64,6 @@ object AndroidRelatedPage {
                 c.getString(R.string.current_mode) + ": %s",
                 c.getString(R.string.need_restart_system),
             ),
-            onChange = { restart?.invoke() },
         )
         category("LTPO")
         list(
@@ -78,7 +76,6 @@ object AndroidRelatedPage {
                 c.getString(R.string.current_mode) + ": %s",
                 c.getString(R.string.need_restart_system),
             ),
-            onChange = { restart?.invoke() },
         )
         if (state.getString("set_ltpo_refresh_rate_mode", "0") == "1") {
             switch(

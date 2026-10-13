@@ -217,9 +217,6 @@ interface ScopeContentScope {
     /** 页面入口跳转（page DSL 项的等价动作；无宿主回调时为空操作） */
     fun navigate(target: String, title: String? = null)
 
-    /** 重启作用域（`spec.restartEnabled` 时非空；否则空操作） */
-    fun restart()
-
     /** 下拉刷新动作（`spec.onRefresh` 非空时有效） */
     suspend fun refresh()
 }
@@ -233,7 +230,6 @@ private class ScopeContentScopeImpl(
     private val target: () -> ScrollTarget?,
     private val onSendValue: (key: String, value: Any) -> Unit,
     private val onNavigate: ((target: String, title: String?) -> Unit)?,
-    private val onRestart: (() -> Unit)?,
     private val onRefresh: (suspend () -> Unit)?,
 ) : ScopeContentScope {
     override val highlightedSlot: Int? get() = highlighted()
@@ -241,10 +237,6 @@ private class ScopeContentScopeImpl(
     override fun sendValue(key: String, value: Any) = onSendValue(key, value)
     override fun navigate(target: String, title: String?) {
         onNavigate?.invoke(target, title)
-    }
-
-    override fun restart() {
-        onRestart?.invoke()
     }
 
     override suspend fun refresh() {
@@ -281,7 +273,6 @@ internal fun ScopePageContent(
     sendValue: (key: String, value: Any) -> Unit,
     scrollTarget: ScrollTarget? = null,
     onNavigate: ((target: String, title: String?) -> Unit)? = null,
-    onRestart: (() -> Unit)? = null,
 ) {
     val contentSlot = when (LocalUiMode.current) {
         UiMode.Miuix -> spec.contentMiuix
@@ -295,7 +286,6 @@ internal fun ScopePageContent(
             sendValue = sendValue,
             scrollTarget = scrollTarget,
             onNavigate = onNavigate,
-            onRestart = onRestart,
             onRefresh = spec.onRefresh,
             fullContent = spec.fullContent,
             content = spec.content,
@@ -311,7 +301,6 @@ internal fun ScopePageContent(
     val builder = remember(state) { PrefScopeBuilder(state) }
     builder.sendValue = sendValue
     builder.navigate = onNavigate
-    builder.restart = onRestart
     builder.context = LocalContext.current.applicationContext
     builder.beginBuild()
     spec.content(builder)
@@ -340,7 +329,6 @@ internal fun ScopePageContent(
         target = { scrollTarget },
         onSendValue = sendValue,
         onNavigate = onNavigate,
-        onRestart = onRestart,
         onRefresh = spec.onRefresh,
     )
     val scope: ScopeContentScope = when (LocalUiMode.current) {

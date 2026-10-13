@@ -128,7 +128,6 @@ object OplusGamesPage {
             key = "enable_developer_page",
             title = c.getString(R.string.enable_developer_page),
             summary = c.getString(R.string.enable_developer_page_summary),
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("enable_developer_page")) {
             if (c.checkPackName("com.oplus.games")) {
@@ -173,7 +172,6 @@ object OplusGamesPage {
                             "custom_media_player_support_list",
                             apps.map { it.packageName }.toSet(),
                         )
-                        restart?.invoke()
                     },
                 )
             }
@@ -204,7 +202,6 @@ object OplusGamesPage {
                             "custom_barrage_notification_whitelist_list",
                             apps.map { it.packageName }.toSet(),
                         )
-                        restart?.invoke()
                     },
                 )
             }

@@ -614,9 +614,8 @@ internal fun ScopePageHost(
             val navigatePage: (target: String, title: String?) -> Unit = { target, title ->
                 ScopePageRegistry.pageTargetMap[target]?.let { onNavigate(it, title) }
             }
-            // 不再向页面注入 onRestart：旧实现是 `activity.restart()`（整 Activity 重建），
-            // 而作用域页的刷新已由 PrefState.revision + per-key flow 覆盖（写入 → bump → 构建 lambda 重跑）。
-            // 各页面里遗留的 restart?.invoke() 因此变成 no-op，由后续提交逐页删除。
+            // 作用域页的刷新由 PrefState.revision + per-key flow 覆盖（写入 → bump → 构建 lambda 重跑），
+            // 不再向页面注入 onRestart，也不再重建 Activity；需要重启作用域时用顶栏菜单。
             //
             // 页面内容分派（唯一分派点见 ScopePageContent）：
             // 页面为当前主题线提供了槽位（contentMiuix/contentMaterial）时由页面自有布局渲染整页，

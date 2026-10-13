@@ -29,7 +29,6 @@ object StatusBarTilesPage {
             key = "enable_nfc_delay_shutdown",
             title = c.getString(R.string.enable_nfc_delay_shutdown),
             notify = true,
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("enable_nfc_delay_shutdown")) {
             editText(
@@ -65,7 +64,6 @@ object StatusBarTilesPage {
                 default = "0",
                 summary = c.getString(R.string.current_mode) + ": %s",
                 notify = true,
-                onChange = { restart?.invoke() },
             )
             if (state.getString("set_media_player_display_mode", "0") != "0") {
                 if (SDK >= A14) {
@@ -82,7 +80,6 @@ object StatusBarTilesPage {
                                 state.set("control_center_custom_gaps_for_special_tile", true)
                                 state.set("control_center_tile_enable", true)
                             }
-                            restart?.invoke()
                         },
                     )
                 }
@@ -104,7 +101,6 @@ object StatusBarTilesPage {
                         notify = true,
                         onChange = { v ->
                             if (!v) state.set("auto_expand_tile_rows_horizontal", false)
-                            restart?.invoke()
                         },
                     )
                     if (state.getBoolean("control_center_custom_gaps_for_special_tile")) {
@@ -179,7 +175,6 @@ object StatusBarTilesPage {
                 summary = c.getString(R.string.classic_control_center_mode_only),
                 onChange = { v ->
                     if (!v) state.set("auto_expand_tile_rows_horizontal", false)
-                    restart?.invoke()
                 },
             )
         }

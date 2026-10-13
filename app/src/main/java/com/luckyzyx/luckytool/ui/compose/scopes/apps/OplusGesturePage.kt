@@ -92,7 +92,6 @@ object OplusGesturePage {
                                 "custom_aon_gesture_scroll_page_whitelist_list",
                                 apps.map { it.packageName }.toSet(),
                             )
-                            restart?.invoke()
                         },
                     )
                 }
@@ -124,7 +123,6 @@ object OplusGesturePage {
             key = "replace_side_slider_icon_switch",
             title = c.getString(R.string.replace_side_slider_icon_switch),
             summary = c.getString(R.string.replace_side_slider_icon_switch_summary),
-            onChange = { restart?.invoke() },
         )
         if (state.getBoolean("replace_side_slider_icon_switch")) {
             custom(
@@ -143,7 +141,6 @@ object OplusGesturePage {
                             "replace_side_slider_icon_on_left", cacheFile?.path.orEmpty()
                         )
                     }
-                    restart?.invoke()
                 }
                 PrefRowInset {
                     PrefRow(
@@ -169,7 +166,6 @@ object OplusGesturePage {
                             "replace_side_slider_icon_on_right", cacheFile?.path.orEmpty()
                         )
                     }
-                    restart?.invoke()
                 }
                 PrefRowInset {
                     PrefRow(
@@ -194,7 +190,6 @@ object OplusGesturePage {
             title = c.getString(R.string.action_button_ring_cycle_enable),
             onChange = { newValue ->
                 c.sendPrefsValue("system", "action_button_ring_cycle_enable", newValue)
-                restart?.invoke()
             },
         )
         if (state.getBoolean("action_button_ring_cycle_enable")) {

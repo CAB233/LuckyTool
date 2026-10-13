@@ -109,7 +109,6 @@ object OplusCameraPage {
                             val packName = apps.firstOrNull()?.packageName.orEmpty()
                             state.set("custom_camera_open_gallery_by_default", packName)
                             sendValue("custom_camera_open_gallery_by_default", packName)
-                            restart?.invoke()
                         },
                     )
                 }
@@ -211,7 +210,6 @@ object OplusCameraPage {
                                     state.set("enable_hasselblad_watermark_style", true)
                                 }
                             },
-                            onRestart = { restart?.invoke() },
                         ),
                         onDismiss = { showDialog = false },
                     )
@@ -254,7 +252,6 @@ object OplusCameraPage {
                             key = "camera_portrait_filter_settings",
                             title = stringResource(R.string.camera_portrait_filter_settings),
                             filters = filters,
-                            onRestart = { restart?.invoke() },
                         ),
                         onDismiss = { showDialog = false },
                     )
@@ -297,7 +294,6 @@ object OplusCameraPage {
                             key = "camera_video_filter_settings",
                             title = stringResource(R.string.camera_video_filter_settings),
                             filters = filters,
-                            onRestart = { restart?.invoke() },
                         ),
                         onDismiss = { showDialog = false },
                     )
@@ -320,10 +316,9 @@ object OplusCameraPage {
         val title: String,
         val filters: List<CameraFilter>,
         val onSaved: (Set<String>) -> Unit = {},
-        val onRestart: () -> Unit = {},
     )
 
-    /** 旧多选滤镜对话框的 Compose 等价物（勾选集 → state.set + onSaved + onRestart） */
+    /** 旧多选滤镜对话框的 Compose 等价物（勾选集 → state.set + onSaved） */
     @Composable
     private fun CameraFilterDialog(
         c: Context,
@@ -338,7 +333,6 @@ object OplusCameraPage {
             val set = checked.toSet()
             state.set(data.key, set)
             data.onSaved(set)
-            data.onRestart()
             onDismiss()
         }
         val toggle: (String, Boolean) -> Unit = { key, value ->

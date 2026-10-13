@@ -82,7 +82,6 @@ object StatusBarRelatedPage {
             switch(
                 key = "custom_music_fluid_cloud_whitelist",
                 title = c.getString(R.string.custom_music_fluid_cloud_whitelist),
-                onChange = { restart?.invoke() },
             )
             if (state.getBoolean("custom_music_fluid_cloud_whitelist")) {
                 switch(
@@ -129,7 +128,6 @@ object StatusBarRelatedPage {
                                     "set_custom_music_fluid_cloud_whitelist",
                                     apps.map { it.packageName }.toSet(),
                                 )
-                                restart?.invoke()
                             },
                         )
                     }
