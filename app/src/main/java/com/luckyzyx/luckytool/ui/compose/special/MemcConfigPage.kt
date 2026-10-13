@@ -740,6 +740,26 @@ internal fun MemcActivityPanel(
     }
 }
 
+/**
+ * 只读输入框当「选择器按钮」用：输入框自身会消费点击
+ * （foundation 的 tapPressTextFieldModifier 在 readOnly 时同样 consume 掉 down/up），
+ * 挂在输入框上的 clickable 收不到事件，所以叠一层透明浮层接住点击。
+ */
+@Composable
+private fun PickerField(
+    onClick: () -> Unit,
+    field: @Composable () -> Unit,
+) {
+    Box(Modifier.fillMaxWidth()) {
+        field()
+        Box(
+            Modifier
+                .matchParentSize()
+                .clickable(onClick = onClick)
+        )
+    }
+}
+
 @Composable
 internal fun MemcPackageDialog(
     context: Context,
@@ -761,22 +781,22 @@ internal fun MemcPackageDialog(
             onDismissRequest = onDismiss,
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                MiuixTextField(
-                    value = packName,
-                    onValueChange = {},
-                    readOnly = true,
-                    singleLine = true,
-                    label = "PackageName",
-                    trailingIcon = {
-                        MiuixIcon(
-                            painterResource(R.drawable.ic_baseline_extension_24),
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showAppPicker = true },
-                )
+                PickerField(onClick = { showAppPicker = true }) {
+                    MiuixTextField(
+                        value = packName,
+                        onValueChange = {},
+                        readOnly = true,
+                        singleLine = true,
+                        label = "PackageName",
+                        trailingIcon = {
+                            MiuixIcon(
+                                painterResource(R.drawable.ic_baseline_extension_24),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 MiuixTextField(
                     value = rate,
                     onValueChange = { rate = it },
@@ -819,22 +839,22 @@ internal fun MemcPackageDialog(
             onDismissRequest = onDismiss,
             text = {
                 Column {
-                    OutlinedTextField(
-                        value = packName,
-                        onValueChange = { packName = it },
-                        readOnly = true,
-                        singleLine = true,
-                        label = { Text("PackageName") },
-                        trailingIcon = {
-                            Icon(
-                                painterResource(R.drawable.ic_baseline_extension_24),
-                                contentDescription = null,
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showAppPicker = true },
-                    )
+                    PickerField(onClick = { showAppPicker = true }) {
+                        OutlinedTextField(
+                            value = packName,
+                            onValueChange = { packName = it },
+                            readOnly = true,
+                            singleLine = true,
+                            label = { Text("PackageName") },
+                            trailingIcon = {
+                                Icon(
+                                    painterResource(R.drawable.ic_baseline_extension_24),
+                                    contentDescription = null,
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     OutlinedTextField(
                         value = rate,
                         onValueChange = { rate = it },
@@ -963,62 +983,64 @@ internal fun MemcActivityDialog(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
+    // 两条 UI 线共用的 Activity 选择：先校验包名，再拉取 Activity 列表
+    val openActivityPicker: () -> Unit = {
+        if (packName.isBlank()) {
+            context.showToast("PackageName is null!")
+        } else {
+            scope.launch(Dispatchers.IO) {
+                val packInfo = PackageUtils(context.packageManager)
+                    .getPackageInfo(packName, PackageManager.GET_ACTIVITIES)
+                withContext(Dispatchers.Main) {
+                    if (packInfo == null) {
+                        context.showToast("App data is null!")
+                    } else {
+                        activityInfos = packInfo.activities?.toList() ?: emptyList()
+                        showActivityPicker = true
+                    }
+                }
+            }
+        }
+    }
+
     if (miuix) {
         OverlayDialog(
             show = true,
             onDismissRequest = onDismiss,
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                MiuixTextField(
-                    value = packName,
-                    onValueChange = {},
-                    readOnly = true,
-                    singleLine = true,
-                    label = "PackageName",
-                    trailingIcon = {
-                        MiuixIcon(
-                            painterResource(R.drawable.ic_baseline_extension_24),
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showAppPicker = true },
-                )
-                MiuixTextField(
-                    value = activity,
-                    onValueChange = {},
-                    readOnly = true,
-                    singleLine = true,
-                    label = "ActivityName",
-                    trailingIcon = {
-                        MiuixIcon(
-                            painterResource(R.drawable.ic_baseline_extension_24),
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            if (packName.isBlank()) {
-                                context.showToast("PackageName is null!")
-                            } else {
-                                scope.launch(Dispatchers.IO) {
-                                    val packInfo = PackageUtils(context.packageManager)
-                                        .getPackageInfo(packName, PackageManager.GET_ACTIVITIES)
-                                    withContext(Dispatchers.Main) {
-                                        if (packInfo == null) {
-                                            context.showToast("App data is null!")
-                                        } else {
-                                            activityInfos =
-                                                packInfo.activities?.toList() ?: emptyList()
-                                            showActivityPicker = true
-                                        }
-                                    }
-                                }
-                            }
+                PickerField(onClick = { showAppPicker = true }) {
+                    MiuixTextField(
+                        value = packName,
+                        onValueChange = {},
+                        readOnly = true,
+                        singleLine = true,
+                        label = "PackageName",
+                        trailingIcon = {
+                            MiuixIcon(
+                                painterResource(R.drawable.ic_baseline_extension_24),
+                                contentDescription = null,
+                            )
                         },
-                )
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                PickerField(onClick = openActivityPicker) {
+                    MiuixTextField(
+                        value = activity,
+                        onValueChange = {},
+                        readOnly = true,
+                        singleLine = true,
+                        label = "ActivityName",
+                        trailingIcon = {
+                            MiuixIcon(
+                                painterResource(R.drawable.ic_baseline_extension_24),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 MiuixTextField(
                     value = type,
                     onValueChange = { type = it },
@@ -1054,56 +1076,38 @@ internal fun MemcActivityDialog(
             onDismissRequest = onDismiss,
             text = {
                 Column {
-                    OutlinedTextField(
-                        value = packName,
-                        onValueChange = { packName = it },
-                        readOnly = true,
-                        singleLine = true,
-                        label = { Text("PackageName") },
-                        trailingIcon = {
-                            Icon(
-                                painterResource(R.drawable.ic_baseline_extension_24),
-                                contentDescription = null,
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showAppPicker = true },
-                    )
-                    OutlinedTextField(
-                        value = activity,
-                        onValueChange = { activity = it },
-                        readOnly = true,
-                        singleLine = true,
-                        label = { Text("ActivityName") },
-                        trailingIcon = {
-                            Icon(
-                                painterResource(R.drawable.ic_baseline_extension_24),
-                                contentDescription = null,
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                if (packName.isBlank()) {
-                                    context.showToast("PackageName is null!")
-                                } else {
-                                    scope.launch(Dispatchers.IO) {
-                                        val packInfo = PackageUtils(context.packageManager)
-                                            .getPackageInfo(packName, PackageManager.GET_ACTIVITIES)
-                                        withContext(Dispatchers.Main) {
-                                            if (packInfo == null) {
-                                                context.showToast("App data is null!")
-                                            } else {
-                                                activityInfos =
-                                                    packInfo.activities?.toList() ?: emptyList()
-                                                showActivityPicker = true
-                                            }
-                                        }
-                                    }
-                                }
+                    PickerField(onClick = { showAppPicker = true }) {
+                        OutlinedTextField(
+                            value = packName,
+                            onValueChange = { packName = it },
+                            readOnly = true,
+                            singleLine = true,
+                            label = { Text("PackageName") },
+                            trailingIcon = {
+                                Icon(
+                                    painterResource(R.drawable.ic_baseline_extension_24),
+                                    contentDescription = null,
+                                )
                             },
-                    )
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    PickerField(onClick = openActivityPicker) {
+                        OutlinedTextField(
+                            value = activity,
+                            onValueChange = { activity = it },
+                            readOnly = true,
+                            singleLine = true,
+                            label = { Text("ActivityName") },
+                            trailingIcon = {
+                                Icon(
+                                    painterResource(R.drawable.ic_baseline_extension_24),
+                                    contentDescription = null,
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     OutlinedTextField(
                         value = type,
                         onValueChange = { type = it },
