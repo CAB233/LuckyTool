@@ -12,11 +12,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
@@ -260,9 +260,14 @@ internal class MemcConfigState(private val context: Context) {
     }
 }
 
-/** 页面渲染体：状态/加载逻辑唯一一份（两线旧实现逐字一致），渲染差异集中在此。 */
+/**
+ * 页面渲染体：状态/加载逻辑唯一一份（两线旧实现逐字一致），渲染差异集中在此。
+ *
+ * LazyItemScope 扩展：[ScopePageSpec.fullContent] 挂在 LazyColumn 的 item 内，item 的高度约束无界，
+ * 根容器必须用 `fillParentMaxHeight()` 取列表视口高度，否则整列高度为 0（子项 weight 分不到空间）→ 白屏。
+ */
 @Composable
-internal fun MemcConfigContent() {
+internal fun LazyItemScope.MemcConfigContent() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val state = remember { MemcConfigState(context) }
@@ -303,7 +308,7 @@ internal fun MemcConfigContent() {
         state.reload()
     }
 
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillParentMaxHeight()) {
         if (miuix) {
             MiuixTabRow(
                 tabs = listOf("Packages", "Activitys"),
