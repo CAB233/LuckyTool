@@ -1,13 +1,12 @@
 package com.luckyzyx.luckytool.ui.compose.scopes.apps
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
@@ -131,7 +130,7 @@ object OplusGesturePage {
             ) {
                 val path by state.stringFlow("replace_side_slider_icon_on_left")
                     .collectAsStateWithLifecycle()
-                val activity = LocalContext.current as? Activity
+                val activity = LocalActivity.current
                 val pickMedia = rememberLauncherForActivityResult(
                     ActivityResultContracts.GetContent()
                 ) { uri ->
@@ -156,7 +155,7 @@ object OplusGesturePage {
             ) {
                 val path by state.stringFlow("replace_side_slider_icon_on_right")
                     .collectAsStateWithLifecycle()
-                val activity = LocalContext.current as? Activity
+                val activity = LocalActivity.current
                 val pickMedia = rememberLauncherForActivityResult(
                     ActivityResultContracts.GetContent()
                 ) { uri ->

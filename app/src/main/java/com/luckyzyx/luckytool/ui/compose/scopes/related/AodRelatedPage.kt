@@ -1,16 +1,8 @@
 package com.luckyzyx.luckytool.ui.compose.scopes.related
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.compose.components.PrefRow
 import com.luckyzyx.luckytool.ui.compose.components.PrefRowInset
@@ -105,7 +97,7 @@ object AodRelatedPage {
                         title = fileTitle,
                         summary = path.ifBlank { "Null" },
                     ) {
-                        val activity = LocalContext.current as? Activity
+                        val activity = LocalActivity.current
                         val pickFile = rememberLauncherForActivityResult(
                             ActivityResultContracts.GetContent()
                         ) { uri ->
