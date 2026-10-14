@@ -233,29 +233,4 @@ object DeviceUtils {
             return -1
         }
     }
-
-    suspend fun getQSlist(): ArrayList<String> {
-        return com.drake.net.utils.withDefault {
-            val configList = ArrayList<String>()
-            val indexList = ArrayList<String>()
-            val command1 =
-                "ls -f /data/data/com.tencent.mobileqq/databases/ | egrep 'config_db([0-9]+)$' | sed 's/config_db//g'"
-            val command2 =
-                "ls -f /data/data/com.tencent.mobileqq/databases/ | egrep '([0-9]+)-IndexQQMsg.db' | sed 's/-IndexQQMsg.db//g'"
-            Shell.cmd(command1).to(configList).exec()
-            Shell.cmd(command2).to(indexList).exec()
-//        LogUtils.e("getQSlist", "cachelist", "${list.toList()}", true)
-            ArrayList(configList.union(indexList))
-        }
-    }
-
-    suspend fun getCSid(): ArrayList<String> {
-        val command =
-            "cat /data/data/com.coolapk.market/shared_prefs/coolapk_preferences_v7.xml | egrep -o 'USER_SPAM_([0-9]+)' | sed 's/USER_SPAM_//g'"
-        return com.drake.net.utils.withDefault {
-            ArrayList<String>().apply {
-                Shell.cmd(command).to(this).exec()
-            }
-        }
-    }
 }
