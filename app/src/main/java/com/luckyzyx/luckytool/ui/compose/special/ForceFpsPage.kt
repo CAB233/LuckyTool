@@ -3,6 +3,7 @@ package com.luckyzyx.luckytool.ui.compose.special
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -27,6 +28,7 @@ import com.luckyzyx.luckytool.service.RefreshRateService
 import com.luckyzyx.luckytool.ui.compose.components.PrefGroup
 import com.luckyzyx.luckytool.ui.compose.components.PrefSwitchRow
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialRadioItem
+import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefDefaults
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixRadioItem
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
@@ -78,6 +80,9 @@ import top.yukonga.miuix.kmp.basic.Text as MiuixText
  * 2. 加载中 / 无数据提示：数据卡没有内容时在该位置给出落点（旧 `fps_nodata_view`）；
  * 3. 设置卡：自启（`keyFpsAutoStart`）+ 显示刷新率合并为一张卡片；
  * 4. 恢复默认刷新率按钮 + 底部提示文案。
+ *
+ * 水平内缩：body 走 `custom(bare = true)`（整页无卡片容器），但 `bare` 的 Miuix 缝偏移是给分类标题的，
+ * 这里必须用 `offset(+CardHorizontalInset)` 回正，否则左右间距不对称（详见 body 处的注释）。
  *
  * 线分派：行呈现（`PrefGroup` / `PrefSwitchRow`）由共享层按 [LocalUiMode] 自行分派，
  * 页面只分派自己写死的 material 件 —— 文字（`MiuixText`）、重置按钮（miuix `Button`）、
@@ -154,7 +159,14 @@ object ForceFpsPage {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    // Miuix 线：bare 条目在渲染缝里被统一 offset(-CardHorizontalInset)（供自带 16dp 内距的
+                    // 分类标题抵消列表级 12dp 内缩）。整页 body 不是分类标题：该偏移只平移不改变宽度，
+                    // 会把内容整体左推 12dp，实测左 16dp / 右 40dp 不对称；用等量正向 offset 回正后
+                    // 左右各 12dp，与其余页面（列表级 12dp 内缩的卡片）对齐。material 线无此偏移。
+                    .offset(x = if (miuix) MiuixPrefDefaults.CardHorizontalInset else 0.dp)
+                    // Miuix 线：水平 12dp 已由上面的回正 + 列表级 contentPadding 单一提供，
+                    // 再叠一层会二次内缩；material 线列表无水平 contentPadding，卡片需自带 16dp。
+                    .padding(horizontal = if (miuix) 0.dp else 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 // FPS 数据卡：displayMode 模式列表置顶，独立一张卡片
