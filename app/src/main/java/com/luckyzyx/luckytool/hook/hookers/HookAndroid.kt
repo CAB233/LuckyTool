@@ -57,9 +57,6 @@ object HookAndroid : YukiBaseHooker() {
         loadHooker(HookGlobalPmsFeature)
         loadHooker(HookGlobalSystemConfig)
 
-        //禁止App启动
-//        loadHooker(HookAppStartForbidden)
-
         //移除状态栏上层警告
         loadHooker(RemoveStatusBarTopNotification)
 

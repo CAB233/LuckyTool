@@ -9,7 +9,6 @@ object CommandUtils {
 
     val aesCryptKey = "luckyzyxluckyzyx"
     val otaCryptKey = "otatoolsotatools"
-    val sunshineTool = "com.Sunshine.ToolBox"
 
     val id = "id"
     val uid = "uid"
