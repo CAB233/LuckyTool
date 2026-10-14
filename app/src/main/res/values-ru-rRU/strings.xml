@@ -20,8 +20,6 @@
     <string name="dark_theme_on">Всегда включена</string>
     <string name="language">Язык</string>
     <string name="privacy_agreement">Соглашение о конфиденциальности</string>
-    <string name="auto_check_update">Автоматически проверять наличие обновлений</string>
-    <string name="auto_check_update_summary">Автоматически проверять наличие обновлений при открытии главной страницы модуля</string>
     <string name="enable_biometric_unlock_verification">Включить проверку разблокировки по биометрии</string>
     <string name="tile_auto_start">Разрешить автоматический запуск плиток</string>
     <string name="tile_auto_start_summary">Выбранные плитки для быстрых настроек в модуле будут автоматически активированы после разблокировки экрана.\n Если триггер не сработал, перезапустите область и проверьте права root</string>
@@ -895,29 +893,8 @@
     <string name="root_source">Источник root:</string>
     <string name="framework_version">Версия framework:</string>
     <string name="enable_module">Включить модуль</string>
-    <string name="version_name">Название версии</string>
-    <string name="download_count">Количество загрузок</string>
-    <string name="file_size">Размер файла</string>
-    <string name="update_time">Время обновления</string>
     <string name="first_install_time">Время первой установки</string>
     <string name="last_update_time">Время последнего обновления</string>
-    <string name="select_download_source">Выбрать источник загрузки</string>
-    <string name="update_logs">Журналы обновления</string>
-    <string name="check_update_hint">Обнаружена новая версия!</string>
-    <string name="check_update_error">Не удалось обнаружить обновления, проверьте подключение!</string>
-    <string name="go_download_page">Перейти на страницу загрузки</string>
-    <string name="copy_download_link">Копировать ссылку для загрузки</string>
-    <string name="direct_update">Прямое обновление</string>
-    <string name="install_apk_toast">Пожалуйста, включите разрешение на установку неизвестного приложения!</string>
-    <string name="downloading">Загрузка</string>
-    <string name="download_progress">Прогресс загрузки</string>
-    <string name="download_speed">Скорость загрузки</string>
-    <string name="remain_size">Оставшийся размер</string>
-    <string name="downloaded">Загружено</string>
-    <string name="used_time">Потраченное время</string>
-    <string name="remain_time">Оставшееся время</string>
-    <string name="install_button">Установить сейчас</string>
-    <string name="cancel_button">Отменить загрузку</string>
     <string name="fps_autostart">Автозапуск</string>
     <string name="fps_no_data">Нет данных FPS, проверьте root права</string>
     <string name="device_guid">GUID устройства</string>
@@ -1026,7 +1003,6 @@
     <string name="send_notification_permission">Разрешение на отправку уведомлений</string>
     <string name="all_files_access_permission">Все разрешения на доступ к файлам</string>
     <string name="installed_apps_permission">Просмотр прав доступа к списку приложений</string>
-    <string name="install_app_permission">Установить разрешения приложения</string>
     <string name="permission_denied_toast">В доступе отказано, пожалуйста, предоставьте разрешение вручную: %1$s</string>
     <string name="permission_error_toast">Не удалось получить разрешение: %1$s</string>
     <!--Net 网络请求异常-->

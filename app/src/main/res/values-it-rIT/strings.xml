@@ -20,8 +20,6 @@
     <string name="dark_theme_on">Sempre attivo</string>
     <string name="language">Lingua</string>
     <string name="privacy_agreement">Accordo sulla privacy</string>
-    <string name="auto_check_update">Controlla automaticamente gli aggiornamenti</string>
-    <string name="auto_check_update_summary">Controlla automaticamente gli aggiornamenti quando apri il modulo</string>
     <string name="enable_biometric_unlock_verification">Enable biometric unlock verification</string>
     <string name="tile_auto_start">Consenti ai tile integrati di partire automaticamente</string>
     <string name="tile_auto_start_summary">Le funzioni dei tile abilitate verranno attivate automaticamente dopo che lo schermo sarà sbloccato.\nSe il trigger fallisce, riavviare l\'ambito e controllare i permessi di root</string>
@@ -893,29 +891,8 @@
     <string name="root_source">Origine root</string>
     <string name="framework_version">Versione Framework:</string>
     <string name="enable_module">Abilita modulo</string>
-    <string name="version_name">Nome Versione</string>
-    <string name="download_count">Conteggio download</string>
-    <string name="file_size">Dimensione del file</string>
-    <string name="update_time">Aggiorna ora</string>
     <string name="first_install_time">Ora prima Installazione</string>
     <string name="last_update_time">Ora ultimo aggiornamento</string>
-    <string name="select_download_source">Seleziona la fonte del download</string>
-    <string name="update_logs">Registro degli aggiornamenti</string>
-    <string name="check_update_hint">Nuova versione rilevata!</string>
-    <string name="check_update_error">Impossibile rilevare gli aggiornamenti, si prega di controllare la rete e altri problemi!</string>
-    <string name="go_download_page">Vai alla pagina di download</string>
-    <string name="copy_download_link">Copia il link del download</string>
-    <string name="direct_update">Aggiornamento diretto</string>
-    <string name="install_apk_toast">Si prega di abilitare il permesso di installazione dell\'app sconosciuta!</string>
-    <string name="downloading">Download in corso</string>
-    <string name="download_progress">Progresso download</string>
-    <string name="download_speed">Velocità Download</string>
-    <string name="remain_size">Dimensione Rimanente</string>
-    <string name="downloaded">Scaricato</string>
-    <string name="used_time">Tempo di utilizzo</string>
-    <string name="remain_time">Tempo Rimanente</string>
-    <string name="install_button">Installa ora</string>
-    <string name="cancel_button">Annulla download</string>
     <string name="fps_autostart">Avvio automatico</string>
     <string name="fps_no_data">Nessun dato FPS, per favore controlla l\'autorizzazione Root</string>
     <string name="device_guid">GUIDA Dispositivo</string>
@@ -1024,7 +1001,6 @@
     <string name="send_notification_permission">Autorizzazione invio notifica</string>
     <string name="all_files_access_permission">Autorizzazione di accesso ai file</string>
     <string name="installed_apps_permission">Leggi i permessi della lista delle app</string>
-    <string name="install_app_permission">Installa permessi app</string>
     <string name="permission_denied_toast">Permesso negato, si prega di concedere l\'autorizzazione manualmente: %1$s</string>
     <string name="permission_error_toast">Impossibile ottenere i permessi: %1$s</string>
     <!--Net 网络请求异常-->

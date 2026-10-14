@@ -23,8 +23,6 @@
     <string name="dark_theme_follow_system" translatable="false">@string/follow_system</string>
     <string name="language">Dil</string>
     <string name="privacy_agreement">Gizlilik Sözleşmesi</string>
-    <string name="auto_check_update">Güncellemeleri otomatik kontrol et</string>
-    <string name="auto_check_update_summary">Modül ana sayfası açıldığında güncellemeleri otomatik olarak kontrol et</string>
     <string name="enable_biometric_unlock_verification">Biyometrik kilit açma doğrulamasını etkinleştir</string>
     <string name="tile_auto_start">Dahili hızlı ayarların (tiles) otomatik başlamasına izin ver</string>
     <string name="tile_auto_start_summary">Etkinleştirilen hızlı ayar (tile) özellikleri ekran kilidi açıldıktan sonra otomatik olarak tetiklenir.\nEğer tetikleme başarısız olursa, lütfen kapsamı yeniden başlatın ve Root izinlerini kontrol edin.</string>
@@ -1078,29 +1076,8 @@
     <string name="root_source">Root kaynağı:</string>
     <string name="framework_version">Framework (Lsposed/Kernel Sü v.) sürümü:</string>
     <string name="enable_module">Modülü Etkinleştir</string>
-    <string name="version_name">Sürüm Adı</string>
-    <string name="download_count">İndirme Sayısı</string>
-    <string name="file_size">Dosya Boyutu</string>
-    <string name="update_time">Güncelleme Tarihi</string>
     <string name="first_install_time">İlk kurulum Tarihi</string>
     <string name="last_update_time">Son Güncellenme Tarihi</string>
-    <string name="select_download_source">İndirme kaynağını seç</string>
-    <string name="update_logs">Güncelleme Günlükleri / Değişiklikleri - (Logs)</string>
-    <string name="check_update_hint">Yeni bir sürüm tespit edildi!</string>
-    <string name="check_update_error">Güncelleştirmeler kontrol edilemedi (hatası), lütfen ağı veya diğer sorunları kontrol edin!</string>
-    <string name="go_download_page">İndirme sayfasına git</string>
-    <string name="copy_download_link">İndirmeyi bağlantısını (link) kopyala</string>
-    <string name="direct_update">Doğrudan Cihaz İçinden (Uygulama İçinden) güncelle</string>
-    <string name="install_apk_toast">Lütfen bilinmeyen uygulama yükleme iznini (Güvenlik Ayarlarındaki) etkinleştirin!</string>
-    <string name="downloading">İndiriliyor</string>
-    <string name="download_progress">İndirme Durumu / İlerlenen Kısım</string>
-    <string name="download_speed">İndirme Hızı</string>
-    <string name="remain_size">Kalan Boyut / Boyut</string>
-    <string name="downloaded">İndirildi</string>
-    <string name="used_time">Geçen Süre</string>
-    <string name="remain_time">Kalan Süre</string>
-    <string name="install_button">Şimdi Yükle - Kur (İnstall)</string>
-    <string name="cancel_button">İndirmeyi iptal et</string>
     <string name="fps_autostart">Otomatik Başlatma</string>
     <string name="fps_no_data">FPS verisi yok, lütfen Root iznini verip vermediğinizi kontrol edin</string>
     <string name="device_guid">Cihaz GUID  (Id - Cihaz Kimliğiniz - Geliştiriciye Hata Raporları Göndermek Vs İçin Lazım Olabilir)</string>
@@ -1265,15 +1242,12 @@
     <string name="add_success">Başarıyla / Sorunsuz Olarak Eklendi.</string>
     <string name="add_fail">Ekleme  - Yerine / Üstüne vb Vs Yazma İşlemi Başarısız Oldu...!</string>
     <string name="add_repeat">Aynı İşlem Zaten Daha Önceden Defalaraca Vs Yapıldı - Eklenmiş - Sürekli Yapmayın / Tekrarlanmış Ekleme / İşlem</string>
-    <string name="install">Kur - Yükle.</string>
     <string name="uninstall">Mevcut olanı Cihazdan Sök/Kaldır.</string>
-    <string name="download_again">Bağlantı vs hatası, baştan tekrar bir daha vb . İndir.</string>
     
     <!--Permission-->
     <string name="send_notification_permission">Bidirim vs bildirmek için vb vs Gönderme  İzni (Send notification permission)</string>
     <string name="all_files_access_permission">Tüm dosyalara (Dahili hafı vs Data , Ob gibi yerlere vb erişim olanağı - Tüm Dosya Erişim İzni - Android 12 Vs Üstü İster.)</string>
     <string name="installed_apps_permission">Uygulama - cihaz içi bilgi , paket vs vs okuma - vb izni (Read your app list permission)</string>
-    <string name="install_app_permission">Yeni bi uygulama vb dış kaynaktan modül üzerinden vb vs kurulum vb olanağı için Kurulum / Yükleme izni .(Install app permissions)</string>
     
     <string name="permission_denied_toast">Bunun için vs Yetkiniz / İzninin YOK - Reddedildi vs, Lütfen Manuel - cihazınız içi sistem vs izinler/uyg vb yerinde elinizle  İzin (Verin) - Tanımlayın: %1$s</string>
     <string name="permission_error_toast">Sizden Bu izni alamadım - erişimim yok (%1$s) vs İzni Elde Ederken Hata vs. Oluştu.!: %1$s</string>

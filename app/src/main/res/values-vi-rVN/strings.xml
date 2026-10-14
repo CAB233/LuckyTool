@@ -22,8 +22,6 @@
     <string name="dark_theme_on">Luôn bật</string>
     <string name="language">Ngôn ngữ</string>
     <string name="privacy_agreement">Thỏa thuận bảo mật</string>
-    <string name="auto_check_update">Tự động kiểm tra cập nhật</string>
-    <string name="auto_check_update_summary">Tự động kiểm tra cập nhật khi mở trang chủ module</string>
     <string name="enable_biometric_unlock_verification">Bật xác minh mở khóa bằng sinh trắc học</string>
     <string name="tile_auto_start">Cho phép các ô tích hợp tự động bắt đầu</string>
     <string name="tile_auto_start_summary">Chức năng ô đã bật sẽ tự động được kích hoạt sau khi màn hình được mở khóa\nNếu kích hoạt không thành công, vui lòng khởi động lại phạm vi và kiểm tra quyền Root</string>
@@ -896,29 +894,8 @@
     <string name="root_source">Nguồn Root:</string>
     <string name="framework_version">Phiên bản Framework:</string>
     <string name="enable_module">Bật mô-đun</string>
-    <string name="version_name">Tên phiên bản</string>
-    <string name="download_count">Lượt tải về</string>
-    <string name="file_size">Kích thước tập tin</string>
-    <string name="update_time">Thời gian cập nhật</string>
     <string name="first_install_time">Cài đặt lần đầu</string>
     <string name="last_update_time">Cập nhật lần cuối</string>
-    <string name="select_download_source">Chọn nguồn tải xuống</string>
-    <string name="update_logs">Nhật ký cập nhật</string>
-    <string name="check_update_hint">Đã phát hiện phiên bản mới!</string>
-    <string name="check_update_error">Không phát hiện được bản cập nhật, vui lòng kiểm tra mạng và các vấn đề khác!</string>
-    <string name="go_download_page">Đi đến trang tải xuống</string>
-    <string name="copy_download_link">Sao chép liên kết tải xuống</string>
-    <string name="direct_update">Cập nhật trực tiếp</string>
-    <string name="install_apk_toast">Vui lòng bật quyền cài đặt ứng dụng không xác định!</string>
-    <string name="downloading">Đang tải xuống</string>
-    <string name="download_progress">Tiến độ tải xuống</string>
-    <string name="download_speed">Tốc độ tải về</string>
-    <string name="remain_size">Kích thước còn lại</string>
-    <string name="downloaded">Đã tải xuống</string>
-    <string name="used_time">Thời gian đã sử dụng</string>
-    <string name="remain_time">Thời gian còn lại</string>
-    <string name="install_button">Cài đặt ngay</string>
-    <string name="cancel_button">Hủy tải xuống</string>
     <string name="fps_autostart">Tự khởi động</string>
     <string name="fps_no_data">Không có dữ liệu FPS, vui lòng kiểm tra quyền Root</string>
     <string name="device_guid">GUID thiết bị</string>
@@ -1027,7 +1004,6 @@
     <string name="send_notification_permission">Gửi quyền thông báo</string>
     <string name="all_files_access_permission">Tất cả quyền truy cập tập tin</string>
     <string name="installed_apps_permission">Quyền đọc danh sách ứng dụng</string>
-    <string name="install_app_permission">Quyền cài đặt ứng dụng</string>
     <string name="permission_denied_toast">Quyền bị từ chối, vui lòng cấp quyền theo cách thủ công: %1$s</string>
     <string name="permission_error_toast">Không xin được quyền: %1$s</string>
     <!--Net 网络请求异常-->

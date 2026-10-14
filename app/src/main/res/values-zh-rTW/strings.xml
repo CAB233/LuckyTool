@@ -76,8 +76,6 @@
     <string name="color_sakura">櫻花</string>
     <string name="language">語言</string>
     <string name="privacy_agreement">隱私協議</string>
-    <string name="auto_check_update">自動檢查更新</string>
-    <string name="auto_check_update_summary">開啟模組主頁時自動檢查更新</string>
     <string name="enable_biometric_unlock_verification">啟用生物識別解鎖驗證</string>
     <string name="tile_auto_start">允許內建磁貼自啟</string>
     <string name="tile_auto_start_summary">螢幕解鎖後將自動觸發已啟用的磁貼功能\n若觸發失敗，請重啟作用域和檢查Root權限</string>
@@ -1204,29 +1202,8 @@
     <string name="root_source">Root來源:</string>
     <string name="framework_version">框架版本:</string>
     <string name="enable_module">啟用模組</string>
-    <string name="version_name">版本號</string>
-    <string name="download_count">下載次數</string>
-    <string name="file_size">檔案大小</string>
-    <string name="update_time">更新時間</string>
     <string name="first_install_time">首次安裝時間</string>
     <string name="last_update_time">最後更新時間</string>
-    <string name="select_download_source">選擇下載源</string>
-    <string name="update_logs">更新日誌</string>
-    <string name="check_update_hint">檢測到新版本!</string>
-    <string name="check_update_error">檢測更新失敗，請檢查網路等問題！</string>
-    <string name="go_download_page">跳轉下載頁面</string>
-    <string name="copy_download_link">複製下載連結</string>
-    <string name="direct_update">直接更新</string>
-    <string name="install_apk_toast">請開啟未知應用安裝權限!</string>
-    <string name="downloading">正在下載</string>
-    <string name="download_progress">下載進度</string>
-    <string name="download_speed">下載速度</string>
-    <string name="remain_size">剩餘大小</string>
-    <string name="downloaded">已下載</string>
-    <string name="used_time">已用時間</string>
-    <string name="remain_time">剩餘時間</string>
-    <string name="install_button">立即安裝</string>
-    <string name="cancel_button">取消下載</string>
     <string name="fps_autostart">自動啟動</string>
     <string name="fps_no_data">無 FPS 資料，請檢查Root權限</string>
     <string name="device_guid">裝置 GUID</string>
@@ -1392,15 +1369,12 @@
     <string name="add_success">新增成功</string>
     <string name="add_fail">新增失敗</string>
     <string name="add_repeat">重複新增</string>
-    <string name="install">安裝</string>
     <string name="uninstall">解除安裝</string>
-    <string name="download_again">重新下載</string>
 
     <!--Permission-->
     <string name="send_notification_permission">傳送通知權限</string>
     <string name="all_files_access_permission">所有檔案訪問權限</string>
     <string name="installed_apps_permission">讀取應用列表權限</string>
-    <string name="install_app_permission">應用安裝權限</string>
 
     <!--AppPermission 应用权限页（设置页入口 + 冷启动阻塞门）-->
     <string name="app_permission">應用權限</string>

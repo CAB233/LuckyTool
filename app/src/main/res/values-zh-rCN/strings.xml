@@ -73,8 +73,6 @@
     <string name="color_sakura">樱花</string>
     <string name="language">语言</string>
     <string name="privacy_agreement">隐私协议</string>
-    <string name="auto_check_update">自动检查更新</string>
-    <string name="auto_check_update_summary">打开模块主页时自动检查更新</string>
     <string name="enable_biometric_unlock_verification">启用生物识别解锁验证</string>
     <string name="tile_auto_start">允许内置磁贴自动启动</string>
     <string name="tile_auto_start_summary">屏幕解锁后将自动触发已启用的磁贴功能\n若触发失败，请重启作用域和检查Root权限</string>
@@ -1050,29 +1048,8 @@
     <string name="root_source">Root来源:</string>
     <string name="framework_version">框架版本:</string>
     <string name="enable_module">启用模块</string>
-    <string name="version_name">版本号</string>
-    <string name="download_count">下载次数</string>
-    <string name="file_size">文件大小</string>
-    <string name="update_time">更新时间</string>
     <string name="first_install_time">首次安装时间</string>
     <string name="last_update_time">最后更新时间</string>
-    <string name="select_download_source">选择下载源</string>
-    <string name="update_logs">更新日志</string>
-    <string name="check_update_hint">检测到新版本!</string>
-    <string name="check_update_error">检测更新失败，请检查网络等问题！</string>
-    <string name="go_download_page">跳转下载页面</string>
-    <string name="copy_download_link">复制下载链接</string>
-    <string name="direct_update">直接更新</string>
-    <string name="install_apk_toast">请打开未知应用安装权限!</string>
-    <string name="downloading">正在下载</string>
-    <string name="download_progress">下载进度</string>
-    <string name="download_speed">下载速度</string>
-    <string name="remain_size">剩余大小</string>
-    <string name="downloaded">已下载</string>
-    <string name="used_time">已用时间</string>
-    <string name="remain_time">剩余时间</string>
-    <string name="install_button">立即安装</string>
-    <string name="cancel_button">取消下载</string>
     <string name="fps_autostart">自动启动</string>
     <string name="fps_no_data">无 FPS 数据，请检查Root权限</string>
     <string name="device_guid">设备 GUID</string>
@@ -1181,11 +1158,9 @@
     <string name="intent_https_link">Https 链接</string>
     <!--CommonWords-->
     <!--Permission-->
-    <string name="download_again">重新下载</string>
     <string name="send_notification_permission">发送通知权限</string>
     <string name="all_files_access_permission">所有文件访问权限</string>
     <string name="installed_apps_permission">读取应用列表权限</string>
-    <string name="install_app_permission">应用安装权限</string>
 
     <!--AppPermission 应用权限页（设置页入口 + 冷启动阻塞门）-->
     <string name="app_permission">应用权限</string>
@@ -1264,7 +1239,6 @@
     <string name="expand">扩展</string>
     <string name="replace">替换</string>
     <string name="add_repeat">重复添加</string>
-    <string name="install">安装</string>
     <string name="uninstall">卸载</string>
     <string name="recommended_size">推荐大小</string>
     <string name="add_success">添加成功</string>

@@ -20,8 +20,6 @@
     <string name="dark_theme_on">Zawsze włączony</string>
     <string name="language">Język</string>
     <string name="privacy_agreement">Polityka prywatności</string>
-    <string name="auto_check_update">Sprawdzaj uaktualnienia aplikacji</string>
-    <string name="auto_check_update_summary">Automatyczne sprawdź dostępność uaktualnień przy otwieraniu głównej karty modułu</string>
     <string name="enable_biometric_unlock_verification">Enable biometric unlock verification</string>
     <string name="tile_auto_start">Allow built-in tiles to start automatically</string>
     <string name="tile_auto_start_summary">Enabled tile features will be automatically triggered after the screen is unlocked.\nIf the trigger fails,please restart the scope and check Root permissions</string>
@@ -895,29 +893,8 @@
     <string name="root_source">Root source:</string>
     <string name="framework_version">Framework version:</string>
     <string name="enable_module">Aktywuj moduł</string>
-    <string name="version_name">Nazwa wersji</string>
-    <string name="download_count">Licznik pobrań</string>
-    <string name="file_size">Rozmiar</string>
-    <string name="update_time">Czas aktualizacji</string>
     <string name="first_install_time">First install time</string>
     <string name="last_update_time">Last update time</string>
-    <string name="select_download_source">Select download source</string>
-    <string name="update_logs">Dziennik zmian</string>
-    <string name="check_update_hint">Wykryto nową wersję!</string>
-    <string name="check_update_error">Failed to detect updates, please check network and other issues!</string>
-    <string name="go_download_page">Przejdź do strony pobierania</string>
-    <string name="copy_download_link">Skopiuj link pobierania</string>
-    <string name="direct_update">Aktualizuj</string>
-    <string name="install_apk_toast">Proszę zezwolić na instalowanie aplikacji z nieznanych źródeł!</string>
-    <string name="downloading">Pobieranie</string>
-    <string name="download_progress">Postęp pobierania</string>
-    <string name="download_speed">Prędkość pobierania</string>
-    <string name="remain_size">Pozostały rozmiar</string>
-    <string name="downloaded">Pobrano</string>
-    <string name="used_time">Czas użycia</string>
-    <string name="remain_time">Pozostały czas</string>
-    <string name="install_button">Instaluj teraz</string>
-    <string name="cancel_button">Anuluj pobieranie</string>
     <string name="fps_autostart">Automatyczny start</string>
     <string name="fps_no_data">No FPS data, please check Root permission</string>
     <string name="device_guid">GUID urządzenia</string>
@@ -1026,7 +1003,6 @@
     <string name="send_notification_permission">Send notification permission</string>
     <string name="all_files_access_permission">All file access permission</string>
     <string name="installed_apps_permission">Read your app list permission</string>
-    <string name="install_app_permission">Install app permissions</string>
     <string name="permission_denied_toast">Permission denied, please grant permission manually: %1$s</string>
     <string name="permission_error_toast">Failed to obtain permission: %1$s</string>
     <!--Net 网络请求异常-->

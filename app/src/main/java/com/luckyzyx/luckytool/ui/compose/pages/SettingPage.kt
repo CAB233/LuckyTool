@@ -33,7 +33,6 @@ import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.SaveAlt
-import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Widgets
@@ -168,8 +167,6 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
             val settingsUiModeSummary = stringResource(R.string.settings_ui_mode_summary)
             val themePaletteTitle = stringResource(R.string.theme_palette)
             val themePaletteSummary = stringResource(R.string.theme_palette_summary)
-            val autoCheckUpdateTitle = stringResource(R.string.auto_check_update)
-            val autoCheckUpdateSummary = stringResource(R.string.auto_check_update_summary)
             val biometricUnlockTitle = stringResource(R.string.enable_biometric_unlock_verification)
             val tileAutoStartTitle = stringResource(R.string.tile_auto_start)
             val tileAutoStartSummary = stringResource(R.string.tile_auto_start_summary)
@@ -219,13 +216,6 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
 
                 // ---------------- 其他 ----------------
                 group()
-                switch(
-                    key = "auto_check_update",
-                    title = autoCheckUpdateTitle,
-                    summary = autoCheckUpdateSummary,
-                    default = true,
-                    leading = { PrefIcon(Icons.Rounded.SystemUpdate) },
-                )
                 if (deviceSecure) {
                     switch(
                         key = "enable_biometric_unlock_verification",

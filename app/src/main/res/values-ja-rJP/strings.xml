@@ -20,8 +20,6 @@
     <string name="dark_theme_on">常にオン</string>
     <string name="language">言語</string>
     <string name="privacy_agreement">プライバシーポリシー</string>
-    <string name="auto_check_update">自動でアップデートの確認をする</string>
-    <string name="auto_check_update_summary">モジュールのホームページを開くと自動的にアップデートを確認します</string>
     <string name="enable_biometric_unlock_verification">Enable biometric unlock verification</string>
     <string name="tile_auto_start">内蔵タイルの自動起動を許可する</string>
     <string name="tile_auto_start_summary">有効にしたタイル機能は画面ロック解除後に自動的にトリガーされます。\nトリガーに失敗した場合は、スコープを再起動し、root 権限を許可したか確認してください</string>
@@ -893,29 +891,8 @@
     <string name="root_source">Root source:</string>
     <string name="framework_version">Framework version:</string>
     <string name="enable_module">モジュールを有効化</string>
-    <string name="version_name">バージョン名</string>
-    <string name="download_count">ダウンロード数</string>
-    <string name="file_size">ファイルのサイズ</string>
-    <string name="update_time">更新時間</string>
     <string name="first_install_time">最初のインストール日時</string>
     <string name="last_update_time">最終のインストール日時</string>
-    <string name="select_download_source">ダウンロード元を選択</string>
-    <string name="update_logs">アップデートログ</string>
-    <string name="check_update_hint">新しいバージョンがあります!</string>
-    <string name="check_update_error">アップデートの検出に失敗しました。ネットワークなどの問題を確認してください！</string>
-    <string name="go_download_page">ダウンロードページを開く</string>
-    <string name="copy_download_link">ダウンロードリンクをコピー</string>
-    <string name="direct_update">直接でアップデート</string>
-    <string name="install_apk_toast">不明なアプリのインストールを許可してください!</string>
-    <string name="downloading">ダウンロード中</string>
-    <string name="download_progress">ダウンロードの進捗</string>
-    <string name="download_speed">ダウンロードの速度</string>
-    <string name="remain_size">残りのサイズ</string>
-    <string name="downloaded">ダウンロード済み</string>
-    <string name="used_time">経過時間</string>
-    <string name="remain_time">残り時間</string>
-    <string name="install_button">今すぐにインストール</string>
-    <string name="cancel_button">ダウンロードをキャンセル</string>
     <string name="fps_autostart">自動で開始</string>
     <string name="fps_no_data">FPS データがありません。root 権限を確認してください</string>
     <string name="device_guid">デバイスのGUID</string>
@@ -1024,7 +1001,6 @@
     <string name="send_notification_permission">通知権限を送信</string>
     <string name="all_files_access_permission">すべてのファイルアクセス権限</string>
     <string name="installed_apps_permission">アプリ一覧の読み取り権限</string>
-    <string name="install_app_permission">インストールアプリの権限</string>
     <string name="permission_denied_toast">権限がありません。手動で権限を許可してください: %1$s</string>
     <string name="permission_error_toast">権限の取得に失敗しました: %1$s</string>
     <!--Net 网络请求异常-->

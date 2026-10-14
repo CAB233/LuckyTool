@@ -6,10 +6,6 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <!--网络访问-->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!--请求安装包-->
-    <uses-permission
-            android:name="android.permission.REQUEST_INSTALL_PACKAGES"
-            tools:ignore="RequestInstallPackagesPolicy" />
     <!--读取外部存储-->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />

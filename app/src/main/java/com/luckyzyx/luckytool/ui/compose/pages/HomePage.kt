@@ -31,7 +31,6 @@ import com.luckyzyx.luckytool.service.GlobalFuncService
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.MainPageActivationEffect
 import com.luckyzyx.luckytool.ui.service.XposedServiceBridge
-import com.luckyzyx.luckytool.ui.shell.ShellBadgeState
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.DeviceInfoEntry
@@ -40,11 +39,6 @@ import com.luckyzyx.luckytool.utils.DonateUtils
 import com.luckyzyx.luckytool.utils.PrefState
 import com.luckyzyx.luckytool.utils.RestartMenuUtils
 import com.luckyzyx.luckytool.utils.SettingsPrefs
-import com.luckyzyx.luckytool.utils.UpdateChangelogDialog
-import com.luckyzyx.luckytool.utils.UpdateDownloadProgressDialog
-import com.luckyzyx.luckytool.utils.UpdateDownloadSourceDialog
-import com.luckyzyx.luckytool.utils.UpdateDownloadedDialog
-import com.luckyzyx.luckytool.utils.UpdateUtils
 import com.luckyzyx.luckytool.utils.copyStr
 import com.luckyzyx.luckytool.utils.getDeviceInfoEntries
 import com.luckyzyx.luckytool.utils.getOSVersionCode
@@ -60,7 +54,6 @@ import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
-import java.io.File
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 
@@ -86,9 +79,6 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
     val scope = rememberCoroutineScope()
     var runtimeInfoJob by remember { mutableStateOf<Job?>(null) }
     var deviceInfoJob by remember { mutableStateOf<Job?>(null) }
-    var updateInfo by remember { mutableStateOf<String?>(null) }
-    var updateClick by remember { mutableStateOf<(() -> Unit)?>(null) }
-    var latestUpdate by remember { mutableStateOf<UpdateUtils.UpdateInfo?>(null) }
     var showAbout by remember { mutableStateOf(false) }
     var aboutText by remember { mutableStateOf("") }
     var dexDialogVisible by remember { mutableStateOf(false) }
@@ -97,7 +87,6 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
     var showOptimizeDex by remember { mutableStateOf(false) }
     var showDonateList by remember { mutableStateOf(false) }
     var showQrType by remember { mutableIntStateOf(-1) }
-    var updateStage by remember { mutableStateOf<UpdateStage?>(null) }
 
     fun checkDexOptimize(controller: com.luckyzyx.luckytool.IGlobalFuncController?) {
         if (getOSVersionCode < 34) return
@@ -108,20 +97,6 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
         if (getOs != curOs && !dexDialogVisible) {
             pendingOsVersion = curOs
             dexDialogVisible = true
-        }
-    }
-
-    fun checkForUpdates() {
-        if (!settings.getBoolean("auto_check_update", true)) return
-        UpdateUtils(activity, isDev).checkUpdate { info ->
-            // 只留存发布信息，长按状态卡是否可用在展示侧按当前 isDev 现场判定
-            latestUpdate = info
-            // 导航角标：有新版本时在「主页」tab 上提示（受主题页的导航角标开关控制）
-            ShellBadgeState.updateAvailable = getVersionCode < info.code
-            if (getVersionCode < info.code) {
-                updateInfo = "${info.name} (${info.code})"
-                updateClick = { updateStage = UpdateStage.Changelog(info) }
-            }
         }
     }
 
@@ -152,16 +127,10 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
     MainPageActivationEffect(
         isCurrentPage = isCurrentPage,
         onFirstActive = {
-            checkForUpdates()
             loadHomeData()
         },
         onResume = ::loadHomeData,
     )
-
-    // 长按状态卡查看更新日志属于隐藏功能：关闭后立刻失效，不残留上一次绑定的回调
-    val statusCardLongClick: (() -> Unit)? = if (!isDev) null else latestUpdate?.let { info ->
-        { updateStage = UpdateStage.Changelog(info) }
-    }
 
     HomeDashboard(
         state = HomeDashboardState(
@@ -170,8 +139,6 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
             rootVersion = rootVersion,
             frameworkVersion = frameworkVersion,
             deviceInfo = systemInfo,
-            updateVersion = updateInfo,
-            showNotice = zh,
         ),
         onRestart = { showRestartMenu = true },
         onAbout = {
@@ -179,8 +146,6 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
                 else "忆清鸣、luckyzyx"
             showAbout = true
         },
-        onUpdate = { updateClick?.invoke() },
-        onStatusLongClick = statusCardLongClick,
         onCopyDeviceInfo = {
             context.copyStr(DeviceUtils.getOTACOnfigs())
             context.showToast(context.getString(R.string.home_device_info_copied))
@@ -192,7 +157,6 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
             )
         },
         onDonateMethods = { showDonateList = true },
-        onOpenNotice = { context.openUrl("https://luckyzyx.github.io/LuckyTool_Doc/use/download_link") },
     )
 
     // 异步结果可以保留，但只在主页真正可交互时展示弹层。
@@ -364,40 +328,6 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
     if (showQrType >= 0) {
         DonateUtils.DonateQRDialog(showQrType) { showQrType = -1 }
     }
-
-    when (val stage = updateStage) {
-        null -> Unit
-        is UpdateStage.Changelog -> UpdateChangelogDialog(
-            context, stage.info, isDev,
-            onDismiss = { updateStage = null },
-            onDownload = {
-                val apkFile = UpdateUtils(context).prepareApkFile(stage.info.fileName)
-                updateStage = if (apkFile.exists()) {
-                    UpdateStage.Downloaded(stage.info, apkFile)
-                } else {
-                    UpdateStage.Source(stage.info, apkFile)
-                }
-            },
-        )
-        is UpdateStage.Source -> UpdateDownloadSourceDialog(
-            context, stage.info.downloadUrl, isDev,
-            onDismiss = { updateStage = null },
-            onSelect = { url -> updateStage = UpdateStage.Downloading(stage.apkFile, url) },
-        )
-        is UpdateStage.Downloaded -> UpdateDownloadedDialog(
-            context, stage.apkFile, isDev,
-            onDismiss = { updateStage = null },
-            onDownloadAgain = {
-                stage.apkFile.delete()
-                updateStage = UpdateStage.Source(stage.info, stage.apkFile)
-            },
-            onInstall = { UpdateUtils(context).installApk(stage.apkFile) },
-        )
-        is UpdateStage.Downloading -> UpdateDownloadProgressDialog(
-            context, stage.apkFile, stage.url,
-            onDismiss = { updateStage = null },
-        )
-    }
 }
 
 /**
@@ -453,12 +383,4 @@ private object DeviceInfoCache {
     fun put(otaVersion: String?, value: List<DeviceInfoEntry>) {
         snapshot = Snapshot(otaVersion, value)
     }
-}
-
-/** 更新对话框状态机：更新日志 → 下载源 → 下载中 → 已下载 */
-private sealed class UpdateStage {
-    data class Changelog(val info: UpdateUtils.UpdateInfo) : UpdateStage()
-    data class Source(val info: UpdateUtils.UpdateInfo, val apkFile: File) : UpdateStage()
-    data class Downloaded(val info: UpdateUtils.UpdateInfo, val apkFile: File) : UpdateStage()
-    data class Downloading(val apkFile: File, val url: String) : UpdateStage()
 }

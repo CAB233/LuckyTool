@@ -135,6 +135,7 @@ val LocalModuleDescriptionMaxLines = staticCompositionLocalOf { 4 }
  * 底部导航角标数据源。
  *
  * 由主页更新检查的结果驱动：发现新版本时在「主页」tab 上显示角标。
+ * 内置更新功能移除后暂无写入方，保留数据结构供后续重新启用。
  */
 @Stable
 object ShellBadgeState {

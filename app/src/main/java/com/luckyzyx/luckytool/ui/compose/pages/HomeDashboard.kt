@@ -33,7 +33,6 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.SystemUpdateAlt
 import androidx.compose.material.icons.rounded.Update
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.Icon
@@ -97,8 +96,6 @@ internal data class HomeDashboardState(
     val rootVersion: String? = null,
     val frameworkVersion: String? = null,
     val deviceInfo: List<DeviceInfoEntry>? = null,
-    val updateVersion: String? = null,
-    val showNotice: Boolean = false,
 )
 
 /** 主页只负责呈现快照与转发操作，读取服务和弹窗状态由页面持有。 */
@@ -107,12 +104,9 @@ internal fun HomeDashboard(
     state: HomeDashboardState,
     onRestart: () -> Unit,
     onAbout: () -> Unit,
-    onUpdate: () -> Unit,
-    onStatusLongClick: (() -> Unit)?,
     onCopyDeviceInfo: () -> Unit,
     onDonate: () -> Unit,
     onDonateMethods: () -> Unit,
-    onOpenNotice: () -> Unit,
 ) {
     val miuix = LocalUiMode.current == UiMode.Miuix
     val listState = rememberLazyListState()
@@ -149,19 +143,7 @@ internal fun HomeDashboard(
                 overscrollEffect = if (miuix) null else rememberOverscrollEffect(),
             ) {
                 item(key = "status") {
-                    HomeStatusCard(state, colors, onStatusLongClick)
-                }
-                if (state.updateVersion != null) {
-                    item(key = "update") {
-                        HomeActionCard(
-                            title = stringResource(R.string.check_update_hint),
-                            summary = state.updateVersion,
-                            symbol = HomeSymbol.Update,
-                            colors = colors,
-                            onClick = onUpdate,
-                            accent = true,
-                        )
-                    }
+                    HomeStatusCard(state, colors)
                 }
                 item(key = "device") {
                     HomeDeviceCard(
@@ -182,29 +164,16 @@ internal fun HomeDashboard(
                         onLongClick = onDonateMethods,
                     )
                 }
-                if (state.showNotice) {
-                    item(key = "notice") {
-                        HomeText(
-                            text = stringResource(R.string.authorized),
-                            role = HomeTextRole.Caption,
-                            color = colors.secondary,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                                .clickable(role = Role.Button, onClick = onOpenNotice)
-                                .padding(horizontal = 12.dp, vertical = 12.dp),
-                        )
-                    }
-                }
             }
         }
     }
 }
 
 @Composable
-private fun HomeStatusCard(state: HomeDashboardState, colors: HomeColors, onLongClick: (() -> Unit)?) {
+private fun HomeStatusCard(state: HomeDashboardState, colors: HomeColors) {
     val miuix = LocalUiMode.current == UiMode.Miuix
     if (miuix && state.moduleActive) {
-        MiuixActiveStatusCard(state, onLongClick)
+        MiuixActiveStatusCard(state, null)
         return
     }
     val tonal = state.moduleActive
@@ -215,7 +184,6 @@ private fun HomeStatusCard(state: HomeDashboardState, colors: HomeColors, onLong
     HomeCard(
         background = if (tonal) MaterialTheme.colorScheme.primaryContainer else colors.card,
         foreground = foreground,
-        onLongClick = onLongClick,
     ) {
         Column(Modifier.fillMaxWidth().padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -528,7 +496,7 @@ private fun homeStatusTextStyle(headline: Boolean = false): TextStyle =
         lineHeight = TextUnit.Unspecified,
     )
 
-private enum class HomeSymbol { Active, Inactive, Phone, System, Version, Hardware, Info, Support, Update, Forward, Expand, Collapse }
+private enum class HomeSymbol { Active, Inactive, Phone, System, Version, Hardware, Info, Support, Forward, Expand, Collapse }
 
 @Composable
 private fun HomeIcon(symbol: HomeSymbol, tint: Color, modifier: Modifier) {
@@ -539,7 +507,7 @@ private fun HomeIcon(symbol: HomeSymbol, tint: Color, modifier: Modifier) {
             HomeSymbol.Inactive -> MiuixIcons.Report
             HomeSymbol.Phone -> Icons.Rounded.PhoneAndroid
             HomeSymbol.System -> MiuixIcons.Settings
-            HomeSymbol.Version, HomeSymbol.Update -> MiuixIcons.Update
+            HomeSymbol.Version -> MiuixIcons.Update
             HomeSymbol.Hardware -> MiuixIcons.Layers
             HomeSymbol.Info -> MiuixIcons.Info
             HomeSymbol.Support -> MiuixIcons.Favorites
@@ -558,7 +526,6 @@ private fun HomeIcon(symbol: HomeSymbol, tint: Color, modifier: Modifier) {
             HomeSymbol.Hardware -> Icons.Rounded.Memory
             HomeSymbol.Info -> Icons.Rounded.Info
             HomeSymbol.Support -> Icons.Rounded.FavoriteBorder
-            HomeSymbol.Update -> Icons.Rounded.SystemUpdateAlt
             HomeSymbol.Forward -> Icons.AutoMirrored.Rounded.KeyboardArrowRight
             HomeSymbol.Expand -> Icons.Rounded.ExpandMore
             HomeSymbol.Collapse -> Icons.Rounded.ExpandLess

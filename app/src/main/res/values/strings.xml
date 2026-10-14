@@ -76,8 +76,6 @@
     <string name="color_sakura">Sakura</string>
     <string name="language">Language</string>
     <string name="privacy_agreement">Privacy Agreement</string>
-    <string name="auto_check_update">Automatically check for updates</string>
-    <string name="auto_check_update_summary">Automatically check for updates when opening the module home page</string>
     <string name="enable_biometric_unlock_verification">Enable biometric unlock verification</string>
     <string name="tile_auto_start">Allow built-in tiles to start automatically</string>
     <string name="tile_auto_start_summary">Enabled tile features will be automatically triggered after the screen is unlocked.\nIf the trigger fails,please restart the scope and check Root permissions</string>
@@ -1218,29 +1216,8 @@
     <string name="root_source">Root source:</string>
     <string name="framework_version">Framework version:</string>
     <string name="enable_module">Enable Module</string>
-    <string name="version_name">Version Name</string>
-    <string name="download_count">Download Count</string>
-    <string name="file_size">File Size</string>
-    <string name="update_time">Update Time</string>
     <string name="first_install_time">First install time</string>
     <string name="last_update_time">Last update time</string>
-    <string name="select_download_source">Select download source</string>
-    <string name="update_logs">Update logs</string>
-    <string name="check_update_hint">New version detected!</string>
-    <string name="check_update_error">Failed to detect updates, please check network and other issues!</string>
-    <string name="go_download_page">Go to the download page</string>
-    <string name="copy_download_link">Copy the download link</string>
-    <string name="direct_update">Direct update</string>
-    <string name="install_apk_toast">Please enable unknown app installation permission!</string>
-    <string name="downloading">Downloading</string>
-    <string name="download_progress">Download Progress</string>
-    <string name="download_speed">Download Speed</string>
-    <string name="remain_size">Remain Size</string>
-    <string name="downloaded">Downloaded</string>
-    <string name="used_time">Used Time</string>
-    <string name="remain_time">Remain Time</string>
-    <string name="install_button">Install now</string>
-    <string name="cancel_button">Cancel download</string>
     <string name="fps_autostart">Auto-start</string>
     <string name="fps_no_data">No FPS data, please check Root permission</string>
     <string name="device_guid">Device GUID</string>
@@ -1407,15 +1384,12 @@
     <string name="add_success">Add successfully</string>
     <string name="add_fail">Add failed</string>
     <string name="add_repeat">Repeated addition</string>
-    <string name="install">Install</string>
     <string name="uninstall">Uninstall</string>
-    <string name="download_again">Download Again</string>
     
     <!--Permission-->
     <string name="send_notification_permission">Send notification permission</string>
     <string name="all_files_access_permission">All file access permission</string>
     <string name="installed_apps_permission">Read your app list permission</string>
-    <string name="install_app_permission">Install app permissions</string>
 
     <!--AppPermission 应用权限页（设置页入口 + 冷启动阻塞门）-->
     <string name="app_permission">App permissions</string>

@@ -10,21 +10,19 @@ import org.lsposed.lsparanoid.Obfuscate
 import java.lang.ref.WeakReference
 
 /**
- * 模块自身权限（权限阻塞门的判定集合）：4 项全部授予才算通过。
+ * 模块自身权限（权限阻塞门的判定集合）：3 项全部授予才算通过。
  *
  * `POST_NOTIFICATIONS` 刻意不在此列：模块不再自动申请任何权限（冷启动只做纯查询），
  * 因此门禁判定与页面「通知」行都只看 `NOTIFICATION_SERVICE`。
  */
 enum class AppPermission(@StringRes val labelRes: Int) {
     MANAGE_EXTERNAL_STORAGE(R.string.all_files_access_permission),
-    REQUEST_INSTALL_PACKAGES(R.string.install_app_permission),
     GET_INSTALLED_APPS(R.string.installed_apps_permission),
     NOTIFICATION_SERVICE(R.string.send_notification_permission);
 
     /** 权限库对象（不缓存实例，避免把库内部状态挂在枚举常量上） */
     fun toPermission(): IPermission = when (this) {
         MANAGE_EXTERNAL_STORAGE -> PermissionLists.getManageExternalStoragePermission()
-        REQUEST_INSTALL_PACKAGES -> PermissionLists.getRequestInstallPackagesPermission()
         GET_INSTALLED_APPS -> PermissionLists.getGetInstalledAppsPermission()
         NOTIFICATION_SERVICE -> PermissionLists.getNotificationServicePermission()
     }

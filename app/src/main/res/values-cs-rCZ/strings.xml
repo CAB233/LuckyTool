@@ -20,8 +20,6 @@
     <string name="dark_theme_on">Vždy zapnuto</string>
     <string name="language">Jazyk</string>
     <string name="privacy_agreement">Zásady ochrany soukromí</string>
-    <string name="auto_check_update">Automaticky vyhledávat aktualizace</string>
-    <string name="auto_check_update_summary">Automaticky kontrolovat aktualizace při otevírání domovské stránky modulu</string>
     <string name="enable_biometric_unlock_verification">Povolit ověření odemknutí biometrií</string>
     <string name="tile_auto_start">Povolit automatické spuštění vestavěných dlaždic rychlého nastavení</string>
     <string name="tile_auto_start_summary">Povolené funkce dlaždic se automaticky aktivují po odemknutí obrazovky.\nPokud spuštění nefunguje, restartujte oblast a zkontrolujte oprávnění root</string>
@@ -894,29 +892,8 @@
     <string name="root_source">Kořenový zdroj:</string>
     <string name="framework_version">Verze frameworku:</string>
     <string name="enable_module">Povolit modul</string>
-    <string name="version_name">Název verze</string>
-    <string name="download_count">Počet stažení</string>
-    <string name="file_size">Velikost souboru</string>
-    <string name="update_time">Čas aktualizace</string>
     <string name="first_install_time">Čas první instalace</string>
     <string name="last_update_time">Čas poslední aktualizace</string>
-    <string name="select_download_source">Vyberte zdroj stahování</string>
-    <string name="update_logs">Aktualizovat protokoly</string>
-    <string name="check_update_hint">Byla nalezena nová verze!</string>
-    <string name="check_update_error">Nepodařilo se najít aktualizace, prosím zkontrolujte síť a další problémy!</string>
-    <string name="go_download_page">Přejít na stránku pro stažení</string>
-    <string name="copy_download_link">Kopírovat odkaz pro stažení</string>
-    <string name="direct_update">Přímá aktualizace</string>
-    <string name="install_apk_toast">Povolte prosím oprávnění k instalaci neznámých aplikací!</string>
-    <string name="downloading">Probíhá stahování</string>
-    <string name="download_progress">Průběh stahování</string>
-    <string name="download_speed">Rychlost stahování</string>
-    <string name="remain_size">Zbývající velikost</string>
-    <string name="downloaded">Staženo</string>
-    <string name="used_time">Uplynulý čas</string>
-    <string name="remain_time">Zbývající čas</string>
-    <string name="install_button">Instalovat teď</string>
-    <string name="cancel_button">Zrušit stahování</string>
     <string name="fps_autostart">Automatické spuštění</string>
     <string name="fps_no_data">Žádná FPS data, prosím zkontrolujte root oprávnění</string>
     <string name="device_guid">GUID zařízení</string>
@@ -1025,7 +1002,6 @@
     <string name="send_notification_permission">Oprávnění k odesílání oznámení</string>
     <string name="all_files_access_permission">Oprávnění k přístupu k souborům</string>
     <string name="installed_apps_permission">Číst oprávnění seznamu aplikací</string>
-    <string name="install_app_permission">Instalovat oprávnění aplikace</string>
     <string name="permission_denied_toast">Oprávnění odepřeno, udělte oprávnění ručně: %1$s</string>
     <string name="permission_error_toast">Nepodařilo se získat oprávnění: %1$s</string>
     <!--Net 网络请求异常-->
