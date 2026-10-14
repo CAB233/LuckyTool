@@ -5,6 +5,8 @@ import android.app.Application
 import android.content.pm.PackageManager
 import android.content.pm.Signature
 import android.os.Build
+import com.highcapable.yukihookapi.extension.kavaref.toClass
+import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
 import com.highcapable.yukihookapi.hook.log.YLog
 import org.lsposed.corepatch.Config
 import org.lsposed.corepatch.Constant

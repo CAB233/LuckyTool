@@ -17,6 +17,8 @@ import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
+import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.dp

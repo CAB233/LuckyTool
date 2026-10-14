@@ -7,6 +7,9 @@ import android.os.Handler
 import android.os.Looper
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
+import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.hookAll
+import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import org.lsposed.lsparanoid.Obfuscate

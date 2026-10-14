@@ -3,6 +3,10 @@ package com.luckyzyx.luckytool.hook.scopes.launcher
 import android.view.View
 import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.resolve
+import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.hookAll
+import com.highcapable.yukihookapi.extension.kavaref.toClass
+import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import org.lsposed.lsparanoid.Obfuscate
 

@@ -4,6 +4,8 @@ import android.app.AppOpsManager
 import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
+import com.highcapable.yukihookapi.extension.kavaref.intercept
+import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import org.lsposed.lsparanoid.Obfuscate

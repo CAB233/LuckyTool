@@ -4,6 +4,9 @@ import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
 import com.highcapable.kavaref.extension.createInstance
+import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.intercept
+import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.injectModuleResources
 import com.luckyzyx.luckytool.R

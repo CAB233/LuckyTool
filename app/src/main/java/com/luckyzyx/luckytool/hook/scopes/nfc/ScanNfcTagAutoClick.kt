@@ -4,6 +4,8 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import com.highcapable.kavaref.KavaRef.Companion.resolve
+import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode

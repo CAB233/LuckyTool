@@ -1,5 +1,6 @@
 package org.lsposed.corepatch.hook
 
+import com.highcapable.yukihookapi.extension.kavaref.toClass
 import org.lsposed.corepatch.Config
 
 object NtConfigListServiceImplHook : BaseHook() {

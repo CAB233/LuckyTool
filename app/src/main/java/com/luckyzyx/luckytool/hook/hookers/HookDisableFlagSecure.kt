@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.hardware.display.DisplayManager
 import android.os.Build
 import android.view.SurfaceControl
+import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.ModulePrefs

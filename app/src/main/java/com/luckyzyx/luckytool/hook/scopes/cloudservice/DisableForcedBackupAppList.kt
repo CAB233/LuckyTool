@@ -2,6 +2,9 @@ package com.luckyzyx.luckytool.hook.scopes.cloudservice
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
+import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.toClass
+import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.log.YLog
 import org.lsposed.lsparanoid.Obfuscate

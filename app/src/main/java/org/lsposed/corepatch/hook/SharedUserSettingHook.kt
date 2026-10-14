@@ -3,6 +3,7 @@ package org.lsposed.corepatch.hook
 import android.annotation.SuppressLint
 import android.content.pm.ApplicationInfo
 import android.os.Build
+import com.highcapable.yukihookapi.extension.kavaref.toClass
 import org.lsposed.corepatch.Config
 
 object SharedUserSettingHook : BaseHook() {
