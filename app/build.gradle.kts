@@ -115,6 +115,7 @@ dependencies {
     implementation(libs.yukihook.core)
     ksp(libs.yukihook.compiler)
     implementation(libs.yukihook.runtime.libxposed)
+    implementation(libs.yukihook.extension.kavaref)
 
     compileOnly(libs.libxposed.api)
     implementation(libs.libxposed.service)
