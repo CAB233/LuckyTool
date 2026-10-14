@@ -40,8 +40,7 @@ object HookGlobalFeatureConfig : YukiBaseHooker() {
 
             //Source Android OplusMultiAppDataManager getMaxCreatedNum 分身创建数量限制
             if (preferences(ModulePrefs).getBoolean(
-                    "remove_multi_app_created_num_limit_for_users",
-                    false
+                    "remove_multi_app_created_num_limit_for_users", false
                 )
             ) {
                 put("oplus.software.multiapp_max_open_number_limited", false)
@@ -60,29 +59,34 @@ object HookGlobalFeatureConfig : YukiBaseHooker() {
             }
 
             //Source SystemUI 启用超级音量模式
-            if (SDK >= A13 &&
-                preferences(ModulePrefs).getBoolean("enable_super_volume_mode", false)
+            if (SDK >= A13 && preferences(ModulePrefs).getBoolean(
+                    "enable_super_volume_mode",
+                    false
+                )
             ) {
                 put("oplus.software.audio.super_volume", true)
                 put("oplus.software.audio.super_volume_3x", true)
             }
             //Source SystemUI 启用通话超级音量模式
-            if (osCode >= 27 &&
-                preferences(ModulePrefs).getBoolean("enable_super_volume_mode_for_calls", false)
+            if (osCode >= 27 && preferences(ModulePrefs).getBoolean(
+                    "enable_super_volume_mode_for_calls",
+                    false
+                )
             ) {
                 put("oplus.software.audio.super_volume_call_earpiece", true)
                 put("oplus.software.audio.super_volume_call_earpiece_disable", false)
             }
             //Source SystemUI FlavorOneFeatureOption 启用应用专属媒体音量
-            if (osCode >= 27 &&
-                preferences(ModulePrefs).getBoolean("enable_app_specific_media_volume", false)
+            if (osCode >= 27 && preferences(ModulePrefs).getBoolean(
+                    "enable_app_specific_media_volume",
+                    false
+                )
             ) {
                 put("oplus.software.multi_app.volume.adjust.support", true)
             }
             //Source SystemUI / Launcher OplusShellStartingWindowUtils 全应用遮罩
             if (SDK >= A13 && preferences(ModulePrefs).getBoolean(
-                    "disable_preload_splash",
-                    false
+                    "disable_preload_splash", false
                 )
             ) {
                 put("oplus.software.wms.disable_preload_splash", true)
@@ -90,8 +94,7 @@ object HookGlobalFeatureConfig : YukiBaseHooker() {
 
             //Source Settings 启用RGB色温球 ColorModeFragment
             if (preferences(ModulePrefs).getBoolean(
-                    "enable_screen_color_temperature_rgb_ball",
-                    false
+                    "enable_screen_color_temperature_rgb_ball", false
                 )
             ) {
                 val uri = Settings.System.getUriFor("oplus_settings_switch_color_mode")
@@ -101,8 +104,7 @@ object HookGlobalFeatureConfig : YukiBaseHooker() {
             }
             //Source Settings 启用RGB调色板 ColorModeFragment
             if (preferences(ModulePrefs).getBoolean(
-                    "enable_screen_color_temperature_rgb_space",
-                    false
+                    "enable_screen_color_temperature_rgb_space", false
                 )
             ) {
                 val uri = Settings.System.getUriFor("color_space_adjustment")
@@ -117,16 +119,14 @@ object HookGlobalFeatureConfig : YukiBaseHooker() {
             }
             //Source Settings ScreenResolutionFragment isResolutionAutoDisableSupport 启用智能切换屏幕分辨率
             if (preferences(ModulePrefs).getBoolean(
-                    "enable_smart_switching_screen_resolutions",
-                    false
+                    "enable_smart_switching_screen_resolutions", false
                 )
             ) {
                 put("oplus.software.display.resolution_switch_disableauto_support", false)
             }
 
             //Source Settings Iris5SettingsFragment iris5_motion_fluency_optimization_switch 启用视频动态插帧
-            if (preferences(ModulePrefs).getBoolean("enable_video_memc_frame_insertion", false)
-            ) {
+            if (preferences(ModulePrefs).getBoolean("enable_video_memc_frame_insertion", false)) {
                 put("oplus.software.display.pixelworks_enable", true)
                 put("oplus.software.display.iris_enable", true)
                 put("oplus.software.display.memc_enable", true)
@@ -134,8 +134,7 @@ object HookGlobalFeatureConfig : YukiBaseHooker() {
             }
             //Source Settings ReduceWhitePointPreferenceController 降低白点值
             if (preferences(ModulePrefs).getBoolean(
-                    "force_enable_reduce_white_point_value",
-                    false
+                    "force_enable_reduce_white_point_value", false
                 )
             ) {
                 put("oplus.software.display.reduce_white_point", true)
@@ -158,8 +157,7 @@ object HookGlobalFeatureConfig : YukiBaseHooker() {
 
             //Source Mms 移除验证码悬浮窗 FeatureOption.java / com.oplus.common -> C12
             if (preferences(ModulePrefs).getBoolean(
-                    "remove_verification_code_floating_window",
-                    false
+                    "remove_verification_code_floating_window", false
                 )
             ) {
                 put("oplus.software.inputmethod.verify_code_enable", false)
@@ -172,8 +170,7 @@ object HookGlobalFeatureConfig : YukiBaseHooker() {
             }
             //Source Gestures 启用音量键控制手电筒
             if (preferences(ModulePrefs).getBoolean(
-                    "enable_volume_key_control_flashlight",
-                    false
+                    "enable_volume_key_control_flashlight", false
                 )
             ) {
                 put("oplus.software.powerkey_disbale_turnoff_torch", false)
@@ -199,16 +196,17 @@ object HookGlobalFeatureConfig : YukiBaseHooker() {
             //Source SystemUI StatusBarFeatureOption isSupportPrivacyCallMode 通话隐私保护
             //Source Phone OplusFeatureOption 通话隐私保护
             if (SDK >= A14 && preferences(ModulePrefs).getBoolean(
-                    "enable_sound_sealed_call",
-                    false
+                    "enable_sound_sealed_call", false
                 )
             ) {
                 put("oplus.hardware.audio.dipole_speaker_support", true)
             }
 
             //Source SmartSidebar EdgePanelFeatureOption 强制启用浮标自动隐藏
-            if (SDK == A12 &&
-                preferences(ModulePrefs).getBoolean("force_enable_buoy_automatically_hides", false)
+            if (SDK == A12 && preferences(ModulePrefs).getBoolean(
+                    "force_enable_buoy_automatically_hides",
+                    false
+                )
             ) {
                 put("oplus.software.smart_sidebar", true)
             }
@@ -241,14 +239,12 @@ object HookGlobalFeatureConfig : YukiBaseHooker() {
 
             //Source EyeProtect PaperTexturePreference 纸质纹理调节
             if (preferences(ModulePrefs).getBoolean(
-                    "enable_eyeprotect_paper_texture_support",
-                    false
+                    "enable_eyeprotect_paper_texture_support", false
                 )
             ) {
                 if (osCode >= 33) {
                     put(
-                        "oplus.software.display.smart_color_temperature_rhythm_health_support",
-                        true
+                        "oplus.software.display.smart_color_temperature_rhythm_health_support", true
                     )
                     put("oplus.software.display.eyeprotect_paper_texture_support", true)
                 }

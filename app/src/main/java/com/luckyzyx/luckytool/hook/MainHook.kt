@@ -324,6 +324,7 @@ class MainHook : YukiHookXposedModule {
         //工程模式
         loadApp("com.oplus.engineermode", HookEngineerMode)
 
+        //小布Next
         loadApp("com.oplus.claw", HookClaw)
 
         //其他APP
