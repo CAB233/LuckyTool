@@ -27,6 +27,7 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 - 新增 Miuix 界面风格，设置页可在 Material 与 Miuix 两套外观之间切换
 - 冷启动启动动画 —— Logo 入场与应用名淡入
 - 自定义状态栏图标排序
+- 强制启用小布输入法液态玻璃模糊 —— 忽略系统质感模糊开关、应用白名单、内置主题与折叠屏状态，模糊强度可调
 
 #### 优化
 
