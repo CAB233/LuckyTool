@@ -31,6 +31,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Force enable the Xiaobu keyboard liquid glass blur — ignores the system blur switch, the app whitelist, the built-in theme and the folding state; the blur strength is adjustable
 - App permission page — checks the notification, all files access, app list and install app permissions, each granted by a button on its row; a cold start opens it until all four are granted (it only checks: no automatic request and no automatic jump to the system settings page), with Root status, root source, Xposed status and framework version pinned on top, and it offers no skip entry
 - Custom status bar network speed refresh interval — off by default; adjustable from 0.1 s to 5 s in 0.1 s steps
+- MEMC configuration Activity list supports searching and shows activity names
 
 #### Optimized
 
