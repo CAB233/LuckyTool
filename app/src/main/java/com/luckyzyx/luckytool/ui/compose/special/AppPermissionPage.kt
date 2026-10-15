@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -66,10 +67,11 @@ object AppPermissionPage {
         restartEnabled = false,
     ) {
         custom(key = "app_permission_content", bare = true) {
-            // Miuix 线：bare 条目在渲染缝里被统一 offset(-CardHorizontalInset)（供自带 16dp 内距的
-            // 裸分类标题抵消列表级 12dp 内缩）。本页内容是要跟随卡片 12dp 内缩的卡片，故用等量正向
-            // offset 回正，左右各 12dp 与其余卡片对齐 —— 与 HomePage 的 status_card（bare + 卡片
-            // 内容，pages/HomePage.kt:215-229）同一处理；material 线 bare 无该偏移。
+            // Miuix 线：bare 条目在渲染缝里被统一 offset(-CardHorizontalInset)，那是给「自带 16dp
+            // 内距的裸分类标题」抵消列表级 12dp 用的；本页内容是要跟随卡片 12dp 内缩的卡片，故必须
+            // 等量回正，否则卡片会贴到屏幕边缘 —— 与 HomePage 的 status_card（bare + 卡片内容，
+            // pages/HomePage.kt:215-229）、ForceFpsPage、CorePatchPage 同一惯例。
+            // 该 seam 只作用于设置页入口这条 bare 缝；冷启动阻塞页不经列表，左右留白由 selfInset 自补
             val bareAlign = if (LocalUiMode.current == UiMode.Miuix) {
                 Modifier.offset(x = MiuixPrefDefaults.CardHorizontalInset)
             } else {
@@ -101,7 +103,10 @@ private data class RootInfo(
  * 应用权限页内容（阻塞态与设置页入口共用）。
  *
  * [blocking] = true 时是冷启动阻塞态：4 项齐全后回调 [onAllGranted] 放行，并显示「退出应用」。
- * 页面内逐项申请绝不自动跳转；只有被永久拒绝的行，才由用户手势点「去系统设置」发起跳转。
+ * 本页只做纯查询展示，申请与跳转都只能由用户手势发起（行右侧按钮或整行点击）。
+ *
+ * [selfInset] = true 表示宿主不提供行级水平内缩（阻塞态独立成屏），由本页自补，否则内容贴边；
+ * 被作用域页列表包裹时（设置页入口）保持 false，避免与宿主内缩叠加成 24/32dp。
  */
 @SuppressLint("ReplaceWithLifecycleExtension")
 @Composable
@@ -109,6 +114,7 @@ fun AppPermissionContent(
     activity: MainActivity?,
     blocking: Boolean,
     modifier: Modifier = Modifier,
+    selfInset: Boolean = false,
     onAllGranted: () -> Unit = {},
     onExit: () -> Unit = {},
 ) {
@@ -156,7 +162,52 @@ fun AppPermissionContent(
     }
     val moduleActive by XposedServiceBridge.isModuleActive.collectAsStateWithLifecycle()
 
-    Column(modifier) {
+    // selfInset：阻塞态独立成屏、宿主列表不在场，行级水平内缩由本页补（否则内容贴边）；
+    // 设置页入口由宿主列表提供，保持不叠加
+    val lineInset = lineHorizontalInset()
+    Column(
+        modifier = modifier.then(
+            if (selfInset) Modifier.padding(horizontal = lineInset) else Modifier
+        )
+    ) {
+        // ===== Root / LSPosed：纯只读，整块放最上面（不参与门禁判定，无任何跳转）=====
+        SectionTitle(stringResource(R.string.app_permission_root_section))
+        PrefGroup {
+            item {
+                PrefRow(
+                    title = stringResource(R.string.app_permission_root_status),
+                    summary = stringResource(
+                        if (rootInfo?.rooted == true) {
+                            R.string.app_permission_root_yes
+                        } else {
+                            R.string.app_permission_root_no
+                        }
+                    ),
+                )
+            }
+            val info = rootInfo
+            // 顺序固定：Root 来源 → Xposed 状态 → 框架版本
+            if (info != null && info.rootVersion.isNotBlank()) {
+                item { PrefRow(title = info.rootVersion) }
+            }
+            item {
+                PrefRow(
+                    title = stringResource(R.string.app_permission_module_status),
+                    summary = stringResource(
+                        if (moduleActive) {
+                            R.string.app_permission_module_active
+                        } else {
+                            R.string.app_permission_module_inactive
+                        }
+                    ),
+                )
+            }
+            if (info != null && info.frameworkVersion.isNotBlank()) {
+                item { PrefRow(title = info.frameworkVersion) }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
         SectionTitle(
             stringResource(
                 if (blocking) R.string.app_permission_blocked_title else R.string.app_permission
@@ -175,14 +226,20 @@ fun AppPermissionContent(
             AppPermission.entries.forEach { kind ->
                 val state = states[kind]
                 val granted = state?.granted == true
-                val request: (() -> Unit)? = if (!granted && activity != null) {
-                    {
-                        // 逐项申请：不自动跳转，回调后只重算状态
-                        PermissionUtils(activity).request(kind) { revision++ }
-                    }
+                val doNotAskAgain = state?.doNotAskAgain == true
+                // 授权：只申请、不自动跳转，回调后重算状态
+                val onGrant: (() -> Unit)? = if (!granted && activity != null) {
+                    { PermissionUtils(activity).request(kind) { revision++ } }
                 } else {
                     null
                 }
+                // 被「不再询问」永久拒绝：只有用户点「去设置」才跳系统设置页
+                val onOpenSettings: (() -> Unit)? =
+                    if (!granted && doNotAskAgain && activity != null) {
+                        { PermissionUtils(activity).openSystemPermissionSettings(kind) }
+                    } else {
+                        null
+                    }
                 item {
                     PrefRow(
                         title = stringResource(kind.labelRes),
@@ -193,60 +250,34 @@ fun AppPermissionContent(
                                 R.string.app_permission_denied
                             }
                         ),
-                        onClick = request,
-                        // 永久拒绝的行：只有用户点这个按钮才跳系统设置页
-                        trailing = if (!granted && state?.doNotAskAgain == true && activity != null) {
-                            {
-                                ActionButton(
-                                    text = stringResource(R.string.app_permission_open_settings),
-                                    onClick = {
-                                        PermissionUtils(activity).openSystemPermissionSettings(
-                                            kind
-                                        )
-                                    },
-                                )
-                            }
-                        } else {
+                        // 整行点击与右侧按钮同义：永久拒绝时两者都只跳系统设置（且必须由用户手势发起）
+                        onClick = onOpenSettings ?: onGrant,
+                        // 右侧按钮给出明确可点的目标：授权 / 已授权（弱化不可点）/ 去设置
+                        trailing = if (activity == null) {
                             null
+                        } else {
+                            {
+                                when {
+                                    granted -> ActionButton(
+                                        text = stringResource(R.string.app_permission_granted),
+                                        enabled = false,
+                                        onClick = {},
+                                    )
+
+                                    onOpenSettings != null -> ActionButton(
+                                        text = stringResource(R.string.app_permission_open_settings),
+                                        onClick = onOpenSettings,
+                                    )
+
+                                    else -> ActionButton(
+                                        text = stringResource(R.string.app_permission_action_grant),
+                                        onClick = onGrant ?: {},
+                                    )
+                                }
+                            }
                         },
                     )
                 }
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-        SectionTitle(stringResource(R.string.app_permission_root_section))
-        PrefGroup {
-            item {
-                PrefRow(
-                    title = stringResource(R.string.app_permission_root_status),
-                    summary = stringResource(
-                        if (rootInfo?.rooted == true) {
-                            R.string.app_permission_root_yes
-                        } else {
-                            R.string.app_permission_root_no
-                        }
-                    ),
-                )
-            }
-            val info = rootInfo
-            if (info != null) {
-                if (info.rootVersion.isNotBlank()) item { PrefRow(title = info.rootVersion) }
-                if (info.frameworkVersion.isNotBlank()) {
-                    item { PrefRow(title = info.frameworkVersion) }
-                }
-            }
-            item {
-                PrefRow(
-                    title = stringResource(R.string.app_permission_module_status),
-                    summary = stringResource(
-                        if (moduleActive) {
-                            R.string.app_permission_module_active
-                        } else {
-                            R.string.app_permission_module_inactive
-                        }
-                    ),
-                )
             }
         }
 
@@ -262,12 +293,28 @@ fun AppPermissionContent(
     }
 }
 
+/**
+ * 行级水平内缩基准（与宿主列表一致）：Miuix 由列表级提供 12dp（行内容再靠行内置 16dp 到 28dp，
+ * 见 MiuixPrefList 注释）；material 由 PrefRowInset 提供基准 16dp。注意 material 线的行文字还会
+ * 叠加 M3 列表行自带的 ListTokens.ItemLeadingSpace(16dp)，实际落在 32dp —— 即 material 三组为
+ * 标题 16 / 卡片 16 / 行文字 32（该 32dp 不来自本函数，本函数只给与卡片对齐的 16dp 基准）。
+ */
+@Composable
+private fun lineHorizontalInset(): Dp =
+    if (LocalUiMode.current == UiMode.Miuix) MiuixPrefDefaults.CardHorizontalInset else 16.dp
+
+/** 分类标题相对容器的额外内缩：两条线的标题基准都是 16dp —— Miuix 补 4dp，material 不补 */
+@Composable
+private fun titleHorizontalInset(): Dp =
+    if (LocalUiMode.current == UiMode.Miuix) 16.dp - MiuixPrefDefaults.CardHorizontalInset else 0.dp
+
 /** 小节标题（双线） */
 @Composable
 private fun SectionTitle(text: String) {
+    val extra = titleHorizontalInset()
     val modifier = Modifier
         .fillMaxWidth()
-        .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)
+        .padding(start = extra, end = extra, top = 12.dp, bottom = 4.dp)
     when (LocalUiMode.current) {
         UiMode.Miuix -> MiuixText(text = text, modifier = modifier)
         UiMode.Material -> Text(
@@ -282,9 +329,10 @@ private fun SectionTitle(text: String) {
 /** 小节说明文字（双线） */
 @Composable
 private fun SectionBody(text: String) {
+    val extra = titleHorizontalInset()
     val modifier = Modifier
         .fillMaxWidth()
-        .padding(start = 16.dp, end = 16.dp, bottom = 4.dp)
+        .padding(start = extra, end = extra, bottom = 4.dp)
     when (LocalUiMode.current) {
         UiMode.Miuix -> MiuixText(text = text, modifier = modifier)
         UiMode.Material -> Text(
@@ -296,17 +344,18 @@ private fun SectionBody(text: String) {
     }
 }
 
-/** 双线动作按钮：Miuix TextButton / material3 TextButton */
+/** 双线动作按钮：Miuix TextButton / material3 TextButton；[enabled] = false 走各自禁用弱化样式 */
 @Composable
-private fun ActionButton(text: String, onClick: () -> Unit) {
+private fun ActionButton(text: String, onClick: () -> Unit, enabled: Boolean = true) {
     when (LocalUiMode.current) {
         UiMode.Miuix -> MiuixTextButton(
             text = text,
             onClick = onClick,
+            enabled = enabled,
             colors = ButtonDefaults.textButtonColorsPrimary(),
         )
 
-        UiMode.Material -> TextButton(onClick = onClick) { Text(text) }
+        UiMode.Material -> TextButton(onClick = onClick, enabled = enabled) { Text(text) }
     }
 }
 
