@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.ApplicationInfo
 import android.os.Build
+import com.highcapable.kavaref.KavaRef.Companion.resolve
+import com.highcapable.kavaref.extension.classOf
 import org.lsposed.hiddenapibypass.HiddenApiBypass
 import org.lsposed.lsparanoid.Obfuscate
 
@@ -27,12 +29,9 @@ object PredictiveBackUtils {
         if (!isSupported()) return
         runCatching {
             HiddenApiBypass.addHiddenApiExemptions("Landroid/content/pm/ApplicationInfo;")
-            val method = ApplicationInfo::class.java.getDeclaredMethod(
-                "setEnableOnBackInvokedCallback",
-                java.lang.Boolean.TYPE,
-            )
-            method.isAccessible = true
-            method.invoke(context.applicationInfo, enable)
+            classOf<ApplicationInfo>().resolve().firstMethod {
+                name = "setEnableOnBackInvokedCallback"; parameters(classOf<Boolean>())
+            }.of(context.applicationInfo).invoke(enable)
         }
     }
 
