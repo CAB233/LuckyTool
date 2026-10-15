@@ -7,14 +7,14 @@ import com.highcapable.yukihookapi.hook.factory.preferences
 import com.highcapable.yukihookapi.hook.xposed.application.ModuleApplication
 import com.highcapable.yukihookapi.hook.xposed.preference.YukiHookPreferences
 import com.luckyzyx.luckytool.utils.LogUtils
-import java.util.Collections
-import java.util.HashSet
-import java.util.WeakHashMap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import java.util.Collections
+import java.util.WeakHashMap
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * 模块 App 侧接入框架 service 的唯一入口（YukiHook 门面）：
@@ -130,20 +130,21 @@ private class RemotePreferences(private val prefs: YukiHookPreferences) : Shared
 
     override fun getFloat(key: String, defValue: Float): Float = prefs.getFloat(key, defValue)
 
-    override fun getBoolean(key: String, defValue: Boolean): Boolean = prefs.getBoolean(key, defValue)
+    override fun getBoolean(key: String, defValue: Boolean): Boolean =
+        prefs.getBoolean(key, defValue)
 
     override fun contains(key: String): Boolean = prefs.contains(key)
 
     override fun edit(): SharedPreferences.Editor = NotifyingEditor(prefs.edit())
 
     override fun registerOnSharedPreferenceChangeListener(
-        listener: SharedPreferences.OnSharedPreferenceChangeListener?
+        listener: OnSharedPreferenceChangeListener?
     ) {
         if (listener != null) listeners[listener] = Unit
     }
 
     override fun unregisterOnSharedPreferenceChangeListener(
-        listener: SharedPreferences.OnSharedPreferenceChangeListener?
+        listener: OnSharedPreferenceChangeListener?
     ) {
         if (listener != null) listeners.remove(listener)
     }
@@ -174,13 +175,11 @@ private class RemotePreferences(private val prefs: YukiHookPreferences) : Shared
             if (value == null) remove(key) else track(key) { delegate.putString(key, value) }
 
         override fun putStringSet(
-            key: String,
-            values: MutableSet<String>?
-        ): SharedPreferences.Editor =
-            if (values == null) remove(key) else track(key) {
-                // 复制成 java.util 实现再交给框架侧反序列化（Kotlin 单例/不可变集合会解析不到）
-                delegate.putStringSet(key, HashSet(values))
-            }
+            key: String, values: MutableSet<String>?
+        ): SharedPreferences.Editor = if (values == null) remove(key) else track(key) {
+            // 复制成 java.util 实现再交给框架侧反序列化（Kotlin 单例/不可变集合会解析不到）
+            delegate.putStringSet(key, HashSet(values))
+        }
 
         override fun putInt(key: String, value: Int): SharedPreferences.Editor =
             track(key) { delegate.putInt(key, value) }
@@ -232,4 +231,4 @@ private class RemotePreferences(private val prefs: YukiHookPreferences) : Shared
  * 激活迟到到达时撤掉阻塞门。
  */
 internal suspend fun StateFlow<Boolean>.awaitActivation(timeoutMillis: Long): Boolean =
-    withTimeoutOrNull(timeoutMillis) { first { it } } != null
+    withTimeoutOrNull(timeoutMillis.milliseconds) { first { it } } != null
