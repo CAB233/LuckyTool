@@ -34,12 +34,12 @@ import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.service.ActivityManagerService
 import com.luckyzyx.luckytool.service.PackagesService
 import com.luckyzyx.luckytool.service.PowerService
-import com.luckyzyx.luckytool.ui.service.XposedServiceBridge
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
+import com.highcapable.yukihookapi.YukiHook
+import com.highcapable.yukihookapi.hook.xposed.reload.entity.ModuleReloadStatus
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.ShellUtils
-import io.github.libxposed.service.HotReloadResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -420,21 +420,31 @@ object RestartMenuUtils {
      * @param scopes Array<String>
      */
     private fun restartHooker(context: Context, scopes: Array<String>) {
-        val base = XposedServiceBridge.xposedService ?: return
-        base.runningTargets.filter {
-            scopes.contains(it.processName.substringBefore(":"))
-        }.forEach {
-            base.hotReloadModule(it, null) { target, result ->
-                LogUtils.d(
-                    "restartHooker",
-                    target.processName,
-                    "${result.status} | ${result.message}",
-                    true
-                )
-                if (result.status != HotReloadResult.Status.SUCCEEDED) {
-                    context.toast("${target.processName}: ${result.message}")
+        val reload = YukiHook.Module.reload
+        if (!reload.isAvailable) return
+        val targets = runCatching { reload.targets }.onFailure {
+            LogUtils.e("restartHooker", "query reload targets failed", "$it", true)
+        }.getOrDefault(emptyList())
+        runCatching {
+            targets.filter {
+                scopes.contains(it.processName.substringBefore(":"))
+            }.forEach { target ->
+                // skippedIfUpToDate = false：与迁移前 hotReloadModule 一致，不做「代码已是最新」的跳过
+                reload.request(target, skippedIfUpToDate = false) { result ->
+                    LogUtils.d(
+                        "restartHooker",
+                        result.target.processName,
+                        "${result.status} | ${result.message}",
+                        true
+                    )
+                    if (result.status != ModuleReloadStatus.SUCCEEDED) {
+                        context.toast("${result.target.processName}: ${result.message}")
+                    }
                 }
             }
+        }.onFailure {
+            // request 内部还有一次 API 版本校验，失败会抛到这里（调用点是 Compose 回调，不能让它崩）
+            LogUtils.e("restartHooker", "request module reload failed", "$it", true)
         }
     }
 
