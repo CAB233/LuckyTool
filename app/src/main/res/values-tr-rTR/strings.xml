@@ -178,7 +178,6 @@
     
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Durum Çubuğu Ağ Hızı</string>
-    <string name="set_network_speed">Durum çubuğu yenileme hızını 1 saniye olarak ayarla</string>
     <string name="enable_double_row_network_speed">Çift Satırlı Ağ Hızını Etkinleştir</string>
     <string name="set_network_speed_font_size">Ağ Hızı Yazı Tipi Boyutunu Ayarla</string>
     <string name="set_network_speed_padding_bottom">Ağ Hızı Alt Kenar Boşluğunu Ayarla</string>

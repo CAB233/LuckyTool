@@ -153,7 +153,6 @@
     <string name="statusbar_clock_if_zero_summary">If 0, this option will not be modified</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">ステータスバーのネットワーク速度</string>
-    <string name="set_network_speed">ステータスバーの速度更新レートを1秒に設定</string>
     <string name="enable_double_row_network_speed">ネットワーク速度の多段表示を有効化</string>
     <string name="set_network_speed_font_size">ネットワーク速度のフォントの大きさを設定</string>
     <string name="set_network_speed_padding_bottom">ネットワーク速度の下部のパディングを設定</string>

@@ -36,9 +36,28 @@ object StatusBarNetWorkSpeed : YukiBaseHooker() {
 
     @Obfuscate
     object NetWorkSpeedDelay : YukiBaseHooker() {
+
+        /** 自定义刷新间隔：-1 表示不开启，其余按 0.1 秒为单位（见 set_network_speed_interval） */
+        private const val DEFAULT_INTERVAL = -1
+
+        /** 旧版布尔开关开启时等价的间隔：1 秒 */
+        private const val LEGACY_INTERVAL = 10
+
+        /** 0（0 秒）会让系统 handler 立即重投递，实际按 0.1 秒下限执行 */
+        private const val MIN_DELAY_MS = 100L
+
+        /** 间隔（0.1 秒单位）→ 下放给系统的延迟毫秒数 */
+        private fun intervalToDelay(interval: Int): Long =
+            (interval * 100L).coerceAtLeast(MIN_DELAY_MS)
+
         override fun onHook() {
-            var networkSpeed = preferences(ModulePrefs).getBoolean("set_network_speed", false)
-            dataChannel.wait<Boolean>("set_network_speed") { networkSpeed = it }
+            // 旧版 set_network_speed 只有开/关两态，开启时等价于固定 1 秒
+            val legacyEnable = preferences(ModulePrefs).getBoolean("set_network_speed", false)
+            var interval = preferences(ModulePrefs).getInt(
+                "set_network_speed_interval",
+                if (legacyEnable) LEGACY_INTERVAL else DEFAULT_INTERVAL
+            )
+            dataChannel.wait<Int>("set_network_speed_interval") { interval = it }
 
             //Search postUpdateNetworkSpeedDelay
             VariousClass(
@@ -57,8 +76,8 @@ object StatusBarNetWorkSpeed : YukiBaseHooker() {
                     if (schedule != null) {
                         schedule.hook {
                             before {
-                                if (networkSpeed && (arg(0).get<Long>() ?: 0L) > 1000L)
-                                    arg(0).set(1000L)
+                                if (interval < 0) return@before
+                                arg(0).set(intervalToDelay(interval))
                             }
                         }
                         return@apply
@@ -74,7 +93,7 @@ object StatusBarNetWorkSpeed : YukiBaseHooker() {
                     name { it.contains("updateNetworkSpeed") }
                 }).hook {
                     before {
-                        if (!networkSpeed) return@before
+                        if (interval < 0) return@before
                         val instance = instanceOrNull ?: firstArg().get()
 
                         val obtain = Message.obtain()
@@ -112,7 +131,7 @@ object StatusBarNetWorkSpeed : YukiBaseHooker() {
                             lastTotalBytes.copy().of(instance).set(totalByte)
                             bgHandler.copy().of(instance).get<Handler>()?.removeMessages(100001)
                             bgHandler.copy().of(instance).get<Handler>()
-                                ?.sendEmptyMessageDelayed(100001, 1000L)
+                                ?.sendEmptyMessageDelayed(100001, intervalToDelay(interval))
                         } else {
                             obtain.arg1 = 0
                             uiHandler.copy().of(instance).get<Handler>()?.removeMessages(100000)

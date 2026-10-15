@@ -154,7 +154,6 @@
     <string name="statusbar_clock_if_zero_summary">Pokud je 0, tato možnost nebude upravena</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Rychlost sítě ve stavové liště</string>
-    <string name="set_network_speed">Nastavit frekvenci obnovení rychlosti stavové lišty na 1 s</string>
     <string name="enable_double_row_network_speed">Povolit rychlost sítě na dvou řádcích</string>
     <string name="set_network_speed_font_size">Nastavit velikost písma rychlosti sítě</string>
     <string name="set_network_speed_padding_bottom">Nastavit dolní odsazení rychlosti sítě</string>

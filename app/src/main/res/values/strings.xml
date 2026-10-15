@@ -261,7 +261,9 @@
     
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">StatusBar NetWorkSpeed</string>
-    <string name="set_network_speed">Set status bar speed refresh rate 1 s</string>
+    <string name="set_network_speed_interval">Network speed refresh interval</string>
+    <string name="set_network_speed_interval_summary">Custom refresh interval for the status bar network speed, in seconds. Disabled by default; 0 s runs at the 0.1 s floor.</string>
+    <string name="set_network_speed_interval_value">%1$s s</string>
     <string name="enable_double_row_network_speed">Enable Double Row Network Speed</string>
     <string name="set_network_speed_font_size">Set Network Speed Font Size</string>
     <string name="set_network_speed_padding_bottom">Set Network Speed Padding Bottom</string>

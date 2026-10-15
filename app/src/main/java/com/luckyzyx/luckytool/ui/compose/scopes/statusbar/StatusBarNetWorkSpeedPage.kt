@@ -18,9 +18,21 @@ object StatusBarNetWorkSpeedPage {
         restartEnabled = true,
     ) {
         val c = requireNotNull(context) { "ScopeScreen 未注入 Context" }
-        switch(
-            key = "set_network_speed",
-            title = c.getString(R.string.set_network_speed),
+        // 值为 0.1 秒为单位的整数：-1 不开启，0 由 hook 按下限 0.1 秒执行
+        // 旧版 set_network_speed 开关开启时回落为 1.0 秒，避免升级后悄悄关闭
+        val legacyEnable = state.getBoolean("set_network_speed", false)
+        slider(
+            key = "set_network_speed_interval",
+            title = c.getString(R.string.set_network_speed_interval),
+            valueRange = -1..50,
+            default = if (legacyEnable) 10 else -1,
+            summary = c.getString(R.string.set_network_speed_interval_summary),
+            valueLabel = { value ->
+                if (value < 0) c.getString(R.string.close)
+                else c.getString(
+                    R.string.set_network_speed_interval_value, "%.1f".format(value / 10f)
+                )
+            },
             notify = true,
         )
         list(

@@ -208,7 +208,9 @@
     <string name="statusbar_clock_if_zero_summary">若为0，则该选项将不进行修改</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">状态栏网速</string>
-    <string name="set_network_speed">设置状态栏网速刷新率1s</string>
+    <string name="set_network_speed_interval">網速更新間隔</string>
+    <string name="set_network_speed_interval_summary">自訂狀態欄網速的更新間隔，單位為秒，預設不開啟；0 秒會按下限 0.1 秒執行</string>
+    <string name="set_network_speed_interval_value">%1$s 秒</string>
     <string name="enable_double_row_network_speed">启用双行网速</string>
     <string name="set_network_speed_font_size">设置网速字体大小</string>
     <string name="set_network_speed_padding_bottom">设置网速底部对齐</string>

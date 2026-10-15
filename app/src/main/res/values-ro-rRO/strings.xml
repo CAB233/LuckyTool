@@ -154,7 +154,6 @@
     <string name="statusbar_clock_if_zero_summary">If 0, this option will not be modified</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Viteza rețelei din Bara de stare</string>
-    <string name="set_network_speed">Setează rata de reîmprospătare a vitezei în bara de stare 1 s</string>
     <string name="enable_double_row_network_speed">Activează viteza rețelei cu rând dublu</string>
     <string name="set_network_speed_font_size">Set Network Speed Font Size</string>
     <string name="set_network_speed_padding_bottom">Set Network Speed Padding Bottom</string>

@@ -156,7 +156,6 @@
     <string name="statusbar_clock_if_zero_summary">Nếu 0, tùy chọn này sẽ không được sửa đổi</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Tốc độ mạng</string>
-    <string name="set_network_speed">Đặt tốc độ làm mới thanh trạng thái là 1 giây</string>
     <string name="enable_double_row_network_speed">Kích hoạt tốc độ mạng kép</string>
     <string name="set_network_speed_font_size">Đặt kích thước phông chữ tốc độ mạng</string>
     <string name="set_network_speed_padding_bottom">Đặt phần đệm tốc độ mạng dưới cùng</string>

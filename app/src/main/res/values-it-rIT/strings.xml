@@ -153,7 +153,6 @@
     <string name="statusbar_clock_if_zero_summary">Se 0, questa opzione non verrà modificata</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Velocità Internet nella Barra di Stato</string>
-    <string name="set_network_speed">Imposta la velocità di aggiornamento della Barra di Stato 1 s</string>
     <string name="enable_double_row_network_speed">Abilita velocità di rete a doppia riga</string>
     <string name="set_network_speed_font_size">Imposta dimensione carattere velocità di rete</string>
     <string name="set_network_speed_padding_bottom">Imposta Velocità di Rete In Basso</string>

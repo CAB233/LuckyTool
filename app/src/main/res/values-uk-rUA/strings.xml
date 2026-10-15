@@ -154,7 +154,6 @@
     <string name="statusbar_clock_if_zero_summary">If 0, this option will not be modified</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Швидкість мережі в рядку стану</string>
-    <string name="set_network_speed">Встановити частоту оновлення інтернет-швидкості в рядку стану на 1 секунду</string>
     <string name="enable_double_row_network_speed">Швидкість мережі у два рядки</string>
     <string name="set_network_speed_font_size">Встановити розмір шрифту швидкості мережі</string>
     <string name="set_network_speed_padding_bottom">Встановіть швидкість мережі, заповнюючи нижню частину</string>
