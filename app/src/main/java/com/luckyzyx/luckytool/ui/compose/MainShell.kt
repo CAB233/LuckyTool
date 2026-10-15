@@ -1,5 +1,6 @@
 package com.luckyzyx.luckytool.ui.compose
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Assignment
 import androidx.compose.material.icons.rounded.Dashboard
@@ -63,6 +66,7 @@ import com.luckyzyx.luckytool.ui.compose.pages.LogPage
 import com.luckyzyx.luckytool.ui.compose.pages.OtherPage
 import com.luckyzyx.luckytool.ui.compose.pages.SettingPage
 import com.luckyzyx.luckytool.ui.compose.pages.ThemeScreen
+import com.luckyzyx.luckytool.ui.compose.special.AppPermissionContent
 import com.luckyzyx.luckytool.ui.shell.LocalEnableBlur
 import com.luckyzyx.luckytool.ui.shell.LocalEnableFloatingBottomBar
 import com.luckyzyx.luckytool.ui.shell.LocalEnableFloatingBottomBarBlur
@@ -199,6 +203,14 @@ fun MainShell(activity: MainActivity) {
         MiuixTheme.colorScheme.surface
     } else {
         MaterialTheme.colorScheme.surfaceContainer
+    }
+
+    // 权限阻塞门：模块自身 4 项权限未全授予时只渲染权限页（无底栏/抽屉、返回键无效、无跳过出口）。
+    // 启动门（gateDialog）优先，避免两把门互抢；4 项齐全后本标志变 false，自动回到主界面（不重启 Activity）。
+    val permissionBlocked = activity.isPermissionGateActive && activity.gateDialog == null
+    if (permissionBlocked) {
+        PermissionGateScreen(activity)
+        return
     }
 
     // 根脚手架按外观线分派（对齐 KernelSU MainActivity「UiMode.Miuix -> Scaffold { navDisplay() }」）：
@@ -429,5 +441,49 @@ fun MainShell(activity: MainActivity) {
             ),
             content = movableShellContent,
         )
+    }
+}
+
+/**
+ * 权限阻塞态：只渲染权限页内容（无底栏/抽屉），吞掉系统返回键、无跳过出口。
+ * 由 [MainShell] 提前 return 后组合，因此根 Scaffold 一并被跳过（它的弹层挂载点也随之不存在）；
+ * 弹层挂载点改由本函数新建的同线 Scaffold 提供 —— 位置仍在 [MainShell] 内部，Miuix 线由此满足
+ * OverlayDialog 对根部 Miuix Scaffold popup host 的依赖（见 GateDialog.kt 顶部说明）。
+ */
+@Composable
+private fun PermissionGateScreen(activity: MainActivity) {
+    // 阻塞态没有可返回的目的地：系统返回键无效
+    BackHandler { }
+    val isMiuix = LocalUiMode.current == UiMode.Miuix
+    val containerColor = if (isMiuix) {
+        MiuixTheme.colorScheme.surface
+    } else {
+        MaterialTheme.colorScheme.surfaceContainer
+    }
+    val gateContent: @Composable () -> Unit = {
+        AppPermissionContent(
+            activity = activity,
+            blocking = true,
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+            // 4 项齐全：撤掉阻塞门回到主界面（不重启 Activity）
+            onAllGranted = { activity.refreshPermissionGate() },
+            onExit = { exitProcess(0) },
+        )
+    }
+    val gateInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+    if (isMiuix) {
+        top.yukonga.miuix.kmp.basic.Scaffold(
+            containerColor = containerColor,
+            contentWindowInsets = gateInsets,
+        ) { padding ->
+            Box(Modifier.fillMaxSize().padding(padding)) { gateContent() }
+        }
+    } else {
+        Scaffold(
+            containerColor = containerColor,
+            contentWindowInsets = gateInsets,
+        ) { padding ->
+            Box(Modifier.fillMaxSize().padding(padding)) { gateContent() }
+        }
     }
 }

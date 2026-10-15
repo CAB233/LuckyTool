@@ -1399,6 +1399,23 @@
     <string name="all_files_access_permission">All file access permission</string>
     <string name="installed_apps_permission">Read your app list permission</string>
     <string name="install_app_permission">Install app permissions</string>
+
+    <!--AppPermission 应用权限页（设置页入口 + 冷启动阻塞门）-->
+    <string name="app_permission">App permissions</string>
+    <string name="app_permission_summary">Check and grant the permissions the module needs</string>
+    <string name="app_permission_blocked_title">Permissions required</string>
+    <string name="app_permission_blocked_summary">The module needs the 4 permissions below. Grant them all to enter the app.</string>
+    <string name="app_permission_granted">Granted</string>
+    <string name="app_permission_denied">Not granted</string>
+    <string name="app_permission_open_settings">System settings</string>
+    <string name="app_permission_exit">Exit app</string>
+    <string name="app_permission_root_section">Root / LSPosed</string>
+    <string name="app_permission_root_status">Root status</string>
+    <string name="app_permission_root_yes">Obtained</string>
+    <string name="app_permission_root_no">Not obtained</string>
+    <string name="app_permission_module_status">Module status</string>
+    <string name="app_permission_module_active">Active</string>
+    <string name="app_permission_module_inactive">Not active</string>
     
     <string name="permission_denied_toast">Permission denied, please grant permission manually: %1$s</string>
     <string name="permission_error_toast">Failed to obtain permission: %1$s</string>

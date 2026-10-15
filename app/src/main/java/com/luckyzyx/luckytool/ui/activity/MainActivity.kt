@@ -72,6 +72,10 @@ open class MainActivity : AppCompatActivity() {
     /** 启动阻塞门对话框（Xposed 未激活 / 无 root / 系统不支持）：非空即由 MainShell 渲染，见 GateDialog */
     var gateDialog by mutableStateOf<GateDialogSpec?>(null)
 
+    /** 权限阻塞门是否生效（模块自身 4 项权限未全授予）：只由 [refreshPermissionGate] 的纯查询驱动 */
+    var isPermissionGateActive by mutableStateOf(false)
+        private set
+
     /** 激活检测结果是否仍未决（框架服务绑定是异步的）：未决时只组合加载层，出结果即取消，见 [checkXposed] */
     var isActivationPending by mutableStateOf(false)
         private set
@@ -97,6 +101,11 @@ open class MainActivity : AppCompatActivity() {
         checkOs()
         checkUserId()
         checkBiometric()
+
+        // 冷启动自动申请只做一次（进程内标记），onResume 只做纯查询：
+        // 消除「系统设置页返回 → onResume → 再申请 → 再跳转」的重复请求 + 重复跳转死循环
+        PermissionUtils.startAutoRequestOnce(this) { refreshPermissionGate() }
+        refreshPermissionGate()
 
         setContent {
             // 闪屏与加载层是中性配色、不读主题；主题（ThemeController）与主界面都要从 prefs 读，
@@ -165,7 +174,8 @@ open class MainActivity : AppCompatActivity() {
             return
         }
         putBoolean(SettingsPrefs, "enable_module_print_logs", BuildConfig.DEBUG)
-        PermissionUtils(this).start()
+        // 权限申请只在冷启动走一次（见 onCreate 的 startAutoRequestOnce）：
+        // 本方法在 onResume 里复用，因此这里不得发起任何请求或跳转
     }
 
     private fun checkOs() {
@@ -205,7 +215,23 @@ open class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         checkSu()
+        // 纯查询：只驱动权限阻塞门，绝不发起申请、绝不跳转
+        refreshPermissionGate()
         initAllService()
+    }
+
+    /**
+     * 纯查询刷新权限阻塞门（模块自身 4 项权限）：不申请、不跳转。
+     * onResume（从系统设置页返回）与权限页放行回调共用；4 项齐全时门自动关闭，无需重启 Activity。
+     */
+    fun refreshPermissionGate() {
+        isPermissionGateActive = !PermissionUtils.areAllGranted(this)
+    }
+
+    override fun onDestroy() {
+        // 宿主实例消亡：撤销属于它的在途权限请求，避免 requesting 在进程内永久卡住阻塞页
+        PermissionUtils.onHostDestroyed(this)
+        super.onDestroy()
     }
 
     @Suppress("DEPRECATION")

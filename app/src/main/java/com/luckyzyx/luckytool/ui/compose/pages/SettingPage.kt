@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.AlertDialog
@@ -184,6 +185,8 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
             val participateTranslationTitle = stringResource(R.string.participate_translation)
             val participateTranslationSummary =
                 stringResource(R.string.participate_translation_summary)
+            val appPermissionTitle = stringResource(R.string.app_permission)
+            val appPermissionSummary = stringResource(R.string.app_permission_summary)
             ScopeScreen(
                 state = settings,
                 modifier = scopeModifier,
@@ -259,6 +262,17 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                             ),
                             value,
                         )
+                    },
+                )
+
+                // 应用权限：与冷启动权限阻塞门是同一个页面内容（pageKey = app_permission）
+                click(
+                    title = appPermissionTitle,
+                    summary = appPermissionSummary,
+                    leading = { PrefIconBadge(Icons.Filled.VerifiedUser, Color(0xFF3F51B5)) },
+                    value = "",
+                    onClick = {
+                        activity.requestFunctionNavigation("app_permission", appPermissionTitle)
                     },
                 )
 

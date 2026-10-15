@@ -87,6 +87,7 @@ import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarNetWorkSpeedP
 import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarNotifyPage
 import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarNotifyRemovalPage
 import com.luckyzyx.luckytool.ui.compose.scopes.statusbar.StatusBarTilesPage
+import com.luckyzyx.luckytool.ui.compose.special.AppPermissionPage
 import com.luckyzyx.luckytool.ui.compose.special.BatteryInfoPage
 import com.luckyzyx.luckytool.ui.compose.special.DarkModePage
 import com.luckyzyx.luckytool.ui.compose.special.DonatePage
@@ -657,6 +658,7 @@ object ScopePageRegistry {
         register(GpsJoyStickPage.spec)
         register(KsWebPage.spec)
         // P4 special 批
+        register(AppPermissionPage.spec)
         register(BatteryInfoPage.spec)
         register(DonatePage.spec)
         register(ExtractOTAPage.spec)
