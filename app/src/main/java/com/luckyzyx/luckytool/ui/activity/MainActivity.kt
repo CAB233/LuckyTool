@@ -102,9 +102,8 @@ open class MainActivity : AppCompatActivity() {
         checkUserId()
         checkBiometric()
 
-        // 冷启动自动申请只做一次（进程内标记），onResume 只做纯查询：
-        // 消除「系统设置页返回 → onResume → 再申请 → 再跳转」的重复请求 + 重复跳转死循环
-        PermissionUtils.startAutoRequestOnce(this) { refreshPermissionGate() }
+        // 冷启动不申请任何权限：这里只做纯查询，检测出缺项就由 MainShell 进入权限阻塞页，
+        // 由用户点按钮逐项授权（申请只能由用户手势发起，见 AppPermissionPage）
         refreshPermissionGate()
 
         setContent {
@@ -174,7 +173,7 @@ open class MainActivity : AppCompatActivity() {
             return
         }
         putBoolean(SettingsPrefs, "enable_module_print_logs", BuildConfig.DEBUG)
-        // 权限申请只在冷启动走一次（见 onCreate 的 startAutoRequestOnce）：
+        // 权限只做纯查询（MainActivity.refreshPermissionGate）：
         // 本方法在 onResume 里复用，因此这里不得发起任何请求或跳转
     }
 

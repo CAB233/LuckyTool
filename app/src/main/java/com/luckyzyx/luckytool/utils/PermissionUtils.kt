@@ -12,7 +12,8 @@ import java.lang.ref.WeakReference
 /**
  * 模块自身权限（权限阻塞门的判定集合）：4 项全部授予才算通过。
  *
- * `POST_NOTIFICATIONS` 刻意不在此列 —— 它仍只由冷启动自动申请处理，不参与门禁判定。
+ * `POST_NOTIFICATIONS` 刻意不在此列：模块不再自动申请任何权限（冷启动只做纯查询），
+ * 因此门禁判定与页面「通知」行都只看 `NOTIFICATION_SERVICE`。
  */
 enum class AppPermission(@StringRes val labelRes: Int) {
     MANAGE_EXTERNAL_STORAGE(R.string.all_files_access_permission),
@@ -33,36 +34,10 @@ enum class AppPermission(@StringRes val labelRes: Int) {
 class PermissionUtils(val activity: Activity) {
 
     /**
-     * 冷启动自动申请（含 `POST_NOTIFICATIONS` 共 5 项），完成后回调 [onFinished]，
-     * 参数是 4 项判定集合是否全部授予。
+     * 页面内逐项申请（唯一的申请入口）：**绝不自动跳转**，被永久拒绝的行由页面显式提供
+     * 「去设置」按钮（见 [isDoNotAskAgain] / [openSystemPermissionSettings]）。
      *
-     * 申请进行中重入直接 return（[requesting] 互斥）：配合 [startAutoRequestOnce] 消除
-     * 「从系统设置页返回 → onResume → 再申请 → 再跳转」的重复请求 + 重复跳转死循环。
-     */
-    fun start(onFinished: (allGranted: Boolean) -> Unit = {}) {
-        if (!beginRequest()) return
-        XXPermissions.setCheckMode(false)
-        XXPermissions.with(activity).apply {
-            permission(PermissionLists.getManageExternalStoragePermission())
-            permission(PermissionLists.getRequestInstallPackagesPermission())
-            permission(PermissionLists.getGetInstalledAppsPermission())
-            permission(PermissionLists.getNotificationServicePermission())
-            permission(PermissionLists.getPostNotificationsPermission())
-        }.request { _, deniedList ->
-            finishRequest()
-            // 冷启动这一次保留原有的「被永久拒绝则跳转一次系统设置页」行为（循环已由只申请一次消除）
-            if (deniedList.isNotEmpty() &&
-                XXPermissions.isDoNotAskAgainPermissions(activity, deniedList)
-            ) {
-                XXPermissions.startPermissionActivity(activity, deniedList)
-            }
-            onFinished(areAllGranted(activity))
-        }
-    }
-
-    /**
-     * 页面内逐项申请：**绝不自动跳转**，被永久拒绝的行由页面显式提供「去系统设置」按钮
-     * （见 [isDoNotAskAgain] / [openSystemPermissionSettings]），与 [start] 共用 [requesting] 互斥。
+     * 只有用户手势能走到这里 —— 冷启动与 onResume 的检测路径只调 [areAllGranted] 这类纯查询。
      */
     fun request(kind: AppPermission, onResult: (granted: Boolean) -> Unit = {}) {
         if (!beginRequest()) return
@@ -88,7 +63,7 @@ class PermissionUtils(val activity: Activity) {
      * 反过来，在途请求的发起者若是**已被销毁的旧实例**（MainActivity.restart() 的 recreate()、
      * 配置变更、进程存活下的后台回收 —— 旧实例的 ActivityResultLauncher 随实例消亡、回调永不抵达），
      * 必须视为陈旧状态允许重新发起；否则 [requesting] 会在进程内永久为 true，让阻塞页的逐项申请
-     * 静默失效，而冷启动自动申请又被 [autoRequested] 挡住，用户只能「退出应用」或杀进程。
+     * 静默失效，用户只能「退出应用」或杀进程（宿主消亡时的撤销见 [onHostDestroyed]）。
      */
     private fun beginRequest(): Boolean {
         if (activity.isDestroyed || activity.isFinishing) return false
@@ -109,23 +84,12 @@ class PermissionUtils(val activity: Activity) {
         }
     }
 
-    private fun toastDenied(permission: String) {
-        activity.showToast(activity.getString(R.string.permission_denied_toast, permission))
-    }
-
-    private fun toastError(permission: String) {
-        activity.showToast(activity.getString(R.string.permission_error_toast, permission))
-    }
-
     companion object {
-        /** 申请互斥标记：[start] 与 [request] 共用（进程内） */
+        /** 申请互斥标记：[request] 的在途状态（进程内单值，配合 [requester] 绑定发起实例） */
         private var requesting = false
 
         /** 在途请求的发起者：复位绑定到它的生命周期，宿主实例消亡即在途请求随之作废 */
         private var requester: WeakReference<Activity>? = null
-
-        /** 冷启动自动申请是否已发生过：进程内一次，onResume 不再触发申请 */
-        private var autoRequested = false
 
         /**
          * 宿主实例销毁时撤销属于它的在途请求（MainActivity.onDestroy 调用）：
@@ -138,13 +102,6 @@ class PermissionUtils(val activity: Activity) {
                 requesting = false
                 requester = null
             }
-        }
-
-        /** 冷启动自动申请（进程内最多一次）：只在 MainActivity.onCreate 调用 */
-        fun startAutoRequestOnce(activity: Activity, onFinished: (Boolean) -> Unit = {}) {
-            if (autoRequested) return
-            autoRequested = true
-            PermissionUtils(activity).start(onFinished)
         }
 
         /**
