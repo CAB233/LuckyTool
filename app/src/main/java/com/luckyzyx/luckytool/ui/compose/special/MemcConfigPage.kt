@@ -524,9 +524,6 @@ private fun MemcSearchField(
             label = placeholder,
             useLabelAsPlaceholder = true,
             singleLine = true,
-            leadingIcon = {
-                MiuixIcon(painterResource(R.drawable.ic_baseline_search_24), contentDescription = null)
-            },
         )
     } else {
         OutlinedTextField(
@@ -535,9 +532,6 @@ private fun MemcSearchField(
             enabled = enabled,
             singleLine = true,
             placeholder = { Text(placeholder) },
-            leadingIcon = {
-                Icon(painterResource(R.drawable.ic_baseline_search_24), contentDescription = null)
-            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
