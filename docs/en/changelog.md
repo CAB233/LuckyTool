@@ -29,6 +29,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Cold-start animation — logo entrance and app-name fade-in
 - Custom status bar icon order
 - Force enable the Xiaobu keyboard liquid glass blur — ignores the system blur switch, the app whitelist, the built-in theme and the folding state; the blur strength is adjustable
+- App permission page — checks the notification, all files access, app list and install app permissions with per-item granting; a cold start opens it until all four are granted (with read-only Root and LSPosed status), and it offers no skip entry
 
 #### Optimized
 
@@ -45,6 +46,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Fixed “Remove the lock icon at the top of the lock screen” not taking effect C17
 - Fixed data backup and restore for set values and legacy string formats; unwritable entries are skipped and the result now reports how many entries succeeded and failed
 - Fixed donate data loading by switching to the jsDelivr mirror
+- Fixed repeated permission requests and repeated jumps to the system settings page after returning from it — the cold start request now runs once per process, and the permission check only queries without requesting or jumping
 
 #### Changed
 
