@@ -1,5 +1,6 @@
 package com.luckyzyx.luckytool.ui.compose.special
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.foundation.layout.Column
@@ -15,7 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -102,6 +103,7 @@ private data class RootInfo(
  * [blocking] = true 时是冷启动阻塞态：4 项齐全后回调 [onAllGranted] 放行，并显示「退出应用」。
  * 页面内逐项申请绝不自动跳转；只有被永久拒绝的行，才由用户手势点「去系统设置」发起跳转。
  */
+@SuppressLint("ReplaceWithLifecycleExtension")
 @Composable
 fun AppPermissionContent(
     activity: MainActivity?,
@@ -111,10 +113,9 @@ fun AppPermissionContent(
     onExit: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val host = activity
 
     // 授予状态快照：revision 自增即重算（从系统设置页返回、逐项申请回调后）
-    var revision by remember { mutableStateOf(0) }
+    var revision by remember { mutableIntStateOf(0) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -125,14 +126,14 @@ fun AppPermissionContent(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val states = remember(host, revision) {
-        if (host == null) {
+    val states = remember(activity, revision) {
+        if (activity == null) {
             emptyMap()
         } else {
-            AppPermission.values().associateWith { kind ->
+            AppPermission.entries.associateWith { kind ->
                 PermissionRowState(
-                    granted = PermissionUtils.isGranted(host, kind),
-                    doNotAskAgain = PermissionUtils.isDoNotAskAgain(host, kind),
+                    granted = PermissionUtils.isGranted(activity, kind),
+                    doNotAskAgain = PermissionUtils.isDoNotAskAgain(activity, kind),
                 )
             }
         }
@@ -171,13 +172,13 @@ fun AppPermissionContent(
             )
         )
         PrefGroup {
-            AppPermission.values().forEach { kind ->
+            AppPermission.entries.forEach { kind ->
                 val state = states[kind]
                 val granted = state?.granted == true
-                val request: (() -> Unit)? = if (!granted && host != null) {
+                val request: (() -> Unit)? = if (!granted && activity != null) {
                     {
                         // 逐项申请：不自动跳转，回调后只重算状态
-                        PermissionUtils(host).request(kind) { revision++ }
+                        PermissionUtils(activity).request(kind) { revision++ }
                     }
                 } else {
                     null
@@ -194,11 +195,15 @@ fun AppPermissionContent(
                         ),
                         onClick = request,
                         // 永久拒绝的行：只有用户点这个按钮才跳系统设置页
-                        trailing = if (!granted && state?.doNotAskAgain == true && host != null) {
+                        trailing = if (!granted && state?.doNotAskAgain == true && activity != null) {
                             {
                                 ActionButton(
                                     text = stringResource(R.string.app_permission_open_settings),
-                                    onClick = { PermissionUtils(host).openSystemPermissionSettings(kind) },
+                                    onClick = {
+                                        PermissionUtils(activity).openSystemPermissionSettings(
+                                            kind
+                                        )
+                                    },
                                 )
                             }
                         } else {
@@ -300,6 +305,7 @@ private fun ActionButton(text: String, onClick: () -> Unit) {
             onClick = onClick,
             colors = ButtonDefaults.textButtonColorsPrimary(),
         )
+
         UiMode.Material -> TextButton(onClick = onClick) { Text(text) }
     }
 }
