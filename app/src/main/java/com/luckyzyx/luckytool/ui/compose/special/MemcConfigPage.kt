@@ -1,7 +1,6 @@
 package com.luckyzyx.luckytool.ui.compose.special
 
 import android.content.Context
-import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.util.ArraySet
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -953,6 +952,130 @@ internal fun MemcPackageDialog(
     }
 }
 
+/** Activity 选择项：[label] 只用于显示与搜索，落盘的仍是 [name]（类名）。 */
+internal data class MemcActivityOption(val name: String, val label: String)
+
+/**
+ * Activity 选择项的过滤语义：label 与类名都参与匹配，两侧统一 lowercase。
+ * （label 常以大写开头或为中文，大小写敏感的 `contains` 会让 "MainActivity" 这类输入查不到。）
+ */
+internal fun filterMemcActivityOptions(
+    options: List<MemcActivityOption>,
+    query: String,
+): List<MemcActivityOption> {
+    val q = query.trim().lowercase()
+    if (q.isEmpty()) return options
+    return options.filter {
+        it.label.lowercase().contains(q) || it.name.lowercase().contains(q)
+    }
+}
+
+/**
+ * Activity 选择弹层：搜索框 + 列表（标题=label / 副标题=类名）。
+ *
+ * 与页面级的 [MemcSearchField] 不同，弹层内容自带内边距，字段不再额外加水平内边距；
+ * 行件沿用 [AppPickerDialog] 的「显示名当标题、标识当副标题」约定。
+ */
+@Composable
+private fun MemcActivityPickerDialog(
+    options: List<MemcActivityOption>,
+    onDismiss: () -> Unit,
+    onSelect: (MemcActivityOption) -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    val filtered = remember(options, query) { filterMemcActivityOptions(options, query) }
+
+    if (LocalUiMode.current == UiMode.Miuix) {
+        OverlayDialog(
+            show = true,
+            title = "ActivityName",
+            onDismissRequest = onDismiss,
+        ) {
+            Column {
+                MiuixTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    singleLine = true,
+                    label = "ActivityName",
+                    useLabelAsPlaceholder = true,
+                    leadingIcon = {
+                        MiuixIcon(
+                            painterResource(R.drawable.ic_baseline_search_24),
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                )
+                LazyColumn(Modifier.heightIn(max = 320.dp)) {
+                    items(filtered, key = { it.name }) { option ->
+                        MiuixListItem(
+                            title = option.label,
+                            summary = option.name,
+                            onClick = { onSelect(option) },
+                        )
+                    }
+                }
+                MiuixTextButton(
+                    text = stringResource(android.R.string.cancel),
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    } else {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("ActivityName") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        singleLine = true,
+                        placeholder = { Text("ActivityName") },
+                        leadingIcon = {
+                            Icon(
+                                painterResource(R.drawable.ic_baseline_search_24),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    LazyColumn(Modifier.heightIn(max = 320.dp)) {
+                        items(filtered, key = { it.name }) { option ->
+                            MaterialListItem(
+                                onClick = { onSelect(option) },
+                                headlineContent = {
+                                    Text(
+                                        option.label,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                },
+                                supportingContent = {
+                                    Text(
+                                        option.name,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                },
+                            )
+                            HorizontalDivider()
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+        )
+    }
+}
+
 @Composable
 internal fun MemcActivityDialog(
     context: Context,
@@ -967,11 +1090,12 @@ internal fun MemcActivityDialog(
     var type by remember(initial) { mutableStateOf(initial?.type ?: "") }
     var showAppPicker by remember { mutableStateOf(false) }
     var showActivityPicker by remember { mutableStateOf(false) }
-    var activityInfos by remember { mutableStateOf(emptyList<ActivityInfo>()) }
+    var activityOptions by remember { mutableStateOf(emptyList<MemcActivityOption>()) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     // 两条 UI 线共用的 Activity 选择：先校验包名，再拉取 Activity 列表
+    // label 在这里一次算好（loadLabel 会回落 labelRes → 应用名 → 包名），列表渲染不再逐行查 PackageManager
     val openActivityPicker: () -> Unit = {
         if (packName.isBlank()) {
             context.showToast("PackageName is null!")
@@ -979,11 +1103,18 @@ internal fun MemcActivityDialog(
             scope.launch(Dispatchers.IO) {
                 val packInfo = PackageUtils(context.packageManager)
                     .getPackageInfo(packName, PackageManager.GET_ACTIVITIES)
+                val options = packInfo?.activities?.map { info ->
+                    MemcActivityOption(
+                        name = info.name,
+                        label = safeOfNull { info.loadLabel(context.packageManager).toString() }
+                            ?.takeIf { it.isNotBlank() } ?: info.name,
+                    )
+                } ?: emptyList()
                 withContext(Dispatchers.Main) {
                     if (packInfo == null) {
                         context.showToast("App data is null!")
                     } else {
-                        activityInfos = packInfo.activities?.toList() ?: emptyList()
+                        activityOptions = options
                         showActivityPicker = true
                     }
                 }
@@ -1127,62 +1258,14 @@ internal fun MemcActivityDialog(
     }
 
     if (showActivityPicker) {
-        if (miuix) {
-            OverlayDialog(
-                show = true,
-                title = "ActivityName",
-                onDismissRequest = { showActivityPicker = false },
-            ) {
-                Column {
-                    LazyColumn(Modifier.heightIn(max = 320.dp)) {
-                        items(activityInfos, key = { it.name }) { ai ->
-                            MiuixListItem(
-                                title = ai.name,
-                                onClick = {
-                                    activity = ai.name
-                                    showActivityPicker = false
-                                },
-                            )
-                        }
-                    }
-                    MiuixTextButton(
-                        text = stringResource(android.R.string.cancel),
-                        onClick = { showActivityPicker = false },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-        } else {
-            AlertDialog(
-                onDismissRequest = { showActivityPicker = false },
-                title = { Text("ActivityName") },
-                text = {
-                    LazyColumn(Modifier.heightIn(max = 320.dp)) {
-                        items(activityInfos, key = { it.name }) { ai ->
-                            ListItem(
-                                modifier = Modifier.clickable {
-                                    activity = ai.name
-                                    showActivityPicker = false
-                                },
-                                content = {
-                                    Text(
-                                        ai.name,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                },
-                            )
-                            HorizontalDivider()
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showActivityPicker = false }) {
-                        Text(stringResource(android.R.string.cancel))
-                    }
-                },
-            )
-        }
+        MemcActivityPickerDialog(
+            options = activityOptions,
+            onDismiss = { showActivityPicker = false },
+            onSelect = { option ->
+                activity = option.name
+                showActivityPicker = false
+            },
+        )
     }
 
     if (showDeleteConfirm && initial != null) {
