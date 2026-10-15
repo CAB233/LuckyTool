@@ -29,7 +29,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Cold-start animation — logo entrance and app-name fade-in
 - Custom status bar icon order
 - Force enable the Xiaobu keyboard liquid glass blur — ignores the system blur switch, the app whitelist, the built-in theme and the folding state; the blur strength is adjustable
-- App permission page — checks the notification, all files access, app list and install app permissions with per-item granting; a cold start opens it until all four are granted (with read-only Root and LSPosed status), and it offers no skip entry
+- App permission page — checks the notification, all files access, app list and install app permissions, each granted by a button on its row; a cold start opens it until all four are granted (it only checks: no automatic request and no automatic jump to the system settings page), with Root status, root source, Xposed status and framework version pinned on top, and it offers no skip entry
 
 #### Optimized
 
@@ -46,7 +46,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Fixed “Remove the lock icon at the top of the lock screen” not taking effect C17
 - Fixed data backup and restore for set values and legacy string formats; unwritable entries are skipped and the result now reports how many entries succeeded and failed
 - Fixed donate data loading by switching to the jsDelivr mirror
-- Fixed repeated permission requests and repeated jumps to the system settings page after returning from it — the cold start request now runs once per process, and the permission check only queries without requesting or jumping
+- Fixed repeated permission requests and repeated jumps to the system settings page after returning from it — a cold start no longer requests permissions or jumps to the system settings page at all, the permission check only queries, and every grant starts from a button inside the page
 
 #### Changed
 
