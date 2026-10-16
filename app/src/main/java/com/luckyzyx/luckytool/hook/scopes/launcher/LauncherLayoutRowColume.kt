@@ -14,12 +14,63 @@ import org.lsposed.lsparanoid.Obfuscate
 object LauncherLayoutRowColume : YukiBaseHooker() {
     override fun onHook() {
         val osCode = getOSVersionCode
-        if (osCode >= 37) loadHooker(LayoutRowColume)
+        if (osCode >= 40) loadHooker(LayoutRowColume)
+        else if (osCode >= 37) loadHooker(LayoutRowColumeV16)
         else loadHooker(LayoutRowColumeV15)
     }
 
     @Obfuscate
     object LayoutRowColume : YukiBaseHooker() {
+        override fun onHook() {
+            val maxRows = preferences(ModulePrefs).getInt("launcher_layout_max_rows", 6)
+            val maxColumns = preferences(ModulePrefs).getInt("launcher_layout_max_columns", 4)
+
+            //Source UiConfig
+            "com.android.launcher.c6".toClass().resolve().apply {
+                //isSupportLayout(II)Z
+                firstMethodOrNull {
+                    name = "F"
+                    parameterCount = 2
+                    returnType = Boolean::class
+                }?.hook {
+                    intercept(true)
+                }
+                //getSupportLayout()List
+                firstMethodOrNull {
+                    name = "h"
+                    emptyParameters()
+                }?.hook {
+                    before {
+                        result = ArrayList<Pair<Int, Pair<Int, Int>>>().apply {
+                            for (col in 4..maxColumns) {
+                                for (row in 6..maxRows) {
+                                    add(Pair(col, Pair(row, row + 1)))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            //Source IconFallenUtils
+            "f4.b".toClass().resolve().apply {
+                //getLogicCellX(ItemInfo)I
+                firstMethodOrNull {
+                    name = "e"
+                    parameterCount = 1
+                    returnType = Int::class
+                }?.hook {
+                    after {
+                        val res = result<Int>() ?: return@after
+                        if (res > 4) result = 4
+                    }
+                }
+            }
+        }
+    }
+
+    @Obfuscate
+    object LayoutRowColumeV16 : YukiBaseHooker() {
         override fun onHook() {
             val maxRows = preferences(ModulePrefs).getInt("launcher_layout_max_rows", 6)
             val maxColumns = preferences(ModulePrefs).getInt("launcher_layout_max_columns", 4)
