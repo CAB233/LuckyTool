@@ -60,6 +60,11 @@ object HookLauncher : YukiBaseHooker() {
             if (preferences(ModulePrefs).getBoolean("unlock_task_locks", false)) {
                 loadHooker(UnlockTaskLocks(dexKitBridge))
             }
+
+            //设置桌面布局行列数
+            if (preferences(ModulePrefs).getBoolean("launcher_layout_enable", false)) {
+                loadHooker(LauncherLayoutRowColume(dexKitBridge))
+            }
         }
 
         //HookLauncherFeatureFlags
@@ -78,10 +83,6 @@ object HookLauncher : YukiBaseHooker() {
         loadHooker(HookOplusBubbleTextView)
 
 
-        //设置桌面布局行列数
-        if (preferences(ModulePrefs).getBoolean("launcher_layout_enable", false)) {
-            loadHooker(LauncherLayoutRowColume)
-        }
         //移除文件夹名称输入限制
         if (preferences(ModulePrefs).getBoolean("remove_folder_name_input_limit", false)) {
             loadHooker(RemoveFolderNameInputLimit)
