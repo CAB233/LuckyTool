@@ -488,11 +488,11 @@ object ScopePageRegistry {
         "oplus_my_devices",
         "oplus_mcs",
         "claw",
+        "oplus_keyboard",
         "alpha_backup_pro",
         "ks_web",
         "adm",
         "gps_joy_stick",
-        "oplus_keyboard",
     )
 
     /**
