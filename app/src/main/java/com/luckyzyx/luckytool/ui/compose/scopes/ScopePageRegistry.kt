@@ -74,6 +74,7 @@ import com.luckyzyx.luckytool.ui.compose.scopes.related.ApplicationRelatedPage
 import com.luckyzyx.luckytool.ui.compose.scopes.related.CorePatchPage
 import com.luckyzyx.luckytool.ui.compose.scopes.related.DialogRelatedPage
 import com.luckyzyx.luckytool.ui.compose.scopes.related.FingerPrintRelatedPage
+import com.luckyzyx.luckytool.ui.compose.scopes.related.LauncherBackupPage
 import com.luckyzyx.luckytool.ui.compose.scopes.related.LauncherRelatedPage
 import com.luckyzyx.luckytool.ui.compose.scopes.related.LockScreenRelatedPage
 import com.luckyzyx.luckytool.ui.compose.scopes.related.MiscellaneousPage
@@ -446,6 +447,7 @@ object ScopePageRegistry {
         "android_related",
         "statusbar",
         "launcher",
+        "launcher_backup",
         "aod",
         "lock_screen",
         "application",
@@ -503,6 +505,7 @@ object ScopePageRegistry {
     val treeTitleRes: Map<String, Int> = mapOf(
         "statusbar" to R.string.StatusBar,
         "launcher" to R.string.Desktop,
+        "launcher_backup" to R.string.launcher_backup,
         "aod" to R.string.AodRelated,
         "lock_screen" to R.string.LockScreen,
         "application" to R.string.Application,
@@ -564,6 +567,7 @@ object ScopePageRegistry {
         "statusBarNotifyRemoval" to "statusbar_notify_removal",
         "androidRelated" to "android_related",
         "launcher" to "launcher",
+        "launcherBackup" to "launcher_backup",
         "lockScreen" to "lock_screen",
         "application" to "application",
         "miscellaneous" to "miscellaneous",
@@ -649,6 +653,7 @@ object ScopePageRegistry {
         register(DialogRelatedPage.spec)
         register(FingerPrintRelatedPage.spec)
         register(LauncherRelatedPage.spec)
+        register(LauncherBackupPage.spec)
         register(LockScreenRelatedPage.spec)
         register(MiscellaneousPage.spec)
         register(SoundRelatedPage.spec)

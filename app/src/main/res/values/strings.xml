@@ -1525,4 +1525,32 @@
     <string name="force_enable_oplus_keyboard_blur_summary">Force the Xiaobu keyboard to use the liquid glass blur, ignoring the system blur switch, the app whitelist, the built-in theme and the folding state.</string>
     <string name="oplus_keyboard_blur_radius">Blur strength</string>
     <string name="oplus_keyboard_blur_radius_summary">The blur radius the keyboard asks the system for. The built-in value is 150, and a larger value blurs more.</string>
+    <!-- 桌面布局备份/恢复 -->
+    <string name="launcher_backup">Desktop layout backup</string>
+    <string name="launcher_backup_status">Snapshot status</string>
+    <string name="launcher_backup_busy">Working…</string>
+    <string name="launcher_backup_no_hook">Launcher scope is not active. Enable this module for the launcher scope in LSPosed, then reopen the home screen.</string>
+    <string name="launcher_backup_send_failed">Cannot reach the launcher process: no launcher package was found.</string>
+    <string name="launcher_backup_root">Snapshot directory</string>
+    <string name="launcher_backup_backup_now">Back up now</string>
+    <string name="launcher_backup_backup_now_summary">Export the layout tables and the hidden-app preferences into a new snapshot</string>
+    <string name="launcher_backup_empty">No snapshots yet</string>
+    <string name="launcher_backup_result_ok">Done</string>
+    <string name="launcher_backup_result_failed">Failed: </string>
+    <string name="launcher_backup_restore_title">Restore snapshot</string>
+    <string name="launcher_backup_restore_message">The current layout is backed up automatically before restoring, and the home screen restarts afterwards.</string>
+    <string name="launcher_backup_restore_confirm">Restore</string>
+    <string name="launcher_backup_cancel">Cancel</string>
+    <string name="launcher_backup_auto">Automatic backup</string>
+    <string name="launcher_backup_auto_summary">Ask the launcher scope for a snapshot periodically; the launcher scope must be enabled in LSPosed.</string>
+    <string name="launcher_backup_interval">Backup interval</string>
+    <string name="launcher_backup_interval_summary">Current: %s</string>
+    <string name="launcher_backup_interval_6h">6 hours</string>
+    <string name="launcher_backup_interval_12h">12 hours</string>
+    <string name="launcher_backup_interval_24h">24 hours</string>
+    <string name="launcher_backup_interval_48h">48 hours</string>
+    <string name="launcher_backup_tag_auto">Auto</string>
+    <string name="launcher_backup_tag_manual">Manual</string>
+    <string name="launcher_backup_tag_pre_restore">Before restore</string>
+    <string name="launcher_backup_rows_unit">rows</string>
 </resources>

@@ -15,6 +15,7 @@ import com.luckyzyx.luckytool.hook.scopes.launcher.HookAppBadge
 import com.luckyzyx.luckytool.hook.scopes.launcher.HookDeviceProfileOption
 import com.luckyzyx.luckytool.hook.scopes.launcher.HookLauncherFeature
 import com.luckyzyx.luckytool.hook.scopes.launcher.HookOplusBubbleTextView
+import com.luckyzyx.luckytool.hook.scopes.launcher.LauncherBackupHooker
 import com.luckyzyx.luckytool.hook.scopes.launcher.LauncherLayoutRowColume
 import com.luckyzyx.luckytool.hook.scopes.launcher.LongPressAppIconOpenAppDetails
 import com.luckyzyx.luckytool.hook.scopes.launcher.PageIndicator
@@ -136,6 +137,8 @@ object HookLauncher : YukiBaseHooker() {
         }
         //自定义桌面默认主页
         loadHooker(CustomDesktopDefaultHomePage)
+        //桌面布局备份/恢复（无开关：指令通道常驻，未使用时不做任何事）
+        loadHooker(LauncherBackupHooker)
         //启用桌面下方按钮选择项
         if (preferences(ModulePrefs).getBoolean("enable_launcher_indicator_entry", false)) {
             if (osCode >= 37) loadHooker(EnableLauncherIndicatorEntry)
