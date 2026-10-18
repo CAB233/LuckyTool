@@ -181,8 +181,8 @@ object HookSettings : YukiBaseHooker() {
         //《自动释放应用空间》默认关闭 - 开关 UI 显示
         if (osCode >= 36) loadHooker(DisableAppArchivingUI)
 
-        //禁用无障碍对话框
-        if (osCode >= 38) loadHooker(DisableAccessibilityDialog)
+        //禁用无障碍对话框 C17
+        if (osCode >= 40) loadHooker(DisableAccessibilityDialog)
 
         //电源键
 //        //Source PowerButtonPreferenceController
