@@ -1,6 +1,7 @@
 package com.luckyzyx.luckytool.hook.scopes.launcher
 
 import android.util.Pair
+import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.ArrayClass
 import com.highcapable.kavaref.extension.classOf
@@ -79,6 +80,41 @@ class LauncherLayoutRowColume(val dexKitBridge: DexKitBridge) : YukiBaseHooker()
                 returnType = Boolean::class
             }.hook {
                 intercept(true)
+            }
+
+            //Source InvariantDeviceProfile
+            //getPredefinedDeviceProfiles 按 idp_grid_name 过滤网格选项, 官方列表里没有的组合会被过滤空
+            //然后回落到 canBeDefault 的默认网格, 于是点应用后行列数又变回去; 这里把回落出来的网格改写成用户选择的组合
+            "com.android.launcher3.InvariantDeviceProfile".toClass().resolve().firstMethod {
+                name = "getPredefinedDeviceProfiles"
+                parameterCount = 4
+                returnType = ArrayList::class
+            }.hook {
+                after {
+                    val gridName = args[1] as? String ?: return@after
+                    val gridShape = gridName.split("_by_")
+                    if (gridShape.size != 2) return@after
+                    val column = gridShape[0].toIntOrNull() ?: return@after
+                    val row = gridShape[1].toIntOrNull() ?: return@after
+                    if (column !in 4..maxColumns || row !in 6..maxRows) return@after
+                    val options = result<ArrayList<*>>() ?: return@after
+                    val option = options.firstOrNull() ?: return@after
+                    //选项实际是 OplusDisplayOption, grid 字段声明在父类 DisplayOption 上
+                    val gridOption = option.asResolver()
+                        .firstFieldOrNull { name = "grid"; superclass() }?.get<Any>()
+                        ?: return@after
+                    //官方已存在该组合时不处理, 只改写回落出来的那个选项
+                    val currentName = gridOption.asResolver()
+                        .firstFieldOrNull { name = "name"; type = String::class }?.get<String>()
+                    if (currentName == gridName) return@after
+                    gridOption.asResolver().apply {
+                        firstFieldOrNull { name = "name"; type = String::class }?.set(gridName)
+                        firstFieldOrNull { name = "numColumns"; type = Int::class }?.set(column)
+                        firstFieldOrNull { name = "numRows"; type = Int::class }?.set(row)
+                        firstFieldOrNull { name = "isEnabled"; type = Boolean::class }?.set(true)
+                    }
+                    result = arrayListOf(option)
+                }
             }
 
             //Source IconFallenUtils (混淆类名逐版本变化, 用源文件名做锚点)
