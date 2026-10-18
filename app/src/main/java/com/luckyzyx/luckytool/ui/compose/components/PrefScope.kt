@@ -495,9 +495,8 @@ class PrefScopeBuilder internal constructor(
                 steps = ((valueRange.last - valueRange.first) / step - 1).coerceAtLeast(0),
                 trackRange = valueRange.first.toFloat()..valueRange.last.toFloat(),
             )
-            var dragging by remember { mutableStateOf(false) }
-            // 外部值变化同步（拖动期间不覆盖用户手势）
-            if (!dragging) {
+            // 外部值变化同步：拖动期间 stored 不变，因此不会覆盖用户手势
+            LaunchedEffect(stored) {
                 sliderState.value = stored.coerceIn(valueRange.first, valueRange.last).toFloat()
             }
             val current = sliderState.value.roundToInt()
@@ -530,12 +529,8 @@ class PrefScopeBuilder internal constructor(
                         }
                         Slider(
                             state = sliderState,
-                            onValueChange = {
-                                dragging = true
-                                sliderState.value = it
-                            },
+                            onValueChange = { sliderState.value = it },
                             onValueChangeFinished = {
-                                dragging = false
                                 val min = valueRange.first
                                 val stepped = (((sliderState.value - min) / step).roundToInt() * step + min)
                                     .coerceIn(valueRange.first, valueRange.last)
