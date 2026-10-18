@@ -31,6 +31,7 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 - 应用权限页 —— 检测通知、所有文件访问、应用列表、安装应用四项权限
 - 自定义状态栏网速刷新间隔 —— 默认不开启，可在 0.1 秒至 5 秒之间按 0.1 秒步进设置
 - MEMC 配置的 Activity 列表支持搜索并显示 Activity 名称
+- 桌面布局备份与恢复 —— 在「桌面相关」页内手动备份与恢复图标位置、文件夹、热座与隐藏应用状态；支持按周期自动快照，快照为 zip 文件，保存在 Download/LuckyTool/launcher_backup，最多保留 20 份
 
 #### 优化
 
