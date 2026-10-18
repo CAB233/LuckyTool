@@ -1,6 +1,10 @@
 package com.luckyzyx.luckytool.ui.compose
 
+import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -32,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
@@ -88,9 +93,6 @@ data object HomeRoute
 data object OtherRoute
 
 @Serializable
-data object FunctionRoute
-
-@Serializable
 data object LogRoute
 
 @Serializable
@@ -114,17 +116,35 @@ private data class ShellTab(
 /** 悬浮胶囊底栏占位高度（对齐 MiuixFloatingBottomBar 的 64.dp 胶囊 + 12.dp 余量） */
 private val FloatingBarInset = 76.dp
 
+@SuppressLint("RestrictedApi") // currentBackStack 标了 RestrictTo(LIBRARY_GROUP)：它是 backQueue 的完整镜像（底→顶），
+// 官方推荐的 composeNavigator.backStack 需再取 navigator、且同样是库内 API，这里只为判定 tab 根，等价且更直接
 @Composable
 fun MainShell(activity: MainActivity) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
 
-    val onFunctionTab = currentDestination?.hasRoute<FunctionRoute>() == true
-    val onHomeTab = currentDestination?.hasRoute<HomeRoute>() == true
+    val tabs = listOf(
+        ShellTab(R.string.nav_other, R.drawable.ic_baseline_dashboard_24, Icons.Rounded.Dashboard, OtherRoute),
+        ShellTab(R.string.nav_function, R.drawable.ic_baseline_extension_24, Icons.Rounded.Extension, FunctionTreeRoute),
+        ShellTab(R.string.nav_home, R.drawable.ic_baseline_home_24, Icons.Rounded.Home, HomeRoute),
+        ShellTab(R.string.nav_log, R.drawable.ic_baseline_assignment_24, Icons.AutoMirrored.Rounded.Assignment, LogRoute),
+        ShellTab(R.string.nav_setting, R.drawable.ic_baseline_settings_24, Icons.Rounded.Settings, SettingRoute),
+    )
+
+    // tab 选中态不能只看栈顶 currentDestination：合并成单层 NavHost 后作用域页/搜索页都是根级目的地，
+    // 功能树 → 作用域页会让栈顶变成 ScopeRoute，此时任何 tab 的 hasRoute 都不成立
+    //（selectedIndex = -1、底栏整条消失），而它其实属于功能 tab 的子栈。
+    // 因此改为取「扁平栈里最靠上的那个 tab 根目的地」——子页归属它压在下面的那个 tab。
+    val backStack by navController.currentBackStack.collectAsState()
+    val activeTabDestination = backStack
+        .lastOrNull { entry -> tabs.any { tab -> entry.destination.hasRoute(tab.route::class) } }
+        ?.destination
+
+    val onFunctionTab = activeTabDestination?.hasRoute<FunctionTreeRoute>() == true
+    val onHomeTab = activeTabDestination?.hasRoute<HomeRoute>() == true
     // 主题页为全屏子页：隐藏底部导航，避免与页内 MaterialScaffold 顶栏叠加
     val onThemePage = currentDestination?.hasRoute<ThemeRoute>() == true
-    // 跨 tab 直达的作用域页为全屏页：同样隐藏底栏，返回时回到来源 tab，不再切到 Function tab
     val onScopePage = currentDestination?.hasRoute<ScopeRoute>() == true
 
     val uiMode = LocalUiMode.current
@@ -134,16 +154,16 @@ fun MainShell(activity: MainActivity) {
     val enableFloatingBottomBarBlur = LocalEnableFloatingBottomBarBlur.current
     val enableBadge = LocalEnableNavigationBadge.current
 
-    val showBar = !onThemePage && !onScopePage
+    // 作用域页分两种，不能一律隐藏底栏：
+    // 1) 功能树子栈里的（onFunctionTab = true）：与合并前一致保留底栏并高亮「功能」；
+    // 2) 跨 tab 直达的（onFunctionTab = false）：全屏页，隐藏底栏，返回时回到来源 tab。
+    val showBar = !onThemePage && !(onScopePage && !onFunctionTab)
     // 悬浮底栏：Miuix 外观线 + 开关开启（主题页/全屏作用域页自身不显示底栏）
     val floatingBar = isMiuix && showBar && enableFloatingBottomBar
 
     // 回传当前 tab 状态（MainActivity.onResume 显示恢复 / checkOs 判断）
     LaunchedEffect(onFunctionTab) { activity.isOnFunctionTab = onFunctionTab }
     LaunchedEffect(onHomeTab) { activity.isOnHomeTab = onHomeTab }
-
-    // Function tab 由子树处理返回键：关闭 Compose 侧自动返回，避免双处理
-    LaunchedEffect(onFunctionTab) { navController.enableOnBackPressed(!onFunctionTab) }
 
     // 跨 tab 跳转请求（OtherPage/SettingPage → 作用域页）：直接压入全屏作用域页（隐藏底栏），
     // 不切到 Function tab，因此底栏不会从来源 tab（Other/Setting）跳到「功能」；返回时 popBackStack 直接回到来源 tab。
@@ -158,14 +178,7 @@ fun MainShell(activity: MainActivity) {
         }
     }
 
-    val tabs = listOf(
-        ShellTab(R.string.nav_other, R.drawable.ic_baseline_dashboard_24, Icons.Rounded.Dashboard, OtherRoute),
-        ShellTab(R.string.nav_function, R.drawable.ic_baseline_extension_24, Icons.Rounded.Extension, FunctionRoute),
-        ShellTab(R.string.nav_home, R.drawable.ic_baseline_home_24, Icons.Rounded.Home, HomeRoute),
-        ShellTab(R.string.nav_log, R.drawable.ic_baseline_assignment_24, Icons.AutoMirrored.Rounded.Assignment, LogRoute),
-        ShellTab(R.string.nav_setting, R.drawable.ic_baseline_settings_24, Icons.Rounded.Settings, SettingRoute),
-    )
-    val selectedIndex = tabs.indexOfFirst { currentDestination?.hasRoute(it.route::class) == true }
+    val selectedIndex = tabs.indexOfFirst { activeTabDestination?.hasRoute(it.route::class) == true }
     val onSelect: (Int) -> Unit = { index ->
         val tab = tabs.getOrNull(index)
         if (tab != null) {
@@ -249,7 +262,8 @@ fun MainShell(activity: MainActivity) {
                         tonalElevation = 0.dp,
                     ) {
                         tabs.forEach { tab ->
-                            val selected = currentDestination?.hasRoute(tab.route::class) == true
+                            // 与 selectedIndex 同源：Material 底栏也必须按 tab 根判定，否则作用域页/搜索页上无 tab 高亮
+                            val selected = activeTabDestination?.hasRoute(tab.route::class) == true
                             // 角标数据源：主页发现新版本（对齐 KernelSU 导航角标开关）
                             val showBadge = enableBadge &&
                                 tab.route == HomeRoute &&
@@ -311,17 +325,17 @@ fun MainShell(activity: MainActivity) {
                                 Modifier
                             }
                         ),
-                    // 预测性返回动画使用 NavHost 官方默认值（不自定义过渡）：
-                    // 自定义 slide 会与内层 NavHost 同时驱动、并叠加系统的窗口级动画。
+                    // 合并成单层 NavHost 后全应用只有这一条返回栈：预测性返回配横移过渡，
+                    // 与系统的窗口级返回预览同向；enter/exit 仍用官方默认值，不做自定义。
+                    predictivePopEnterTransition = { slideInHorizontally(animationSpec = tween(300)) { it / 3 } },
+                    predictivePopExitTransition = { slideOutHorizontally(animationSpec = tween(300)) { it / 3 } },
                 ) {
                     composable<HomeRoute> { HomePage(activity) }
                     composable<OtherRoute> { OtherPage(activity) }
-                    composable<FunctionRoute> {
-                        FunctionPage(
-                            activity = activity,
-                            onShellBack = { navController.popBackStack() },
-                        )
-                    }
+                    // 功能 tab 的根就是功能树：功能树 → 搜索页 → 作用域页全压在同一条 shell 栈上，
+                    // 作用域页统一落在下面的根级 ScopeRoute（hasRoute 不遍历父级，故不为本 tab 造嵌套图）。
+                    composable<FunctionTreeRoute> { FunctionTreePage(activity, navController) }
+                    composable<SearchRoute> { FunctionSearchPage(navController) }
                     composable<LogRoute> { LogPage() }
                     composable<SettingRoute> {
                         SettingPage(
@@ -337,7 +351,7 @@ fun MainShell(activity: MainActivity) {
                             ThemeScreen(onBack = { navController.popBackStack() })
                         }
                     }
-                    // 跨 tab 直达的全屏作用域页：复用 FunctionPage 的 ScopePageHost，返回键/侧滑返回均回到来源 tab
+                    // 作用域页唯一宿主：功能树内打开与跨 tab 全屏直达共用，返回键/侧滑返回都弹本栈
                     composable<ScopeRoute> { entry ->
                         val route = entry.toRoute<ScopeRoute>()
                         EdgeSwipeDismiss(

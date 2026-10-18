@@ -57,12 +57,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.navigation.NavDestination.Companion.hasRoute
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
+import androidx.navigation.NavController
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
@@ -100,8 +95,8 @@ import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import java.util.Arrays
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 
-// Function 子树类型安全路由（迁移方案 §7：ScopeRoute(scopeId, key, position) 等价物）
-// 注意：FunctionRoute 是 shell 级 tab 路由（MainShell），此处是 Function tab 内部导航。
+// 功能子树类型安全路由（迁移方案 §7：ScopeRoute(scopeId, key, position) 等价物）
+// 合并成单层 NavHost 后以下三个目的地都注册在 shell 的同一张图上（功能树即功能 tab 的根）。
 
 @Serializable
 data object FunctionTreeRoute
@@ -118,27 +113,14 @@ data class ScopeRoute(
 )
 
 /**
- * Function tab：Compose 功能树 + 全屏搜索 + 作用域页宿主（P3 终局，替代旧
- * XposedFragment/ComposeScopeFragment + function_nav.xml 子树）。
+ * 功能树目的地（shell 单栈上的 [FunctionTreeRoute]）：功能树 + 顶栏版本/重启菜单。
+ * 合并成单层 NavHost 后本页不再自建内部栈，导航一律交给宿主的 [navController]：
+ * 返回键、预测性返回动画、侧滑返回都只有 shell NavHost 一处处理，
+ * 不存在「两个 NavHost 后注册者优先」的返回键归属问题。
  */
 @Composable
-fun FunctionPage(activity: MainActivity, onShellBack: () -> Unit) {
-    val navController = rememberNavController()
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val atTree = backStackEntry?.destination?.hasRoute<FunctionTreeRoute>() == true
-    // 内部栈是否还有上一页可退：功能树根是内部栈根（无上一页），作用域页/搜索页有上一页可退。
-    // 跨 tab 直达不再走本子树（改由 MainShell 压入全屏作用域页），此处只服务功能树 → 作用域页的常规流程。
-    val canPopInternal = navController.previousBackStackEntry != null
-
+internal fun FunctionTreePage(activity: MainActivity, navController: NavController) {
     var showVersionInfo by remember { mutableStateOf(false) }
-
-    // 返回键不再自己注册 BackHandler：Activity 的 NavigationEventDispatcher 按「后注册者优先」派发，
-    // 下方内层 NavHost 的处理器注册在本页之后，内部栈可退时由它接管（预测性返回动画也由它驱动）；
-    // 内部栈到底时它自行禁用，事件继续落到 shell NavHost 的处理器上，
-    // 因此「功能页 → 主页」同样带预测性返回动画（功能树根 → 上一 tab/退出）。
-    // 若这里再挂 BackHandler，它会抢在 shell 之前以非预测方式 pop，功能页返回主页就没有预览动画了。
-    // 侧滑返回（EdgeSwipeDismiss）与服务页顶栏返回键不是系统返回手势，仍按下方的显式逻辑处理。
-
     var showRestartMenu by remember { mutableStateOf(false) }
 
     if (showVersionInfo) {
@@ -149,47 +131,29 @@ fun FunctionPage(activity: MainActivity, onShellBack: () -> Unit) {
         RestartMenuUtils.RestartMenuDialog(activity) { showRestartMenu = false }
     }
 
+    FunctionTreeScreen(
+        onOpenPage = { key, title -> navController.navigate(ScopeRoute(key, title)) },
+        onOpenSearch = { navController.navigate(SearchRoute) },
+        onShowVersionInfo = { showVersionInfo = true },
+        onShowRestartMenu = { showRestartMenu = true },
+    )
+}
+
+/**
+ * 全屏搜索目的地（shell 单栈上的 [SearchRoute]）：侧滑返回与顶栏返回键都直接弹 shell 栈。
+ * 搜索页在栈上必然有上一页（功能树），内部栈概念消失后不再需要
+ *「内部可退才 pop、否则交还 shell」的分支。
+ */
+@Composable
+internal fun FunctionSearchPage(navController: NavController) {
     EdgeSwipeDismiss(
-        enabled = LocalEnableSwipeDismiss.current && !atTree,
-        onDismiss = { if (canPopInternal) navController.popBackStack() else onShellBack() },
+        enabled = LocalEnableSwipeDismiss.current,
+        onDismiss = { navController.popBackStack() },
     ) {
-        NavHost(
-            navController = navController,
-            startDestination = FunctionTreeRoute,
-            modifier = Modifier.fillMaxSize(),
-            // 预测性返回动画使用 NavHost 官方默认值（不自定义过渡）
-        ) {
-            composable<FunctionTreeRoute> {
-                FunctionTreeScreen(
-                    onOpenPage = { key, title -> navController.navigate(ScopeRoute(key, title)) },
-                    onOpenSearch = { navController.navigate(SearchRoute) },
-                    onShowVersionInfo = { showVersionInfo = true },
-                    onShowRestartMenu = { showRestartMenu = true },
-                )
-            }
-            composable<SearchRoute> {
-                FunctionSearchScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpen = { route -> navController.navigate(route) },
-                )
-            }
-            composable<ScopeRoute> { entry ->
-                val route = entry.toRoute<ScopeRoute>()
-                ScopePageHost(
-                    activity = activity,
-                    route = route,
-                    // 顶栏返回键与系统返回键一致：内部有上一页退内部栈，跨 tab 直达的根页交还 shell
-                    onBack = {
-                        if (navController.previousBackStackEntry != null) {
-                            navController.popBackStack()
-                        } else {
-                            onShellBack()
-                        }
-                    },
-                    onNavigate = { key, title -> navController.navigate(ScopeRoute(key, title ?: "", "", -1)) },
-                )
-            }
-        }
+        FunctionSearchScreen(
+            onBack = { navController.popBackStack() },
+            onOpen = { route -> navController.navigate(route) },
+        )
     }
 }
 
