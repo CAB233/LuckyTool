@@ -407,7 +407,7 @@ object RestartMenuUtils {
                 if (packName == "com.android.systemui") return@forEachIndexed
                 val uid = Process.myUid() / 100000
                 controller?.forceStopPackage(packName, uid)
-                LogUtils.e("restartScope", "forceStopPackage", packName, true)
+                LogUtils.d("restartScope", "forceStopPackage", packName, true)
             }
         }
         if (killSystemUI) ShellUtils.fastCmd(CommandUtils.killSysui)
