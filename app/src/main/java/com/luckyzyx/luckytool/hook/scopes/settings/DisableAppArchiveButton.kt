@@ -23,6 +23,10 @@ import org.lsposed.lsparanoid.Obfuscate
  *
  * 本 hook 让归档判定恒为不可用，并在刷新后把按钮置为 GONE；已归档应用需要"恢复"入口，
  * 那一支原生会 setEnabled(true)，因此保留显示。
+ *
+ * 归档按钮占用的正是原来"打开"按钮的位置，而 performOpenButton 在支持归档时是"无条件"隐藏"打开"：
+ * if (isSupportArchingFeature() && mOpenButton != null) { setVisibility(GONE); return true; }
+ * 所以只隐藏归档按钮并不会让"打开"自己回来，必须一并把这次隐藏改回按可否启动决定。
  */
 @Obfuscate
 object DisableAppArchiveButton : YukiBaseHooker() {
@@ -46,6 +50,14 @@ object DisableAppArchiveButton : YukiBaseHooker() {
                 //仅归档态（不可用）隐藏，保留已归档应用的"恢复"按钮
                 if (!button.isEnabled) button.visibility = View.GONE
                 ret
+            }
+            firstMethodOrNull { name = "performOpenButton" }?.intercept {
+                if (!isEnable) return@intercept proceed()
+                val openButton = firstFieldOrNull { name = "mOpenButton" }?.of(instance)
+                    ?.get<TextView>() ?: return@intercept proceed()
+                //原生"支持归档就隐藏"改回"有启动意图才显示"
+                openButton.visibility = if (args.getOrNull(0) == null) View.GONE else View.VISIBLE
+                true
             }
         }
     }
