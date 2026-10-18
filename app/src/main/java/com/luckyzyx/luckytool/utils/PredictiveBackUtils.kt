@@ -37,7 +37,6 @@ object PredictiveBackUtils {
             classOf<ApplicationInfo>().resolve().firstMethod {
                 name = "setEnableOnBackInvokedCallback"; parameters(classOf<Boolean>())
             }.of(context.applicationInfo).invoke(enable)
-            Unit
         }
     }
 
