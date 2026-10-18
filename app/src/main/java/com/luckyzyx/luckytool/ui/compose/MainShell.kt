@@ -99,6 +99,14 @@ fun MainShell(activity: MainActivity) {
     val nav = rememberNavController<Route>(HomeRoute)
     val backStack = nav.backStack
 
+    // 恢复旧版本存档的返回栈时补齐栈底：旧版本可能存成 [OtherRoute] 这种以非主页为根的栈，
+    // 那样在该页返回会直接退出 App。
+    LaunchedEffect(Unit) {
+        if (backStack.firstOrNull() != HomeRoute) {
+            Snapshot.withMutableSnapshot { backStack.add(0, HomeRoute) }
+        }
+    }
+
     val tabs = listOf(
         ShellTab(R.string.nav_other, R.drawable.ic_baseline_dashboard_24, Icons.Rounded.Dashboard, OtherRoute),
         ShellTab(R.string.nav_function, R.drawable.ic_baseline_extension_24, Icons.Rounded.Extension, FunctionTreeRoute),
@@ -301,16 +309,17 @@ fun MainShell(activity: MainActivity) {
                             }
                         ),
                 ) {
-                    // 根 tab 页没有上一页可回：显式写 None（库内部 enabled = topIndex > 0 本就禁用）
-                    entry<HomeRoute>(swipeDismiss = NavSwipeDirection.None) { HomePage(activity) }
-                    entry<OtherRoute>(swipeDismiss = NavSwipeDirection.None) { OtherPage(activity) }
+                    // 主页永远是栈底：非主页 tab 的根压在它上面，所以「tab 根」也能退回主页，
+                    // 侧滑方向与返回语义一致；栈底（topIndex == 0）由库自动禁用，不用特判。
+                    entry<HomeRoute>(swipeDismiss = pageSwipeDirection) { HomePage(activity) }
+                    entry<OtherRoute>(swipeDismiss = pageSwipeDirection) { OtherPage(activity) }
                     // 功能 tab 的根就是功能树：功能树 → 搜索页 → 作用域页全压在同一条 shell 栈上。
                     // 库按 key 的精确运行时类匹配 entry，每种具体路由类型各注册一份即可。
-                    entry<FunctionTreeRoute>(swipeDismiss = NavSwipeDirection.None) {
+                    entry<FunctionTreeRoute>(swipeDismiss = pageSwipeDirection) {
                         FunctionTreePage(activity, nav)
                     }
-                    entry<LogRoute>(swipeDismiss = NavSwipeDirection.None) { LogPage() }
-                    entry<SettingRoute>(swipeDismiss = NavSwipeDirection.None) {
+                    entry<LogRoute>(swipeDismiss = pageSwipeDirection) { LogPage() }
+                    entry<SettingRoute>(swipeDismiss = pageSwipeDirection) {
                         SettingPage(
                             activity = activity,
                             onOpenTheme = { nav.pushOnce(ThemeRoute) },
@@ -455,12 +464,16 @@ private fun PermissionGateScreen(activity: MainActivity) {
 
 /**
  * 底栏 tab 语义：点 tab 即把返回栈重置成该 tab 的根，不保留各 tab 的子栈（不做 saveState/restoreState）。
+ *
+ * 主页 [HomeRoute] 永远是栈底：非主页 tab 的根压在主页上面，于是「在其它 tab 的根上返回」= 退回主页，
+ * 而不是退出 App（退出只发生在主页根上——栈只剩一项时库不注册预测性返回，事件透传给系统）。
  * 整条栈的替换放在同一个 mutable 快照里提交：NavDisplay 要求栈非空，清空与压入之间不能被观察到空栈。
  */
 private fun NavController.resetToTabRoot(route: Route) {
-    if (backStack.size == 1 && backStack.first() == route) return
+    val target = if (route == HomeRoute) listOf(HomeRoute) else listOf(HomeRoute, route)
+    if (backStack == target) return
     Snapshot.withMutableSnapshot {
         backStack.clear()
-        backStack.add(route)
+        backStack.addAll(target)
     }
 }
