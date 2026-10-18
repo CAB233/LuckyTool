@@ -57,14 +57,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.navigation.NavController
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
 import com.luckyzyx.luckytool.ui.compose.components.PrefIndexItem
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.ScrollTarget
-import com.luckyzyx.luckytool.ui.compose.components.EdgeSwipeDismiss
 import com.luckyzyx.luckytool.ui.compose.components.PrefIconBadge
 import com.luckyzyx.luckytool.ui.compose.components.TopBarActionButton
 import com.luckyzyx.luckytool.ui.compose.components.TopBarOverflowItem
@@ -74,7 +72,6 @@ import com.luckyzyx.luckytool.ui.compose.components.material.MaterialTextField
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageContent
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageRegistry
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
-import com.luckyzyx.luckytool.ui.shell.LocalEnableSwipeDismiss
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.AppIconCache
@@ -89,37 +86,22 @@ import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TablePlugin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.nav.core.NavController
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import java.util.Arrays
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 
-// 功能子树类型安全路由（迁移方案 §7：ScopeRoute(scopeId, key, position) 等价物）
-// 合并成单层 NavHost 后以下三个目的地都注册在 shell 的同一张图上（功能树即功能 tab 的根）。
-
-@Serializable
-data object FunctionTreeRoute
-
-@Serializable
-data object SearchRoute
-
-@Serializable
-data class ScopeRoute(
-    val pageKey: String,
-    val title: String = "",
-    val scrollKey: String = "",
-    val scrollPosition: Int = -1,
-)
+// 功能子树的路由（FunctionTreeRoute / SearchRoute / ScopeRoute）统一声明在 NavRoutes.kt 的 Route 层级里，
+// 与 MainShell 的 tab 路由共用同一条返回栈。
 
 /**
- * 功能树目的地（shell 单栈上的 [FunctionTreeRoute]）：功能树 + 顶栏版本/重启菜单。
- * 合并成单层 NavHost 后本页不再自建内部栈，导航一律交给宿主的 [navController]：
- * 返回键、预测性返回动画、侧滑返回都只有 shell NavHost 一处处理，
- * 不存在「两个 NavHost 后注册者优先」的返回键归属问题。
+ * 功能树目的地（shell 返回栈上的 [FunctionTreeRoute]）：功能树 + 顶栏版本/重启菜单。
+ * 本页不持有返回栈，导航一律交给 shell 的 miuix-nav [NavController]：
+ * 系统返回、预测性返回动画、侧滑返回都由 shell 的那一个 NavDisplay 统一处理。
  */
 @Composable
-internal fun FunctionTreePage(activity: MainActivity, navController: NavController) {
+internal fun FunctionTreePage(activity: MainActivity, nav: NavController) {
     var showVersionInfo by remember { mutableStateOf(false) }
     var showRestartMenu by remember { mutableStateOf(false) }
 
@@ -132,29 +114,24 @@ internal fun FunctionTreePage(activity: MainActivity, navController: NavControll
     }
 
     FunctionTreeScreen(
-        onOpenPage = { key, title -> navController.navigate(ScopeRoute(key, title)) },
-        onOpenSearch = { navController.navigate(SearchRoute) },
+        onOpenPage = { key, title -> nav.pushOnce(ScopeRoute(key, title)) },
+        onOpenSearch = { nav.pushOnce(SearchRoute) },
         onShowVersionInfo = { showVersionInfo = true },
         onShowRestartMenu = { showRestartMenu = true },
     )
 }
 
 /**
- * 全屏搜索目的地（shell 单栈上的 [SearchRoute]）：侧滑返回与顶栏返回键都直接弹 shell 栈。
+ * 全屏搜索目的地（shell 返回栈上的 [SearchRoute]）：顶栏返回键与（库驱动的）侧滑返回都直接弹 shell 栈。
  * 搜索页在栈上必然有上一页（功能树），内部栈概念消失后不再需要
- *「内部可退才 pop、否则交还 shell」的分支。
+ *「内部可退才 pop、否则交还 shell」的分支。侧滑手势由 NavDisplay 的 entry(swipeDismiss = …) 提供。
  */
 @Composable
-internal fun FunctionSearchPage(navController: NavController) {
-    EdgeSwipeDismiss(
-        enabled = LocalEnableSwipeDismiss.current,
-        onDismiss = { navController.popBackStack() },
-    ) {
-        FunctionSearchScreen(
-            onBack = { navController.popBackStack() },
-            onOpen = { route -> navController.navigate(route) },
-        )
-    }
+internal fun FunctionSearchPage(nav: NavController) {
+    FunctionSearchScreen(
+        onBack = { nav.pop() },
+        onOpen = { route -> nav.pushOnce(route) },
+    )
 }
 
 /** 页标题：对齐旧功能树 root 标题（apps/others = App 标签；related/statusbar = 覆盖表） */

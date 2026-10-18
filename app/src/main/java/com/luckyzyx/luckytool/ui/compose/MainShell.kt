@@ -1,10 +1,6 @@
 package com.luckyzyx.luckytool.ui.compose
 
-import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -36,28 +32,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavDestination.Companion.hasRoute
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.activity.MainActivity
-import com.luckyzyx.luckytool.ui.compose.components.EdgeSwipeDismiss
 import com.luckyzyx.luckytool.ui.compose.components.GateDialog
 import com.luckyzyx.luckytool.ui.compose.components.material.LocalBottomBarPresent
 import com.luckyzyx.luckytool.ui.compose.components.material.LocalShellBottomInset
@@ -78,29 +67,16 @@ import com.luckyzyx.luckytool.ui.shell.ShellBadgeState
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import kotlin.system.exitProcess
-import kotlinx.serialization.Serializable
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.nav.core.NavController
+import top.yukonga.miuix.kmp.nav.core.NavDisplay
+import top.yukonga.miuix.kmp.nav.core.rememberNavController
+import top.yukonga.miuix.kmp.nav.transition.NavSwipeDirection
 import top.yukonga.miuix.kmp.shader.isRenderEffectSupported
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-// 类型安全路由（迁移方案 P2：MainShell 五个 tab，官方 recommended pattern）
-
-@Serializable
-data object HomeRoute
-
-@Serializable
-data object OtherRoute
-
-@Serializable
-data object LogRoute
-
-@Serializable
-data object SettingRoute
-
-/** 主题与配色页（迁移 KernelSU colorpalette，Material / Miuix 双实现） */
-@Serializable
-data object ThemeRoute
+// 路由层级（Route 封闭层级）见 NavRoutes.kt：MainShell 与 FunctionPage 共用同一条栈
 
 /** 跨 tab 跳转请求：pageKey = ScopePageRegistry 页键，title = 目标页标题（可空） */
 data class FunctionRequest(val pageKey: String, val title: String?)
@@ -110,19 +86,18 @@ private data class ShellTab(
     val labelRes: Int,
     val iconRes: Int,
     val mIcon: ImageVector,
-    val route: Any,
+    val route: Route,
 )
 
 /** 悬浮胶囊底栏占位高度（对齐 MiuixFloatingBottomBar 的 64.dp 胶囊 + 12.dp 余量） */
 private val FloatingBarInset = 76.dp
 
-@SuppressLint("RestrictedApi") // currentBackStack 标了 RestrictTo(LIBRARY_GROUP)：它是 backQueue 的完整镜像（底→顶），
-// 官方推荐的 composeNavigator.backStack 需再取 navigator、且同样是库内 API，这里只为判定 tab 根，等价且更直接
 @Composable
 fun MainShell(activity: MainActivity) {
-    val navController = rememberNavController()
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = backStackEntry?.destination
+    // miuix-nav：返回栈就是一串 Route。显式给 <Route> 让库用封闭层级的序列化器持久化整条栈
+    //（配置变更 / 进程死亡都能恢复），且栈底必须非空（NavDisplay 对空栈直接 require 失败）。
+    val nav = rememberNavController<Route>(HomeRoute)
+    val backStack = nav.backStack
 
     val tabs = listOf(
         ShellTab(R.string.nav_other, R.drawable.ic_baseline_dashboard_24, Icons.Rounded.Dashboard, OtherRoute),
@@ -132,20 +107,18 @@ fun MainShell(activity: MainActivity) {
         ShellTab(R.string.nav_setting, R.drawable.ic_baseline_settings_24, Icons.Rounded.Settings, SettingRoute),
     )
 
-    // tab 选中态不能只看栈顶 currentDestination：合并成单层 NavHost 后作用域页/搜索页都是根级目的地，
-    // 功能树 → 作用域页会让栈顶变成 ScopeRoute，此时任何 tab 的 hasRoute 都不成立
+    // tab 选中态不能只看栈顶：搜索页/作用域页压在同一条栈上，栈顶变成 ScopeRoute 时任何 tab 都不能判错
     //（selectedIndex = -1、底栏整条消失），而它其实属于功能 tab 的子栈。
-    // 因此改为取「扁平栈里最靠上的那个 tab 根目的地」——子页归属它压在下面的那个 tab。
-    val backStack by navController.currentBackStack.collectAsState()
-    val activeTabDestination = backStack
-        .lastOrNull { entry -> tabs.any { tab -> entry.destination.hasRoute(tab.route::class) } }
-        ?.destination
+    // 因此取「返回栈里最靠上的那个 tab 根路由」——子页归属它压在下面的那个 tab。
+    val activeTabKey = backStack.lastOrNull { key -> tabs.any { tab -> tab.route == key } }
+    // 栈顶 = 当前展示的目的地
+    val topKey = backStack.lastOrNull()
 
-    val onFunctionTab = activeTabDestination?.hasRoute<FunctionTreeRoute>() == true
-    val onHomeTab = activeTabDestination?.hasRoute<HomeRoute>() == true
+    val onFunctionTab = activeTabKey == FunctionTreeRoute
+    val onHomeTab = activeTabKey == HomeRoute
     // 主题页为全屏子页：隐藏底部导航，避免与页内 MaterialScaffold 顶栏叠加
-    val onThemePage = currentDestination?.hasRoute<ThemeRoute>() == true
-    val onScopePage = currentDestination?.hasRoute<ScopeRoute>() == true
+    val onThemePage = topKey == ThemeRoute
+    val onScopePage = topKey is ScopeRoute
 
     val uiMode = LocalUiMode.current
     val isMiuix = uiMode == UiMode.Miuix
@@ -153,6 +126,14 @@ fun MainShell(activity: MainActivity) {
     val enableFloatingBottomBar = LocalEnableFloatingBottomBar.current
     val enableFloatingBottomBarBlur = LocalEnableFloatingBottomBarBlur.current
     val enableBadge = LocalEnableNavigationBadge.current
+    val enableSwipeDismiss = LocalEnableSwipeDismiss.current
+    // 侧滑返回方向：库不会按布局方向自动翻转 entry 级 swipeDismiss，RTL 时往反方向滑；
+    // 设置项「侧滑返回」关闭时不给任何页面挂手势（系统返回仍然可用）。
+    val pageSwipeDirection = when {
+        !enableSwipeDismiss -> NavSwipeDirection.None
+        LocalLayoutDirection.current == LayoutDirection.Rtl -> NavSwipeDirection.RightToLeft
+        else -> NavSwipeDirection.LeftToRight
+    }
 
     // 作用域页分两种，不能一律隐藏底栏：
     // 1) 功能树子栈里的（onFunctionTab = true）：与合并前一致保留底栏并高亮「功能」；
@@ -166,32 +147,24 @@ fun MainShell(activity: MainActivity) {
     LaunchedEffect(onHomeTab) { activity.isOnHomeTab = onHomeTab }
 
     // 跨 tab 跳转请求（OtherPage/SettingPage → 作用域页）：直接压入全屏作用域页（隐藏底栏），
-    // 不切到 Function tab，因此底栏不会从来源 tab（Other/Setting）跳到「功能」；返回时 popBackStack 直接回到来源 tab。
+    // 不切到 Function tab，因此底栏不会从来源 tab（Other/Setting）跳到「功能」；返回时 pop 一次直接回到来源 tab。
     LaunchedEffect(Unit) {
         activity.functionNavRequests.collect { request ->
             if (request != null) {
                 activity.functionNavRequests.value = null
-                navController.navigate(ScopeRoute(request.pageKey, request.title ?: "")) {
-                    launchSingleTop = true
-                }
+                nav.pushOnce(ScopeRoute(request.pageKey, request.title ?: ""))
             }
         }
     }
 
-    val selectedIndex = tabs.indexOfFirst { activeTabDestination?.hasRoute(it.route::class) == true }
+    val selectedIndex = tabs.indexOfFirst { it.route == activeTabKey }
+    // 点 tab = 把返回栈重置成该 tab 的根（不保留各 tab 子栈，不做 saveState/restoreState）
     val onSelect: (Int) -> Unit = { index ->
-        val tab = tabs.getOrNull(index)
-        if (tab != null) {
-            navController.navigate(tab.route) {
-                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                launchSingleTop = true
-                restoreState = true
-            }
-        }
+        tabs.getOrNull(index)?.let { nav.resetToTabRoot(it.route) }
     }
 
     // Miuix 外观线：模糊采样源（普通底栏背景模糊与悬浮胶囊液态玻璃共用）。
-    // 关键约束：该图层只录制页面内容（录制修饰符挂在 NavHost 上），录制盒内
+    // 关键约束：该图层只录制页面内容（录制修饰符挂在 NavDisplay 上），录制盒内
     // 绝不能包含任何绘制该图层的组件（底栏/胶囊），否则渲染树循环引用 →
     // RenderThread prepareTree 无限递归 → 原生栈溢出崩溃（SIGSEGV）。
     val backdropSurface = if (isMiuix) MiuixTheme.colorScheme.surface else Color.Unspecified
@@ -263,7 +236,7 @@ fun MainShell(activity: MainActivity) {
                     ) {
                         tabs.forEach { tab ->
                             // 与 selectedIndex 同源：Material 底栏也必须按 tab 根判定，否则作用域页/搜索页上无 tab 高亮
-                            val selected = activeTabDestination?.hasRoute(tab.route::class) == true
+                            val selected = tab.route == activeTabKey
                             // 角标数据源：主页发现新版本（对齐 KernelSU 导航角标开关）
                             val showBadge = enableBadge &&
                                 tab.route == HomeRoute &&
@@ -309,12 +282,14 @@ fun MainShell(activity: MainActivity) {
             // 悬浮胶囊覆盖在内容之上：列表额外预留胶囊高度，条目仍可滑到胶囊之下
             LocalShellBottomInset provides if (floatingBar) FloatingBarInset else 0.dp,
         ) {
-            // 采样层录制盒是 NavHost（见上）：本 Box 只做普通容器，
+            // 采样层录制盒是 NavDisplay（见上）：本 Box 只做普通容器，
             // 悬浮胶囊位于本 Box 内、录制盒之外，避免渲染树循环引用
             Box(modifier = Modifier.fillMaxSize()) {
-                NavHost(
-                    navController = navController,
-                    startDestination = HomeRoute,
+                NavDisplay(
+                    backStack = backStack,
+                    // 系统返回 / 预测性返回：弹一次栈顶。栈只剩根时库内部根本不注册返回处理
+                    //（NavDisplay.kt:470 的 enabled = backStack.size > 1），事件照旧透传给系统 → 退出应用。
+                    onBack = { nav.pop() },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
@@ -325,46 +300,36 @@ fun MainShell(activity: MainActivity) {
                                 Modifier
                             }
                         ),
-                    // 合并成单层 NavHost 后全应用只有这一条返回栈：预测性返回配横移过渡，
-                    // 与系统的窗口级返回预览同向；enter/exit 仍用官方默认值，不做自定义。
-                    predictivePopEnterTransition = { slideInHorizontally(animationSpec = tween(300)) { it / 3 } },
-                    predictivePopExitTransition = { slideOutHorizontally(animationSpec = tween(300)) { it / 3 } },
                 ) {
-                    composable<HomeRoute> { HomePage(activity) }
-                    composable<OtherRoute> { OtherPage(activity) }
-                    // 功能 tab 的根就是功能树：功能树 → 搜索页 → 作用域页全压在同一条 shell 栈上，
-                    // 作用域页统一落在下面的根级 ScopeRoute（hasRoute 不遍历父级，故不为本 tab 造嵌套图）。
-                    composable<FunctionTreeRoute> { FunctionTreePage(activity, navController) }
-                    composable<SearchRoute> { FunctionSearchPage(navController) }
-                    composable<LogRoute> { LogPage() }
-                    composable<SettingRoute> {
+                    // 根 tab 页没有上一页可回：显式写 None（库内部 enabled = topIndex > 0 本就禁用）
+                    entry<HomeRoute>(swipeDismiss = NavSwipeDirection.None) { HomePage(activity) }
+                    entry<OtherRoute>(swipeDismiss = NavSwipeDirection.None) { OtherPage(activity) }
+                    // 功能 tab 的根就是功能树：功能树 → 搜索页 → 作用域页全压在同一条 shell 栈上。
+                    // 库按 key 的精确运行时类匹配 entry，每种具体路由类型各注册一份即可。
+                    entry<FunctionTreeRoute>(swipeDismiss = NavSwipeDirection.None) {
+                        FunctionTreePage(activity, nav)
+                    }
+                    entry<LogRoute>(swipeDismiss = NavSwipeDirection.None) { LogPage() }
+                    entry<SettingRoute>(swipeDismiss = NavSwipeDirection.None) {
                         SettingPage(
                             activity = activity,
-                            onOpenTheme = { navController.navigate(ThemeRoute) { launchSingleTop = true } },
+                            onOpenTheme = { nav.pushOnce(ThemeRoute) },
                         )
                     }
-                    composable<ThemeRoute> {
-                        EdgeSwipeDismiss(
-                            enabled = LocalEnableSwipeDismiss.current,
-                            onDismiss = { navController.popBackStack() },
-                        ) {
-                            ThemeScreen(onBack = { navController.popBackStack() })
-                        }
+                    // 可 pop 的子页：跟手横移 + 预测性返回都由库的 display 容器统一驱动，
+                    // 这里只声明方向；页面自身不再挂边缘侧滑组件。
+                    entry<SearchRoute>(swipeDismiss = pageSwipeDirection) { FunctionSearchPage(nav) }
+                    entry<ThemeRoute>(swipeDismiss = pageSwipeDirection) {
+                        ThemeScreen(onBack = { nav.pop() })
                     }
                     // 作用域页唯一宿主：功能树内打开与跨 tab 全屏直达共用，返回键/侧滑返回都弹本栈
-                    composable<ScopeRoute> { entry ->
-                        val route = entry.toRoute<ScopeRoute>()
-                        EdgeSwipeDismiss(
-                            enabled = LocalEnableSwipeDismiss.current,
-                            onDismiss = { navController.popBackStack() },
-                        ) {
-                            ScopePageHost(
-                                activity = activity,
-                                route = route,
-                                onBack = { navController.popBackStack() },
-                                onNavigate = { key, title -> navController.navigate(ScopeRoute(key, title ?: "", "", -1)) },
-                            )
-                        }
+                    entry<ScopeRoute>(swipeDismiss = pageSwipeDirection) { route ->
+                        ScopePageHost(
+                            activity = activity,
+                            route = route,
+                            onBack = { nav.pop() },
+                            onNavigate = { key, title -> nav.pushOnce(ScopeRoute(key, title ?: "")) },
+                        )
                     }
                 }
 
@@ -406,7 +371,7 @@ fun MainShell(activity: MainActivity) {
     }
 
     // 切换外观线会在两套 Scaffold 之间切换组合位置（Miuix Scaffold ↔ material3 Scaffold）：
-    // 直接切换会销毁重建其内容，NavHost / NavController / 返回栈 / 页面内 remember 全部丢失。
+    // 直接切换会销毁重建其内容，NavDisplay / NavController / 返回栈 / 页面内 remember 全部丢失。
     // movableContentOf 把同一份 shell 内容在两者之间「搬移」，槽表（状态）随内容走、只换外观容器；
     // shellContent 通过 rememberUpdatedState 间接化，避免固化首次组合的 lambda 实例
     //（否则底栏选中态、悬浮开关等捕获值会被冻结）。
@@ -485,5 +450,17 @@ private fun PermissionGateScreen(activity: MainActivity) {
         ) { padding ->
             Box(Modifier.fillMaxSize().padding(padding)) { gateContent() }
         }
+    }
+}
+
+/**
+ * 底栏 tab 语义：点 tab 即把返回栈重置成该 tab 的根，不保留各 tab 的子栈（不做 saveState/restoreState）。
+ * 整条栈的替换放在同一个 mutable 快照里提交：NavDisplay 要求栈非空，清空与压入之间不能被观察到空栈。
+ */
+private fun NavController.resetToTabRoot(route: Route) {
+    if (backStack.size == 1 && backStack.first() == route) return
+    Snapshot.withMutableSnapshot {
+        backStack.clear()
+        backStack.add(route)
     }
 }
