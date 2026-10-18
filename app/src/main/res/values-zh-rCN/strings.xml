@@ -1344,6 +1344,11 @@
     <string name="oplus_keyboard_blur_radius_summary">键盘向系统请求的模糊半径，宿主内置值为 150，数值越大越模糊</string>
     <!-- 桌面布局备份/恢复 -->
     <string name="launcher_backup">桌面布局备份</string>
+    <string name="launcher_backup_entry">桌面布局备份与恢复</string>
+    <string name="launcher_backup_entry_summary">备份桌面布局，并可随时按快照恢复</string>
+    <string name="launcher_backup_category_settings">备份设置</string>
+    <string name="launcher_backup_category_actions">操作</string>
+    <string name="launcher_backup_category_history">快照历史</string>
     <string name="launcher_backup_status">快照状态</string>
     <string name="launcher_backup_busy">执行中…</string>
     <string name="launcher_backup_no_launcher">未检测到桌面包名：请在 LSPosed 中为本模块勾选桌面作用域，并先打开一次桌面</string>

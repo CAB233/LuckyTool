@@ -447,7 +447,6 @@ object ScopePageRegistry {
         "android_related",
         "statusbar",
         "launcher",
-        "launcher_backup",
         "aod",
         "lock_screen",
         "application",

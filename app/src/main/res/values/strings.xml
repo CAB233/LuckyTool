@@ -1527,6 +1527,11 @@
     <string name="oplus_keyboard_blur_radius_summary">The blur radius the keyboard asks the system for. The built-in value is 150, and a larger value blurs more.</string>
     <!-- 桌面布局备份/恢复 -->
     <string name="launcher_backup">Desktop layout backup</string>
+    <string name="launcher_backup_entry">Desktop layout backup and restore</string>
+    <string name="launcher_backup_entry_summary">Back up the home screen layout and restore it from a snapshot</string>
+    <string name="launcher_backup_category_settings">Backup settings</string>
+    <string name="launcher_backup_category_actions">Actions</string>
+    <string name="launcher_backup_category_history">Snapshot history</string>
     <string name="launcher_backup_status">Snapshot status</string>
     <string name="launcher_backup_busy">Working…</string>
     <string name="launcher_backup_no_launcher">Launcher package not detected: enable the launcher scope in LSPosed and open the home screen once.</string>
