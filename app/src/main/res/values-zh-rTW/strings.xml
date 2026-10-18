@@ -605,6 +605,8 @@
     <string name="enable_custom_app_language">启用自定义应用语言</string>
     <string name="disable_app_archiving">自動釋放應用空間預設關閉</string>
     <string name="disable_app_archiving_summary">空間不足時不再自動解除安裝應用（解除安裝但保留資料），預設對所有應用關閉</string>
+    <string name="disable_app_archive_button">隱藏應用歸檔按鈕</string>
+    <string name="disable_app_archive_button_summary">隱藏應用詳情頁的「歸檔」按鈕；已歸檔應用仍保留「還原」按鈕</string>
     <!--FloatingWindowDialogRelated-->
     <string name="FloatingWindowDialogRelated">悬浮窗/对话框相关</string>
     <string name="disable_duplicate_floating_window">禁用复制悬浮窗</string>

@@ -716,6 +716,8 @@
     <string name="enable_custom_app_language">Enable custom app language</string>
     <string name="disable_app_archiving">Auto release app space off by default</string>
     <string name="disable_app_archiving_summary">All apps are opted out of auto-archiving (uninstall app but keep data when storage is low) by default</string>
+    <string name="disable_app_archive_button">Hide app archive button</string>
+    <string name="disable_app_archive_button_summary">Hide the Archive button on the app info page; archived apps keep their Restore button</string>
     
     <!--FloatingWindowDialogRelated-->
     <string name="FloatingWindowDialogRelated">Floating Window / Dialog Related</string>
