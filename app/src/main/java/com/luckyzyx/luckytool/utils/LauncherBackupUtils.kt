@@ -1,38 +1,59 @@
 package com.luckyzyx.luckytool.utils
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.media.MediaScannerConnection
+import android.os.Environment
+import androidx.core.content.FileProvider
 import com.luckyzyx.luckytool.BuildConfig
-import org.json.JSONArray
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 
 /**
- * 桌面布局备份/恢复的共享纯逻辑（app 进程与 launcher 进程的 hook 都能调用，不碰 shell、不用 root）。
+ * 桌面布局备份/恢复的共享纯逻辑（app 进程与 launcher 进程的 hook 共用，不碰 shell、不用 root）。
  *
- * 数据源与落盘方式（用户已确认的决策）：
- * - 布局真源 launcher 的 databases/launcher.db，只导出白名单表为 JSON（不直接拷 db 文件，
+ * 数据流（用户已确认的方案：备份文件落本地，dataChannel 只广播 URI）：
+ * - 布局真源是 launcher 的 databases/launcher.db，只把六张布局表白名单导出成 JSON（不直接拷 db 文件，
  *   避免同 uid 拷贝时拿到写入中途的撕裂数据）。
- * - 隐藏应用状态在 shared_prefs/app_hidden_prefs.xml 与 app_hidden_settings_prefs.xml，按原文拷贝。
- * - 快照根 <launcherDataDir>/luckytool_backup/<yyyyMMdd_HHmmss>_<tag>/（同 uid，无需 root）。
+ * - 隐藏应用状态从 app_hidden_prefs 的 <int> 读出成 JSON map（键 pkg#userId，值是该条的 rank 原样），
+ *   不再按原文拷 prefs 文件：拷文件对恢复没有意义（进程内是缓存），状态必须走 DPAM 的入口改。
+ * - 备份容器是标准 zip（扩展名仍为 .ltbackup），内含 meta.json（概要）与 layout.json（布局数据）两个条目，
+ *   经 FileProvider URI 交给 launcher 进程写/读：
+ *   SAF 授权只给 app 的 uid，所以 app 必须先 grantUriPermission 把读/写权限授予桌面包名。
  * - 恢复由 hook 在 launcher 进程内完成，写完调 LauncherModel.forceReload() 让桌面重读库
- *   （同进程写库不会触发 LauncherProvider.reloadLauncherIfExternal，必须自己调），不杀进程。
+ *   （同进程写库不会触发 LauncherProvider.reloadLauncherIfExternal），不杀进程。
  */
 object LauncherBackupUtils {
 
-    /** 快照上限（超过时先删最旧的 auto） */
+    /** 本地备份份数上限（超过时先删最旧的 auto） */
     const val MAX_SNAPSHOTS = 20
 
-    /** 快照根目录名（位于 launcher 数据目录下，launcher 自己的 uid 可读写） */
-    const val BACKUP_DIR_NAME = "luckytool_backup"
+    /** 备份文件后缀（内容其实是标准 zip，压缩工具可直接打开） */
+    const val FILE_SUFFIX = ".ltbackup"
 
-    /** 快照内的布局数据文件名（表 → 行数组，列名 → 值） */
-    const val FILE_LAYOUT = "layout.json"
+    /** 备份目录（相对外部存储根）：Download/LuckyTool/launcher_backup */
+    const val RELATIVE_DIR = "Download/LuckyTool/launcher_backup"
 
-    /** 快照内的元信息文件名 */
-    const val FILE_META = "meta.json"
+    /** 容器格式版本（meta.json 的 version）；恢复时版本不符直接拒绝，避免读旧格式半截数据 */
+    const val PAYLOAD_VERSION = 1
 
     /**
      * 参与备份/恢复的布局表白名单：三种桌面模式（Standard 0 / Drawer 2 / Simple 3）各一套。
@@ -49,177 +70,252 @@ object LauncherBackupUtils {
         "singledesktopscreens_simple",
     )
 
-    /** 按原文拷贝的 prefs 文件（隐藏应用开关在这两个里） */
-    val PREFS_FILES = listOf("app_hidden_prefs.xml", "app_hidden_settings_prefs.xml")
-
     /**
      * launcher 包名候选：本机实测 com.android.launcher；老 ColorOS 为 com.oppo.launcher
      * （与 hook/hookers/MainHook.kt 加载的作用域包名保持一致，否则 app 侧下发指令会直接找不到人）。
      */
     val LAUNCHER_CANDIDATES = listOf("com.android.launcher", "com.oplus.launcher", "com.oppo.launcher")
 
-    /** app → hook 的指令 pref 键（值形如 action|arg|token） */
+    /** app → hook 的指令 pref 键 */
     const val KEY_COMMAND = "launcher_backup_command"
-
-    /** hook → app 的回传 pref 键（JSON，由 receiver 写入） */
-    const val KEY_STATE = "launcher_backup_state"
-
-    /**
-     * 最近一条已下发指令的 token。
-     * receiver 是 exported 的（launcher 以别的 uid 发广播，必须导出），所以只认「自己刚下发的 token」，
-     * 否则任何 app 都能构造 payload 覆盖回传内容与快照列表。
-     */
-    const val KEY_PENDING_TOKEN = "launcher_backup_pending_token"
 
     const val ACTION_BACKUP = "backup"
     const val ACTION_RESTORE = "restore"
-    const val ACTION_LIST = "list"
-    const val ACTION_DELETE = "delete"
 
-    val ACTIONS = listOf(ACTION_BACKUP, ACTION_RESTORE, ACTION_LIST, ACTION_DELETE)
-
-    /** hook 回传广播的 action 后缀（完整 action 是 applicationId 加上它） */
-    const val ACTION_RESULT_SUFFIX = ".LAUNCHER_BACKUP_RESULT"
-
-    /** 回传广播里承载 JSON 的 extra 键 */
-    const val EXTRA_PAYLOAD = "payload"
+    val ACTIONS = listOf(ACTION_BACKUP, ACTION_RESTORE)
 
     private const val TIME_FORMAT = "yyyyMMdd_HHmmss"
 
     // ---------------- 快照命名 ----------------
 
-    /** 快照目录名：yyyyMMdd_HHmmss 加下划线加 tag（只含数字、下划线与 ASCII 标签） */
+    /** 快照基名：yyyyMMdd_HHmmss 加下划线加 tag（只含数字、下划线与 ASCII 标签，不含空格与中文） */
     fun snapshotName(now: Long, tag: LauncherSnapshotTag): String =
         SimpleDateFormat(TIME_FORMAT, Locale.US).format(Date(now)) + "_" + tag.id
 
-    /** 解析快照目录名；不是本工具的快照目录则返回 null */
-    fun parseSnapshotName(name: String): LauncherSnapshot? {
-        val tag = LauncherSnapshotTag.entries.firstOrNull { name.endsWith("_" + it.id) } ?: return null
-        val stamp = name.removeSuffix("_" + tag.id)
+    /** 备份文件名：基名加 .ltbackup（实际落盘用这个） */
+    fun backupFileName(now: Long, tag: LauncherSnapshotTag): String =
+        snapshotName(now, tag) + FILE_SUFFIX
+
+    /** 解析备份文件名（带不带后缀都认）；不是本工具的文件返回 null */
+    fun parseSnapshotName(name: String?): LauncherSnapshot? {
+        val text = name?.trim().orEmpty().removeSuffix(FILE_SUFFIX)
+        if (text.isEmpty()) return null
+        val tag = LauncherSnapshotTag.entries.firstOrNull { text.endsWith("_" + it.id) } ?: return null
+        val stamp = text.removeSuffix("_" + tag.id)
         val time = runCatching {
             SimpleDateFormat(TIME_FORMAT, Locale.US).parse(stamp)?.time
         }.getOrNull() ?: return null
-        return LauncherSnapshot(name, tag, time)
+        return LauncherSnapshot(text, tag, time)
     }
+
+    /** 文件名列表（名字 + 字节数）→ 快照列表，按时间倒序；非本工具文件忽略 */
+    fun parseSnapshotFiles(files: List<Pair<String, Long>>): List<LauncherSnapshot> =
+        files.mapNotNull { entry ->
+            val parsed = parseSnapshotName(entry.first) ?: return@mapNotNull null
+            LauncherSnapshot(parsed.name, parsed.tag, parsed.timeMillis, entry.second)
+        }.sortedWith(compareByDescending<LauncherSnapshot> { it.timeMillis }.thenByDescending { it.name })
 
     // ---------------- 指令协议 ----------------
 
-    /** 生成指令串（token 保证每次不同，hook 侧据此去重） */
-    fun buildCommand(action: String, arg: String = "", token: String = newToken()): String =
-        action + "|" + arg + "|" + token
+    /**
+     * app → hook 的指令，单行（dataChannel 只传这一条）：
+     *  backup|<uri>|<tag>|<token>
+     *  restore|<uri>|<token>
+     * token 用于去重（同一条指令只执行一次）。
+     */
+    fun buildBackupCommand(uri: String, tag: LauncherSnapshotTag, token: String = newToken()): String =
+        ACTION_BACKUP + "|" + uri + "|" + tag.id + "|" + token
+
+    fun buildRestoreCommand(uri: String, token: String = newToken()): String =
+        ACTION_RESTORE + "|" + uri + "|" + token
 
     fun newToken(): String = System.currentTimeMillis().toString() + "-" + UUID.randomUUID().toString().take(8)
 
-    /**
-     * 解析指令串。
-     * 格式 action|arg|token；action 必须在 [ACTIONS] 内，restore / delete 必须带 arg。
-     */
+    /** 解析指令；action 必须在白名单内，URI 与 token 都不能为空，否则返回 null（hook 侧一律忽略） */
     fun parseCommand(raw: String?): LauncherCommand? {
         val text = raw?.trim().orEmpty()
         if (text.isEmpty()) return null
         val parts = text.split("|")
-        if (parts.size < 3) return null
         val action = parts[0].trim()
-        val arg = parts[1].trim()
-        // token 里不含竖线，但保险起见把剩余段并回去
-        val token = parts.drop(2).joinToString("|").trim()
-        if (action !in ACTIONS || token.isEmpty()) return null
-        if ((action == ACTION_RESTORE || action == ACTION_DELETE) && arg.isEmpty()) return null
-        return LauncherCommand(action, arg, token)
+        if (action !in ACTIONS) return null
+        return when (action) {
+            ACTION_BACKUP -> {
+                if (parts.size < 4) return null
+                val uri = parts[1].trim()
+                val tag = LauncherSnapshotTag.ofId(parts[2].trim()) ?: return null
+                val token = parts.drop(3).joinToString("|").trim()
+                if (uri.isEmpty() || token.isEmpty()) null else LauncherCommand(action, uri, tag, token)
+            }
+
+            ACTION_RESTORE -> {
+                if (parts.size < 3) return null
+                val uri = parts[1].trim()
+                val token = parts.drop(2).joinToString("|").trim()
+                if (uri.isEmpty() || token.isEmpty()) null else LauncherCommand(action, uri, null, token)
+            }
+
+            else -> null
+        }
     }
 
     /** 同一条指令只执行一次：token 与上次相同即视为重复 */
     fun isDuplicateToken(lastToken: String?, token: String): Boolean =
         !lastToken.isNullOrBlank() && lastToken == token
 
-    // ---------------- 清单 JSON ----------------
+    // ---------------- 备份容器（zip：meta.json + layout.json） ----------------
 
-    /** 快照清单 → JSON 数组字符串 */
-    fun buildManifestJson(snapshots: List<LauncherSnapshot>): String {
-        val array = JSONArray()
-        snapshots.sortedWith(compareByDescending<LauncherSnapshot> { it.timeMillis }.thenByDescending { it.name })
-            .forEach { snapshot ->
-                array.put(JSONObject().apply {
-                    put("name", snapshot.name)
-                    put("tag", snapshot.tag.id)
-                    put("time", snapshot.timeMillis)
-                    put("size", snapshot.sizeBytes)
-                    put("rows", snapshot.rows)
-                })
-            }
-        return array.toString()
-    }
+    /** 概要条目：解压时先读到它就能知道这份备份是什么 */
+    const val ENTRY_META = "meta.json"
 
-    /** 清单 JSON → 快照列表（解析失败返回空表，不抛异常） */
-    fun parseManifestJson(json: String?): List<LauncherSnapshot> = runCatching {
-        val array = JSONArray(json ?: return emptyList())
-        (0 until array.length()).mapNotNull { index ->
-            val item = array.optJSONObject(index) ?: return@mapNotNull null
-            val name = item.optString("name").trim()
-            if (name.isEmpty()) return@mapNotNull null
-            val tag = LauncherSnapshotTag.ofId(item.optString("tag"))
-                ?: parseSnapshotName(name)?.tag
-                ?: LauncherSnapshotTag.MANUAL
-            val time = item.optLong("time").takeIf { it > 0 } ?: parseSnapshotName(name)?.timeMillis ?: 0L
-            LauncherSnapshot(
-                name = name,
-                tag = tag,
-                timeMillis = time,
-                sizeBytes = item.optLong("size"),
-                rows = item.optInt("rows"),
-            )
-        }
-    }.getOrDefault(emptyList())
+    /** 布局条目：六张布局表全列 + 隐藏应用 map（体积大，单条独占一个 zip 条目） */
+    const val ENTRY_LAYOUT = "layout.json"
 
-    /** hook → app 的一次回传（清单 + 最近一次操作结果） */
-    fun buildStateJson(
-        ok: Boolean,
-        action: String,
-        message: String,
-        backupRoot: String,
-        token: String,
-        snapshots: List<LauncherSnapshot>,
-        snapshot: String = "",
-        time: Long = System.currentTimeMillis(),
+    /** meta.json 里时间的可读格式（排序与解析不靠它，只用文件名里的时间戳） */
+    private const val META_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss"
+
+    /**
+     * meta.json 内容：
+     * {version, tag, time, package, model, rom, launcherMode, tableRows:{表:行数}, hiddenCount, iconIncluded}
+     */
+    fun buildMetaJson(
+        tag: LauncherSnapshotTag,
+        time: Long,
+        packageName: String,
+        model: String,
+        rom: String,
+        launcherMode: Int,
+        tableRows: Map<String, Int>,
+        hiddenCount: Int,
+        iconIncluded: Boolean = true,
     ): String = JSONObject().apply {
-        put("ok", ok)
-        put("action", action)
-        put("message", message)
-        put("backupRoot", backupRoot)
-        put("token", token)
-        put("snapshot", snapshot)
-        put("time", time)
-        put("snapshots", JSONArray(buildManifestJson(snapshots)))
+        put("version", PAYLOAD_VERSION)
+        put("tag", tag.id)
+        put("time", SimpleDateFormat(META_TIME_FORMAT, Locale.US).format(Date(time)))
+        put("package", packageName)
+        put("model", model)
+        put("rom", rom)
+        put("launcherMode", launcherMode)
+        put("tableRows", JSONObject().apply { tableRows.forEach { (key, rows) -> put(key, rows) } })
+        put("hiddenCount", hiddenCount)
+        put("iconIncluded", iconIncluded)
     }.toString()
 
-    /** 解析 hook 回传（解析失败返回 null，界面据此提示「未收到回传」） */
-    fun parseStateJson(json: String?): LauncherState? = runCatching {
-        val text = json?.trim().orEmpty()
-        if (text.isEmpty()) return null
-        val obj = JSONObject(text)
-        LauncherState(
-            ok = obj.optBoolean("ok"),
-            action = obj.optString("action"),
-            message = obj.optString("message"),
-            backupRoot = obj.optString("backupRoot"),
-            token = obj.optString("token"),
-            snapshot = obj.optString("snapshot"),
-            time = obj.optLong("time"),
-            snapshots = parseManifestJson(obj.optJSONArray("snapshots")?.toString()),
+    /**
+     * layout.json 内容：{tables:{表:[行]}, hidden:{pkg#userId:rank}}
+     * 与 meta 分开成两个条目，写的时候 meta 在前，解压工具打开就能先看到概要。
+     */
+    fun buildLayoutJson(tables: JSONObject, hidden: Map<String, Int>): String =
+        JSONObject().apply {
+            put("tables", tables)
+            put("hidden", JSONObject().apply { hidden.forEach { (key, value) -> put(key, value) } })
+        }.toString()
+
+    /**
+     * 写 zip 容器：先 meta.json 再 layout.json，两段都按 UTF-8 字节写入。
+     * 调用方负责 openOutputStream(uri, "wt")（覆盖写，避免旧内容尾巴留在文件里）。
+     */
+    fun writeContainer(output: OutputStream, metaJson: String, layoutJson: String) {
+        ZipOutputStream(output).use { zip ->
+            zip.putNextEntry(ZipEntry(ENTRY_META))
+            zip.write(metaJson.toByteArray(Charsets.UTF_8))
+            zip.closeEntry()
+            zip.putNextEntry(ZipEntry(ENTRY_LAYOUT))
+            zip.write(layoutJson.toByteArray(Charsets.UTF_8))
+            zip.closeEntry()
+            zip.finish()
+        }
+    }
+
+    /**
+     * 把两份 JSON 打包成 .ltbackup 的 zip 字节（不绑定任何 Context / 输出目标）。
+     * app 侧写 FileProvider uri、hook 侧写 MediaStore uri，两边共用这一份格式代码。
+     */
+    fun containerBytes(metaJson: String, layoutJson: String): ByteArray {
+        val buffer = ByteArrayOutputStream()
+        writeContainer(buffer, metaJson, layoutJson)
+        return buffer.toByteArray()
+    }
+
+    /**
+     * 读 zip 容器：按条目名收集，不依赖条目顺序（zip 允许任意顺序）。
+     * 不是 zip / 读失败返回 null，由调用方给出「备份文件不完整」的提示。
+     */
+    fun readContainer(input: InputStream): Map<String, String>? = runCatching {
+        val entries = LinkedHashMap<String, String>()
+        ZipInputStream(input).use { zip ->
+            while (true) {
+                val entry = zip.nextEntry ?: break
+                //只收本工具写的两个条目，目录项与其它内容一律忽略
+                if (entry.name == ENTRY_META || entry.name == ENTRY_LAYOUT) {
+                    entries[entry.name] = zip.readBytes().toString(Charsets.UTF_8)
+                }
+                zip.closeEntry()
+            }
+        }
+        entries
+    }.getOrNull()
+
+    /** 容器里缺失（或为空）的条目名；用来拼「备份文件不完整：缺少 meta.json」这类提示 */
+    fun missingEntries(entries: Map<String, String>?): List<String> =
+        listOf(ENTRY_META, ENTRY_LAYOUT).filter { entries?.get(it).isNullOrEmpty() }
+
+    /** 解析容器：条目缺失 / meta 版本不符 / layout 结构坏掉都返回 null（调用方只报错，不猜） */
+    fun parseContainer(entries: Map<String, String>): LauncherContainer? = runCatching {
+        if (missingEntries(entries).isNotEmpty()) return null
+        val metaObject = JSONObject(entries.getValue(ENTRY_META))
+        if (metaObject.optInt("version") != PAYLOAD_VERSION) return null
+        val layoutObject = JSONObject(entries.getValue(ENTRY_LAYOUT))
+        val tables = layoutObject.optJSONObject("tables") ?: return null
+        val hidden = LinkedHashMap<String, Int>()
+        layoutObject.optJSONObject("hidden")?.let { map ->
+            map.keys().forEach { key ->
+                if (parseHiddenKey(key) != null) hidden[key] = map.optInt(key)
+            }
+        }
+        val tableRows = LinkedHashMap<String, Int>()
+        metaObject.optJSONObject("tableRows")?.let { map ->
+            map.keys().forEach { key -> tableRows[key] = map.optInt(key) }
+        }
+        LauncherContainer(
+            meta = LauncherMeta(
+                tag = LauncherSnapshotTag.ofId(metaObject.optString("tag")) ?: LauncherSnapshotTag.MANUAL,
+                time = metaObject.optString("time"),
+                packageName = metaObject.optString("package"),
+                model = metaObject.optString("model"),
+                rom = metaObject.optString("rom"),
+                launcherMode = metaObject.optInt("launcherMode", -1),
+                tableRows = tableRows,
+                hiddenCount = metaObject.optInt("hiddenCount", 0),
+                iconIncluded = metaObject.optBoolean("iconIncluded", true),
+            ),
+            tables = tables,
+            hidden = hidden,
         )
     }.getOrNull()
 
-    // ---------------- 保留策略 ----------------
+    /**
+     * 校验一份容器是否真是可用的桌面布局备份：条目齐全 + meta 版本受支持 + tables 结构完整。
+     * 返回 null 表示通过；否则返回 [LauncherTaskError.INVALID_FILE]（导入时据此删掉刚复制的文件）。
+     */
+    fun validateContainer(entries: Map<String, String>?): LauncherTaskError? {
+        if (missingEntries(entries).isNotEmpty()) return LauncherTaskError.INVALID_FILE
+        return if (parseContainer(entries!!) == null) LauncherTaskError.INVALID_FILE else null
+    }
+
+    /** 从文本流校验（导入时用）：读不出来 / 格式不对都算无效文件 */
+    fun validateContainer(input: InputStream): LauncherTaskError? =
+        validateContainer(readContainer(input))
 
     /**
      * 保留策略：最多 [limit] 份，超限时先删最旧的 auto，再删最旧的 manual / pre_restore。
-     * 返回待删除的快照（调用方逐个删目录）。
+     * 返回待删除的候选（调用方按自己的存储方式删：app 删文件，hook 删 MediaStore 行）。
+     * [excluded] 里的名字永远不选（恢复时正在用的那份 / 刚写好的那份）。
      */
     fun planEvictions(
-        snapshots: List<LauncherSnapshot>,
+        snapshots: List<SnapshotCandidate>,
         limit: Int = MAX_SNAPSHOTS,
         excluded: Set<String> = emptySet(),
-    ): List<LauncherSnapshot> {
+    ): List<SnapshotCandidate> {
         if (limit <= 0) return emptyList()
         // 超限份数按「包含受保护快照」的总数算，但受保护的那份永远不会被选中
         val excess = snapshots.size - limit
@@ -252,7 +348,7 @@ object LauncherBackupUtils {
     }
 
     /**
-     * 解析共享偏好 XML 里的 <int name="pkg#0" value="2" />。
+     * 解析共享偏好 XML 里的 <int name="pkg#0" value="2" />（进程内取不到 prefs 缓存时的兜底）。
      * 这里只做「原样取值」，绝不归一化：rank 一旦被改写就会打乱隐藏列表顺序。
      */
     fun parseHiddenPrefsXml(xml: String?): Map<String, Int> {
@@ -269,7 +365,7 @@ object LauncherBackupUtils {
     }
 
     /**
-     * 隐藏状态双向差集：快照里有、当前没有 → 要隐藏；当前有、快照里没有 → 要取消隐藏。
+     * 隐藏状态双向差集：备份里有、当前没有 → 要隐藏；当前有、备份里没有 → 要取消隐藏。
      * 值（rank）不参与比较，由 launcher 自己的 I() 入口重新排列。
      */
     fun planHiddenSync(snapshot: Map<String, Int>, current: Map<String, Int>): HiddenSync {
@@ -284,11 +380,6 @@ object LauncherBackupUtils {
         return HiddenSync(toHide, toUnhide)
     }
 
-    // ---------------- app 侧便捷封装 ----------------
-
-    /** 回传广播的完整 action（hook 发、app 的 receiver 收） */
-    fun resultAction(): String = BuildConfig.APPLICATION_ID + ACTION_RESULT_SUFFIX
-
     /** 探测已安装的 launcher 包名（app 侧 QUERY_ALL_PACKAGES 可见系统应用），找不到返回 null */
     fun detectLauncherPackage(context: Context): String? {
         val manager = context.packageManager ?: return null
@@ -299,25 +390,293 @@ object LauncherBackupUtils {
 
     /**
      * 把指令推给 hook（与其它功能同一条 dataChannel/prefs 通道）。
-     * 下发前先记下 token：receiver 只接受带这个 token 的回传，防止外部伪造广播。
+     * 只传一条单行指令：数据本身走文件（全量布局 JSON 有 1.2MB 量级，塞不进 Binder）。
      */
     fun sendCommand(context: Context, command: String, launcherPackage: String?): Boolean {
         val pkg = launcherPackage ?: detectLauncherPackage(context) ?: return false
-        val token = parseCommand(command)?.token
-        if (token.isNullOrBlank()) return false
+        if (parseCommand(command) == null) return false
         return runCatching {
-            PrefState.of(context, ModulePrefs).set(KEY_PENDING_TOKEN, token)
             context.sendPrefsValue(pkg, KEY_COMMAND, command)
             true
         }.getOrDefault(false)
     }
 }
 
-/** 一条隐藏应用记录（键 pkg#userId，值是隐藏项的 rank） */
+/**
+ * 备份文件的搬运与指令下发（只在 app 进程用；hook 侧不调这里）。
+ *
+ * 为什么必须授权：SAF/FileProvider 的 URI 权限按 uid 授予，launcher 进程是另一个 uid，
+ * 不 grantUriPermission 直接 openInputStream 必抛 SecurityException。
+ * 为什么用文件长度当 ack：备份没有回传通道，hook 把 zip 容器写进这个文件，长度从 0 变成非 0 就说明它真的跑了。
+ */
+object LauncherBackupTransfer {
+
+    /** 等 hook 把文件写完的上限；超过就认为桌面作用域没启用或桌面没在跑 */
+    const val TIMEOUT_MS = 15_000L
+
+    private const val POLL_INTERVAL_MS = 250L
+
+    /** 连续两次长度相同才算写完（zip 尾部与中央目录比头部晚落盘） */
+    private const val STABLE_ROUNDS = 2
+
+    private const val PROVIDER_SUFFIX = ".FileProvider"
+
+    private val mutex = Mutex()
+
+    private val _busy = MutableStateFlow(false)
+
+    /** 是否有备份/恢复正在跑（界面据此禁用按钮） */
+    val busy: StateFlow<Boolean> = _busy
+
+    /** 备份目录：Download/LuckyTool/launcher_backup */
+    @Suppress("DEPRECATION")
+    fun backupDir(): File =
+        File(Environment.getExternalStorageDirectory(), LauncherBackupUtils.RELATIVE_DIR)
+
+    /** 列本地备份文件（只认 .ltbackup，按时间倒序） */
+    fun listSnapshots(): List<LauncherSnapshot> {
+        val dir = backupDir()
+        val entries = runCatching {
+            // 0 字节的 .ltbackup 是「备份刚建文件、hook 还没写」或写失败的残骸，不能当成可用快照
+            dir.listFiles()?.filter {
+                it.isFile && it.name.endsWith(LauncherBackupUtils.FILE_SUFFIX) && it.length() > 0L
+            }
+                ?.map { it.name to it.length() }
+                ?: emptyList()
+        }.getOrDefault(emptyList())
+        return LauncherBackupUtils.parseSnapshotFiles(entries)
+    }
+
+    /** 手动/自动备份：建空文件 → 授权 → 下发 backup → 等文件变非空 → 走保留策略 */
+    suspend fun backup(context: Context, tag: LauncherSnapshotTag): LauncherTaskResult =
+        mutex.withLock {
+            _busy.value = true
+            try {
+                backupLocked(context, tag)
+            } finally {
+                _busy.value = false
+            }
+        }
+
+    /** 恢复：先补拍 pre_restore（失败即中止）→ 授权 → 下发 restore（结果看桌面提示） */
+    suspend fun restore(context: Context, file: File): LauncherTaskResult = mutex.withLock {
+        _busy.value = true
+        try {
+            if (!file.isFile || file.length() <= 0L) {
+                return@withLock LauncherTaskResult.Failure(LauncherTaskError.EMPTY_FILE, file.name)
+            }
+            // 1) 补拍：任何恢复都必须有回滚点，补拍不出东西就中止
+            val pre = backupLocked(context, LauncherSnapshotTag.PRE_RESTORE, protected = file)
+            if (pre is LauncherTaskResult.Failure) {
+                return@withLock LauncherTaskResult.Failure(
+                    LauncherTaskError.PRE_RESTORE_FAILED,
+                    pre.error.name + (if (pre.detail.isEmpty()) "" else ": " + pre.detail),
+                )
+            }
+            // 2) 把读权限授予桌面进程并下发指令
+            val launcherPackage = LauncherBackupUtils.detectLauncherPackage(context)
+                ?: return@withLock LauncherTaskResult.Failure(LauncherTaskError.NO_LAUNCHER)
+            dispatch(context, launcherPackage, file, LauncherBackupTag.READ, ::buildRestore)
+        } finally {
+            _busy.value = false
+        }
+    }
+
+    /** 导入：把用户从文件选择器挑中的内容复制进备份目录，之后按普通本地备份处理 */
+    suspend fun importFile(context: Context, source: Uri): LauncherTaskResult = withContext(Dispatchers.IO) {
+        runCatching {
+            val dir = backupDir()
+            if (!dir.isDirectory && !dir.mkdirs()) {
+                return@runCatching LauncherTaskResult.Failure(LauncherTaskError.CREATE_FAILED, dir.absolutePath)
+            }
+            val target = File(dir, LauncherBackupUtils.backupFileName(System.currentTimeMillis(), LauncherSnapshotTag.MANUAL))
+            if (target.exists()) target.delete()
+            context.contentResolver.openInputStream(source).use { input ->
+                if (input == null) return@runCatching LauncherTaskResult.Failure(LauncherTaskError.EMPTY_FILE, target.name)
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+            // 复制完立刻校验容器：用户选错文件时绝不能留下一个「看起来正常」的快照，
+            // 否则它会占掉 20 份保留名额、还让人以为有可用备份，直到恢复时才在桌面报错
+            val invalid = runCatching { target.inputStream().use { LauncherBackupUtils.validateContainer(it) } }
+                .getOrElse { LauncherTaskError.IO_ERROR }
+            if (invalid != null) {
+                // 删除失败也不留残文件：删不掉就再试一次，仍失败也照实报无效
+                runCatching { target.delete() }
+                return@runCatching LauncherTaskResult.Failure(invalid, target.name)
+            }
+            scan(context, target)
+            if (target.length() <= 0L) LauncherTaskResult.Failure(LauncherTaskError.EMPTY_FILE, target.name)
+            else LauncherTaskResult.Success(target)
+        }.getOrElse { throwable ->
+            LauncherTaskResult.Failure(LauncherTaskError.IO_ERROR, throwable.message ?: throwable.javaClass.simpleName)
+        }
+    }
+
+    // ---------------- 内部实现 ----------------
+
+    private suspend fun backupLocked(
+        context: Context,
+        tag: LauncherSnapshotTag,
+        protected: File? = null,
+    ): LauncherTaskResult = withContext(Dispatchers.IO) {
+        val dir = backupDir()
+        if (!dir.isDirectory && !dir.mkdirs()) {
+            return@withContext LauncherTaskResult.Failure(LauncherTaskError.CREATE_FAILED, dir.absolutePath)
+        }
+        val file = File(dir, LauncherBackupUtils.backupFileName(System.currentTimeMillis(), tag))
+        if (file.exists()) {
+            return@withContext LauncherTaskResult.Failure(LauncherTaskError.FILE_EXISTS, file.name)
+        }
+        runCatching { file.createNewFile() }.getOrElse { throwable ->
+            return@withContext LauncherTaskResult.Failure(
+                LauncherTaskError.CREATE_FAILED,
+                throwable.message ?: file.absolutePath,
+            )
+        }
+        val launcherPackage = LauncherBackupUtils.detectLauncherPackage(context)
+            ?: return@withContext LauncherTaskResult.Failure(LauncherTaskError.NO_LAUNCHER)
+        val sent = dispatch(
+            context = context,
+            launcherPackage = launcherPackage,
+            file = file,
+            need = LauncherBackupTag.WRITE,
+        ) { uri -> LauncherBackupUtils.buildBackupCommand(uri, tag) }
+        if (sent is LauncherTaskResult.Failure) {
+            file.delete()
+            return@withContext sent
+        }
+        // 长度从 0 变成非 0 且稳定 = hook 写完了；超时说明没人消费这条指令
+        if (!awaitWritten(file)) {
+            runCatching { file.delete() }
+            return@withContext LauncherTaskResult.Failure(LauncherTaskError.TIMEOUT, file.name)
+        }
+        scan(context, file)
+        evict(dir, file)
+        LauncherTaskResult.Success(file)
+    }
+
+    private fun buildRestore(uri: String): String = LauncherBackupUtils.buildRestoreCommand(uri)
+
+    private suspend fun dispatch(
+        context: Context,
+        launcherPackage: String,
+        file: File,
+        need: LauncherBackupTag,
+        build: (String) -> String,
+    ): LauncherTaskResult = withContext(Dispatchers.IO) {
+        val uri = runCatching {
+            FileProvider.getUriForFile(
+                context,
+                BuildConfig.APPLICATION_ID + PROVIDER_SUFFIX,
+                file,
+            )
+        }.getOrElse { throwable ->
+            return@withContext LauncherTaskResult.Failure(
+                LauncherTaskError.GRANT_FAILED,
+                throwable.message ?: throwable.javaClass.simpleName,
+            )
+        }
+        val granted = runCatching {
+            context.grantUriPermission(launcherPackage, uri, need.flags)
+            true
+        }.getOrDefault(false)
+        if (!granted) return@withContext LauncherTaskResult.Failure(LauncherTaskError.GRANT_FAILED, launcherPackage)
+        if (!LauncherBackupUtils.sendCommand(context, build(uri.toString()), launcherPackage)) {
+            return@withContext LauncherTaskResult.Failure(LauncherTaskError.SEND_FAILED, launcherPackage)
+        }
+        LauncherTaskResult.Success(file)
+    }
+
+    /** 轮询文件长度：非 0 且连续两次不变即认为写完 */
+    private suspend fun awaitWritten(file: File): Boolean {
+        val deadline = System.currentTimeMillis() + TIMEOUT_MS
+        var lastLength = -1L
+        var stable = 0
+        while (System.currentTimeMillis() < deadline) {
+            val length = runCatching { file.length() }.getOrDefault(0L)
+            if (length > 0L) {
+                if (length == lastLength) stable++ else stable = 0
+                lastLength = length
+                if (stable >= STABLE_ROUNDS - 1) return true
+            }
+            delay(POLL_INTERVAL_MS)
+        }
+        return false
+    }
+
+    /** 让文件管理器/相册能看见新文件（Download 目录下的文件不扫描就不会出现在「最近」里） */
+    private fun scan(context: Context, file: File) {
+        runCatching {
+            MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), null, null)
+        }
+    }
+
+    /** 保留策略：按文件名列表算，protected（正在恢复的目标）永不删除 */
+    private fun evict(dir: File, protected: File?) {
+        val files = runCatching { dir.listFiles()?.filter { it.isFile } ?: emptyList() }.getOrDefault(emptyList())
+        val snapshots = LauncherBackupUtils.parseSnapshotFiles(files.map { it.name to it.length() })
+        val excluded = if (protected == null) emptySet() else setOfNotNull(
+            LauncherBackupUtils.parseSnapshotName(protected.name)?.name
+        )
+        LauncherBackupUtils.planEvictions(snapshots, excluded = excluded).forEach { snapshot ->
+            runCatching { File(dir, snapshot.fileName).delete() }
+        }
+    }
+}
+
+/** 授权方向：备份要写，恢复只要读 */
+enum class LauncherBackupTag(val flags: Int) {
+    READ(Intent.FLAG_GRANT_READ_URI_PERMISSION),
+    WRITE(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION),
+}
+
+/** app 侧一次备份/恢复的结果（界面据此给提示，Worker 只记日志） */
+sealed interface LauncherTaskResult {
+    data class Success(val file: File) : LauncherTaskResult
+    data class Failure(val error: LauncherTaskError, val detail: String = "") : LauncherTaskResult
+}
+
+/** 失败分类：界面按它取文案，不拼英文异常串 */
+enum class LauncherTaskError {
+    NO_LAUNCHER,
+    CREATE_FAILED,
+    FILE_EXISTS,
+    GRANT_FAILED,
+    SEND_FAILED,
+    TIMEOUT,
+    EMPTY_FILE,
+    PRE_RESTORE_FAILED,
+
+    /** 选中的文件不是本工具的布局备份（缺条目 / 版本不符 / 结构坏） */
+    INVALID_FILE,
+    IO_ERROR,
+}
+
+/** 隐藏应用记录（键 pkg#userId，值是隐藏项的 rank） */
 data class HiddenApp(val packageName: String, val userId: Int)
 
 /** 隐藏状态需要的双向改动 */
 data class HiddenSync(val toHide: List<HiddenApp>, val toUnhide: List<HiddenApp>)
+
+/** meta.json 的解析结果（概要信息，恢复写库时不用它） */
+data class LauncherMeta(
+    val tag: LauncherSnapshotTag,
+    val time: String,
+    val packageName: String,
+    val model: String,
+    val rom: String,
+    val launcherMode: Int,
+    val tableRows: Map<String, Int>,
+    val hiddenCount: Int,
+    val iconIncluded: Boolean,
+)
+
+/** 备份容器解析结果：概要 + 布局数据 */
+data class LauncherContainer(
+    val meta: LauncherMeta,
+    val tables: JSONObject,
+    val hidden: Map<String, Int>,
+)
 
 /** 快照标签：auto 是自动备份，manual 是界面手动，pre_restore 是恢复前的自动补拍 */
 enum class LauncherSnapshotTag(val id: String) {
@@ -331,28 +690,35 @@ enum class LauncherSnapshotTag(val id: String) {
     }
 }
 
-/** 一份快照：目录名、标签、时间、占用大小、布局行数（后两项来自 hook 回传） */
+/**
+ * 淘汰策略需要的最小信息：只要名字、标签、时间戳。
+ * 文件快照（[LauncherSnapshot]）与 MediaStore 行都实现它，策略本身不关心存储形态。
+ */
+interface SnapshotCandidate {
+    val name: String
+    val tag: LauncherSnapshotTag
+    val timeMillis: Long
+
+    /** 实际文件名（基名加 .ltbackup） */
+    val fileName: String get() = name + LauncherBackupUtils.FILE_SUFFIX
+}
+
+/** 一份备份：基名、标签、时间、文件字节数 */
 data class LauncherSnapshot(
-    val name: String,
-    val tag: LauncherSnapshotTag,
-    val timeMillis: Long,
+    override val name: String,
+    override val tag: LauncherSnapshotTag,
+    override val timeMillis: Long,
     val sizeBytes: Long = 0L,
-    val rows: Int = 0,
-)
+) : SnapshotCandidate {
+    override val fileName: String get() = name + LauncherBackupUtils.FILE_SUFFIX
+}
 
-/** 一条指令：action|arg|token */
-data class LauncherCommand(val action: String, val arg: String, val token: String)
-
-/** hook 的一次回传 */
-data class LauncherState(
-    val ok: Boolean,
+/** 一条指令：action|uri|token（backup 额外带 tag） */
+data class LauncherCommand(
     val action: String,
-    val message: String,
-    val backupRoot: String,
+    val uri: String,
+    val tag: LauncherSnapshotTag?,
     val token: String,
-    val snapshot: String,
-    val time: Long,
-    val snapshots: List<LauncherSnapshot>,
 )
 
 /** 自动备份的 prefs 键与取值约定 */

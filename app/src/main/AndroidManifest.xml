@@ -239,17 +239,6 @@
             </intent-filter>
         </service>
         
-        <!-- 桌面布局备份/恢复：hook 在 launcher 进程内以 launcher 的 uid 发显式广播回传结果，
-             跨应用发送必须 exported；本接收器只读 prefs 不做任何设备操作 -->
-        <receiver
-                android:name=".receiver.LauncherBackupReceiver"
-                android:enabled="true"
-                android:exported="true">
-            <intent-filter>
-                <action android:name="${applicationId}.LAUNCHER_BACKUP_RESULT" />
-            </intent-filter>
-        </receiver>
-
         <receiver
                 android:name=".receiver.SecretCodeReceiver"
                 android:enabled="true"
