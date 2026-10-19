@@ -135,6 +135,8 @@ internal class PrefEntry(
     val pageTarget: String?,
     val groupable: Boolean,
     val bare: Boolean,
+    /** 该行参与列表增删动画（需要 [itemKey] 稳定，默认关闭） */
+    val animate: Boolean,
     val render: @Composable (slot: Int) -> Unit,
 ) {
     var segIndex: Int = 0
@@ -258,6 +260,7 @@ class PrefScopeBuilder internal constructor(
         pageTarget: String? = null,
         groupable: Boolean = true,
         bare: Boolean = false,
+        animate: Boolean = false,
         render: @Composable (slot: Int) -> Unit,
     ) {
         val slot = entries.size
@@ -270,6 +273,7 @@ class PrefScopeBuilder internal constructor(
             pageTarget = pageTarget,
             groupable = groupable,
             bare = bare,
+            animate = animate,
             render = render,
         )
     }
@@ -710,7 +714,14 @@ class PrefScopeBuilder internal constructor(
         trailing: (@Composable () -> Unit)? = null,
         onLongClick: (() -> Unit)? = null,
         onClick: (() -> Unit)? = null,
-    ) = emit(null, null, title, summary) { slot ->
+        /**
+         * 稳定的列表项 key（默认按槽位编号）：同一业务行在相邻行增删时槽位会漂移，
+         * 需要「删掉的就是这一行」的动画时传业务键。
+         */
+        itemKey: String? = null,
+        /** 该行参与列表增删动画（配合稳定 [itemKey]；默认关闭，其余页面行为不变） */
+        animate: Boolean = false,
+    ) = emit(itemKey, null, title, summary, animate = animate) { slot ->
         if (LocalUiMode.current == UiMode.Miuix) {
             // value 非空 → 导航入口（库内箭头）；否则纯点击行（可选自定义 trailing）。
             // Miuix 行自带 insideMargin(16dp)：不再套 material 线的 16dp 外层 padding
@@ -851,6 +862,9 @@ fun ScopeScreen(
         } else {
             builder.entries.forEach { entry ->
                 item(key = entry.itemKey) {
+                    // 逐行增删动画：只挂到 DSL 显式声明 animate 的行，其余页面行为完全不变。
+                    // 淡出/淡入按 key 认身份，所以这类行必须同时传稳定的 itemKey（默认槽位 key 会漂移）。
+                    val animModifier = if (entry.animate) Modifier.animateItem() else Modifier
                     if (entry.bare) {
                         // 分类标题：不套卡片，对齐旧 PreferenceCategory 的观感（标题裸渲染在分组卡片之上）。
                         // 顶部间距沿用原卡片路径的取值，纵向节奏与改动前一致。
@@ -866,7 +880,7 @@ fun ScopeScreen(
                         } else {
                             Modifier
                         }
-                        Box(modifier = Modifier.padding(top = topGap).then(bareModifier)) {
+                        Box(modifier = animModifier.padding(top = topGap).then(bareModifier)) {
                             entry.render(entry.slot)
                         }
                     } else if (LocalUiMode.current == UiMode.Miuix) {
@@ -874,14 +888,14 @@ fun ScopeScreen(
                             index = entry.segIndex,
                             count = entry.segCount,
                             highlighted = builder.highlightSlot.value == entry.slot,
-                            modifier = Modifier.padding(top = miuixTopGap(entry.slot, entry.segIndex)),
+                            modifier = animModifier.padding(top = miuixTopGap(entry.slot, entry.segIndex)),
                         ) {
                             entry.render(entry.slot)
                         }
                     } else {
                         MaterialItem(index = entry.segIndex, count = entry.segCount) {
                             Box(
-                                modifier = Modifier.padding(
+                                modifier = animModifier.padding(
                                     top = when {
                                         entry.slot == 0 -> 0.dp
                                         entry.segIndex == 0 -> 8.dp
