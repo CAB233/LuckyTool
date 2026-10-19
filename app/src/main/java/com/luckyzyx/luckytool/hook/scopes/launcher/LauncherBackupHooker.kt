@@ -17,10 +17,13 @@ import android.os.UserHandle
 import android.provider.MediaStore
 import android.util.Base64
 import androidx.core.net.toUri
+import com.highcapable.betterandroid.ui.extension.component.lifecycleOwner
+import com.highcapable.betterandroid.ui.extension.component.runDelayed
 import com.highcapable.betterandroid.ui.extension.view.toast
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.resolver.MethodResolver
+import com.highcapable.yukihookapi.extension.kavaref.hook
 import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.log.YLog
@@ -59,11 +62,11 @@ import java.util.concurrent.Executors
 @Obfuscate
 object LauncherBackupHooker : YukiBaseHooker() {
 
-    private const val TAG = "LuckyTool_LauncherBackup"
+    private const val TAG = "LauncherBackup"
 
     /** 单线程执行器：备份/恢复全部落盘动作都在这里，不占 launcher 主线程 */
     private val executor = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "LuckyTool-LauncherBackup").apply { isDaemon = true }
+        Thread(runnable, TAG).apply { isDaemon = true }
     }
 
     /** 上次处理过的指令 token（进程重启时从 prefs 读回，避免重放旧指令） */
@@ -81,9 +84,6 @@ object LauncherBackupHooker : YukiBaseHooker() {
     @Volatile
     private var dataRoot: File? = null
 
-    /** 主线程 Handler：自查排期只挂在主线程上（进程被杀排期自然消失，下次 onHook 重装） */
-    private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
-
     /** onHook 可能被重复调用，自查只装一次 */
     @Volatile
     private var selfCheckInstalled = false
@@ -91,7 +91,21 @@ object LauncherBackupHooker : YukiBaseHooker() {
     /** 等布局加载完成的轮询计数 */
     private var modelLoadTries = 0
 
+    /** onHook 的 dataRoot / dataChannel 是否已就绪：挂载点可能早于 onHook 命中 */
+    @Volatile
+    private var mountReady = false
+
+    /** 挂载点只装一次：重复 onHook 不再重复 hook */
+    @Volatile
+    private var mountInstalled = false
+
+    /** 未就绪时挂载点记下的自查原因：onHook 就绪后补跑，不丢事件 */
+    @Volatile
+    private var pendingSelfCheckReason: String? = null
+
     override fun onHook() {
+        //挂载点尽量早装：桌面 Application#onCreate 可能就在这次模块装载之后紧接着跑
+        installProcessStartMountPoint()
         val context = hostApplication ?: return
         val root = resolveDataRoot(context, appInfo.packageName) ?: run {
             YLog.debug("$TAG 取不到 launcher 数据目录，功能不可用")
@@ -107,6 +121,12 @@ object LauncherBackupHooker : YukiBaseHooker() {
             handleCommand(raw)
         }
         installAutoBackupSelfCheck()
+        mountReady = true
+        //挂载点可能先于 onHook 命中（模块被延迟装载时），这里补跑一次，不丢事件
+        pendingSelfCheckReason?.let { reason ->
+            pendingSelfCheckReason = null
+            requestSelfCheck(reason)
+        }
     }
 
     // ---------------- 指令分发 ----------------
@@ -164,6 +184,63 @@ object LauncherBackupHooker : YukiBaseHooker() {
         }
     }
 
+    // ---------------- 进程启动挂载点 ----------------
+
+    /**
+     * 唯一的常驻挂载点：桌面自己的 Application#onCreate（com.android.common.LauncherApplication，
+     * 见 OplusLauncher manifest 的 application android:name）。
+     *
+     * 为什么不用 android.app.Application#onCreate：那是框架类，任何 Application 装载都会命中，
+     * 风险面覆盖整个框架启动链；这里只挂 ROM 的桌面 Application，这个类只存在于桌面包里，
+     * 天然只在桌面进程命中，也不会牵扯模块自己。
+     * 为什么 onHook 之外还要这个点：onHook 只在模块装载时跑一次，模块被延迟装载时自查可能一次都不跑，
+     * 而桌面进程启动是必然经过的点。
+     * 崩溃隔离分三层：解析/挂载/回调各自 runCatching，挂不上就退回 onHook 时机；回调体内不读库不写文件，
+     * 只 post 一条消息；post 出去的任务自己再包一层。目标方法怎么抛、我们这层出什么问题，都只落一条日志，
+     * 绝不向桌面进程抛出——Application#onCreate 抛异常会被系统判成崩溃并反复重启桌面。
+     */
+    private fun installProcessStartMountPoint() {
+        if (mountInstalled) return
+        mountInstalled = true
+        runCatching {
+            "com.android.common.LauncherApplication".toClass()
+                .resolve()
+                .firstMethodOrNull { name = "onCreate"; emptyParameters() }
+                ?: error("no onCreate")
+        }.onSuccess { method ->
+            runCatching {
+                method.hook {
+                    after {
+                        //回调里只允许这一句，且它自己也不许抛
+                        runCatching { requestSelfCheck("LauncherApplication#onCreate") }
+                            .onFailure { YLog.debug("$TAG 挂载点回调异常", it) }
+                    }
+                }
+                YLog.debug("$TAG 挂载点命中: LauncherApplication#onCreate")
+            }.onFailure { throwable ->
+                YLog.debug("$TAG 挂载 LauncherApplication#onCreate 失败", throwable)
+            }
+        }.onFailure { throwable ->
+            YLog.debug("$TAG 找不到 LauncherApplication#onCreate，只用 onHook 时机", throwable)
+        }
+    }
+
+    /**
+     * 自查统一入口：挂载点先到就记 pending，等 onHook 把 dataRoot / dataChannel 备齐再补跑。
+     * 真正的自查挪到主线程下一轮消息，不占 Application#onCreate 的调用栈。
+     */
+    private fun requestSelfCheck(reason: String) {
+        if (!mountReady) {
+            pendingSelfCheckReason = reason
+            return
+        }
+        Handler(Looper.getMainLooper()).post {
+            YLog.debug("$TAG 挂载点触发自查: $reason")
+            runCatching { enqueueAutoBackupSelfCheck() }
+                .onFailure { YLog.debug("$TAG 挂载点自查入队失败", it) }
+        }
+    }
+
     // ---------------- 自动备份到期自查 ----------------
 
     /**
@@ -179,7 +256,9 @@ object LauncherBackupHooker : YukiBaseHooker() {
         if (selfCheckInstalled) return
         selfCheckInstalled = true
         modelLoadTries = 0
-        mainHandler.postDelayed(modelLoadedPoll, MODEL_LOAD_POLL_MS)
+        hostContext?.lifecycleOwner?.runDelayed(MODEL_LOAD_POLL_MS) {
+            modelLoadedPoll.run()
+        }
     }
 
     /** 先等布局加载完成再自查：加载期间桌面正在读库建模型，别跟它抢 IO */
@@ -188,12 +267,16 @@ object LauncherBackupHooker : YukiBaseHooker() {
             val loaded = isModelLoaded()
             if (!loaded && modelLoadTries < MODEL_LOAD_MAX_TRIES) {
                 modelLoadTries++
-                mainHandler.postDelayed(this, MODEL_LOAD_POLL_MS)
+                hostContext?.lifecycleOwner?.runDelayed(MODEL_LOAD_POLL_MS) {
+                    run()
+                }
                 return
             }
             if (!loaded) YLog.debug("$TAG 等待布局加载超时，仍做一次到期自查")
             enqueueAutoBackupSelfCheck()
-            mainHandler.postDelayed(selfCheckTick, selfCheckIntervalMs())
+            hostContext?.lifecycleOwner?.runDelayed(selfCheckIntervalMs()) {
+                selfCheckTick.run()
+            }
         }
     }
 
@@ -201,7 +284,9 @@ object LauncherBackupHooker : YukiBaseHooker() {
     private val selfCheckTick = object : Runnable {
         override fun run() {
             enqueueAutoBackupSelfCheck()
-            mainHandler.postDelayed(this, selfCheckIntervalMs())
+            hostContext?.lifecycleOwner?.runDelayed(selfCheckIntervalMs()) {
+                run()
+            }
         }
     }
 
