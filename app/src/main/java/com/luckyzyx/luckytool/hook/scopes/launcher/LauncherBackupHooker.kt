@@ -1,12 +1,11 @@
 package com.luckyzyx.luckytool.hook.scopes.launcher
 
-import android.content.BroadcastReceiver
+import android.annotation.SuppressLint
+import android.app.Application
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
@@ -17,11 +16,11 @@ import android.os.Process
 import android.os.UserHandle
 import android.provider.MediaStore
 import android.util.Base64
-import android.widget.Toast
+import androidx.core.net.toUri
+import com.highcapable.betterandroid.ui.extension.view.toast
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.resolver.MethodResolver
-import com.highcapable.yukihookapi.extension.kavaref.hook
 import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.log.YLog
@@ -71,8 +70,13 @@ object LauncherBackupHooker : YukiBaseHooker() {
     @Volatile
     private var lastToken: String? = null
 
+    /**
+     * launcher 进程的 Application（进程级单例，不会持有 Activity）。
+     * 声明成 Application 而不是 Context：lint 的 StaticFieldLeak 只放过 Application 类型的静态字段，
+     * 写 Context 会被判成静态上下文泄漏（这里实际存的就是 hostApplication）。
+     */
     @Volatile
-    private var hostContext: Context? = null
+    private var hostContext: Application? = null
 
     @Volatile
     private var dataRoot: File? = null
@@ -87,31 +91,14 @@ object LauncherBackupHooker : YukiBaseHooker() {
     /** 等布局加载完成的轮询计数 */
     private var modelLoadTries = 0
 
-    /** onHook 的 dataChannel / dataRoot 是否已就绪：挂载点可能早于 onHook 命中 */
-    @Volatile
-    private var mountReady = false
-
-    /** 挂载点只装一次：重复 onHook 不再重复注册 hook 与广播接收器 */
-    @Volatile
-    private var mountInstalled = false
-
-    /** 未就绪时挂载点记下的自查原因：onHook 就绪后补跑一次，不丢事件 */
-    @Volatile
-    private var pendingSelfCheckReason: String? = null
-
-    /** 解锁广播接收器：非空即已注册（重复调用不再注册） */
-    @Volatile
-    private var userPresentReceiver: BroadcastReceiver? = null
-
     override fun onHook() {
         val context = hostApplication ?: return
         val root = resolveDataRoot(context, appInfo.packageName) ?: run {
-            YLog.debug(TAG + " 取不到 launcher 数据目录，功能不可用")
+            YLog.debug("$TAG 取不到 launcher 数据目录，功能不可用")
             return
         }
         hostContext = context
         dataRoot = root
-        installSelfCheckMountPoints()
         lastToken = LauncherBackupUtils.parseCommand(
             preferences(ModulePrefs).getString(LauncherBackupUtils.KEY_COMMAND, "")
         )?.token
@@ -120,12 +107,6 @@ object LauncherBackupHooker : YukiBaseHooker() {
             handleCommand(raw)
         }
         installAutoBackupSelfCheck()
-        mountReady = true
-        //挂载点可能先于 onHook 命中（Application#onCreate 比模块装载还早），这里补跑一次，不丢事件
-        pendingSelfCheckReason?.let { reason ->
-            pendingSelfCheckReason = null
-            requestSelfCheck(reason)
-        }
     }
 
     // ---------------- 指令分发 ----------------
@@ -133,7 +114,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
     private fun handleCommand(raw: String?) {
         val command = LauncherBackupUtils.parseCommand(raw)
         if (command == null) {
-            YLog.debug(TAG + " 忽略非法指令: " + raw)
+            YLog.debug("$TAG 忽略非法指令: $raw")
             return
         }
         if (LauncherBackupUtils.isDuplicateToken(lastToken, command.token)) {
@@ -166,7 +147,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         val label = if (command.action == LauncherBackupUtils.ACTION_BACKUP) "备份" else "恢复"
         val text = when {
             outcome.ok -> "布局" + label + "完成" +
-                (if (outcome.message.isBlank()) "" else "（" + outcome.message + "）")
+                    (if (outcome.message.isBlank()) "" else "（" + outcome.message + "）")
 
             else -> "布局" + label + "失败：" + outcome.message
         }
@@ -175,10 +156,10 @@ object LauncherBackupHooker : YukiBaseHooker() {
 
     private fun toast(text: String) {
         val context = hostContext ?: return
-        YLog.debug(TAG + " " + text)
+        YLog.debug("$TAG $text")
         runCatching {
             Handler(Looper.getMainLooper()).post {
-                runCatching { Toast.makeText(context, text, Toast.LENGTH_SHORT).show() }
+                runCatching { context.toast(text) }
             }
         }
     }
@@ -210,7 +191,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 mainHandler.postDelayed(this, MODEL_LOAD_POLL_MS)
                 return
             }
-            if (!loaded) YLog.debug(TAG + " 等待布局加载超时，仍做一次到期自查")
+            if (!loaded) YLog.debug("$TAG 等待布局加载超时，仍做一次到期自查")
             enqueueAutoBackupSelfCheck()
             mainHandler.postDelayed(selfCheckTick, selfCheckIntervalMs())
         }
@@ -227,7 +208,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
     /** 自查要读库 + 写 1MB 级文件，全部丢到执行器上，不占桌面主线程 */
     private fun enqueueAutoBackupSelfCheck() {
         runCatching { executor.execute { runAutoBackupSelfCheck() } }
-            .onFailure { YLog.debug(TAG + " 提交自动备份自查失败", it) }
+            .onFailure { YLog.debug("$TAG 提交自动备份自查失败", it) }
     }
 
     /** 到期判定：开关和周期从宿主 ModulePrefs 只读，时间戳只来自 [LauncherBackupGate] */
@@ -259,7 +240,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             val context = hostContext ?: return
             val now = System.currentTimeMillis()
             if (!autoBackupDue(now)) {
-                YLog.debug(TAG + " 自动备份未到期或仍在节流窗口内，跳过本次")
+                YLog.debug("$TAG 自动备份未到期或仍在节流窗口内，跳过本次")
                 return
             }
             LauncherBackupGate.markAttempt(context, now)
@@ -272,7 +253,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 "自动备份失败：" + outcome.message
             }
             toast(text)
-        }.onFailure { YLog.debug(TAG + " 自动备份自查异常", it) }
+        }.onFailure { YLog.debug("$TAG 自动备份自查异常", it) }
     }
 
     /** 布局是否加载完成：ROM 里 LauncherModel.mModelLoaded 由 LoaderTransaction.commit() 置位 */
@@ -322,109 +303,6 @@ object LauncherBackupHooker : YukiBaseHooker() {
     private const val SELF_CHECK_MIN_MINUTES = 15L
     private const val SELF_CHECK_MAX_MINUTES = 30L
 
-    // ---------------- 常驻挂载点 ----------------
-
-    /**
-     * 桌面主 Activity 候选类名：ROM 不同，逐个试，命中哪个打日志。
-     * 这几个都是桌面进程里必然被创建的主 Activity，每次回到桌面都会走 onResume。
-     */
-    private val launcherActivityCandidates = listOf(
-        "com.android.launcher.Launcher",
-        "com.android.launcher3.Launcher",
-        "com.android.launcher3.uioverrides.QuickstepLauncher",
-    )
-
-    /**
-     * 在进程的必经点上装同一份自查，任一命中即触发。
-     *
-     * 为什么这么挂：onHook 只在模块装载时跑一次，模块热重载或被系统延迟装载时自查可能一次都不跑；
-     * 而「进程启动 / 回到桌面 / 解锁」是桌面进程必然经过的点，谁先到谁把自查排起来。
-     * 幂等：mountInstalled 保证 hook 与广播只注册一次，重复的排期由 requestSelfCheck 合并。
-     */
-    private fun installSelfCheckMountPoints() {
-        if (mountInstalled) return
-        mountInstalled = true
-        hookApplicationCreate()
-        launcherActivityCandidates.forEach { className -> hookLauncherResume(className) }
-        registerUserPresentReceiver()
-    }
-
-    /** 必经点 1：Application#onCreate，桌面进程启动的第一个点（此时布局还没加载完，自查交给轮询等就绪） */
-    private fun hookApplicationCreate() {
-        runCatching {
-            "android.app.Application".toClass()
-                .resolve()
-                .firstMethod { name = "onCreate"; emptyParameters() }
-                .hook { after { requestSelfCheck("Application#onCreate") } }
-        }.onSuccess {
-            YLog.debug(TAG + " 挂载点命中: Application#onCreate")
-        }.onFailure {
-            YLog.debug(TAG + " 挂载 Application#onCreate 失败", it)
-        }
-    }
-
-    /** 必经点 2：桌面主 Activity#onResume，每次回到桌面都会经过；类名按 ROM 逐个试 */
-    private fun hookLauncherResume(className: String) {
-        runCatching {
-            val method = className.toClass()
-                .resolve()
-                .firstMethodOrNull { name = "onResume"; emptyParameters(); superclass() }
-                ?: error("no onResume")
-            method.hook { after { requestSelfCheck(className + "#onResume") } }
-        }.onSuccess {
-            YLog.debug(TAG + " 挂载点命中: " + className + "#onResume")
-        }.onFailure {
-            YLog.debug(TAG + " 挂载 " + className + "#onResume 失败: " + it.message)
-        }
-    }
-
-    /**
-     * 必经点 3：解锁广播 ACTION_USER_PRESENT，只在真正解锁（用户过了锁屏）时发一次。
-     * 注册后不注销：接收器随桌面进程存活，进程结束自然失效；主动注销反而会让后续解锁不再触发。
-     * Android 13 起注册非导出广播要显式给导出标记，低版本只有两参重载。
-     */
-    private fun registerUserPresentReceiver() {
-        if (userPresentReceiver != null) return
-        val context = hostContext ?: return
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(receiverContext: Context?, intent: Intent?) {
-                if (intent?.action != Intent.ACTION_USER_PRESENT) return
-                requestSelfCheck("Intent.ACTION_USER_PRESENT")
-            }
-        }
-        val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
-        runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-            } else {
-                context.registerReceiver(receiver, filter)
-            }
-        }.onSuccess {
-            userPresentReceiver = receiver
-            YLog.debug(TAG + " 挂载点命中: Intent.ACTION_USER_PRESENT")
-        }.onFailure {
-            YLog.debug(TAG + " 注册解锁广播接收器失败", it)
-        }
-    }
-
-    /**
-     * 自查统一入口：三个挂载点 + onHook 补跑都只走这里。
-     *
-     * 未就绪（onHook 还没拿到 dataChannel / dataRoot）时只记一条 pending，由 onHook 结束前补跑，不丢事件；
-     * 已就绪就排到主线程：布局已加载才真正提交自查，否则交给 modelLoadedPoll 等加载完成，
-     * 免得在桌面正读库建模型时跟它抢 IO。
-     */
-    private fun requestSelfCheck(reason: String) {
-        if (!mountReady) {
-            pendingSelfCheckReason = reason
-            return
-        }
-        YLog.debug(TAG + " 自查触发: " + reason)
-        mainHandler.post {
-            if (isModelLoaded()) enqueueAutoBackupSelfCheck() else installAutoBackupSelfCheck()
-        }
-    }
-
     // ---------------- 备份 ----------------
 
     /** 手动/恢复前补拍：内容来自共用序列化，落盘目标是 app 已经授权的 content uri */
@@ -435,7 +313,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         }
         val snapshot = payload.getOrThrow()
         if (!writeContainerTo(uriText, snapshot.metaJson, snapshot.layoutJson)) {
-            return Outcome(false, "write failed: " + uriText)
+            return Outcome(false, "write failed: $uriText")
         }
         YLog.debug(TAG + " 备份完成 " + snapshot.summary)
         return Outcome(true, snapshot.summary)
@@ -466,9 +344,12 @@ object LauncherBackupHooker : YukiBaseHooker() {
             put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
         val target = runCatching { resolver.insert(collection, pending) }.getOrElse { throwable ->
-            YLog.debug(TAG + " 自动备份投稿失败", throwable)
-            return Outcome(false, "insert failed: " + (throwable.message ?: throwable.javaClass.simpleName))
-        } ?: return Outcome(false, "insert failed: " + displayName)
+            YLog.debug("$TAG 自动备份投稿失败", throwable)
+            return Outcome(
+                false,
+                "insert failed: " + (throwable.message ?: throwable.javaClass.simpleName)
+            )
+        } ?: return Outcome(false, "insert failed: $displayName")
 
         val written = runCatching {
             val bytes = LauncherBackupUtils.containerBytes(snapshot.metaJson, snapshot.layoutJson)
@@ -480,14 +361,17 @@ object LauncherBackupHooker : YukiBaseHooker() {
             //回读 SIZE：投稿成功但字节为 0 说明写流没真落盘，按失败处理
             mediaSize(resolver, target) > 0L
         }.getOrElse { throwable ->
-            YLog.debug(TAG + " 自动备份写流失败: " + target, throwable)
+            YLog.debug("$TAG 自动备份写流失败: $target", throwable)
             deleteMedia(resolver, target)
-            return Outcome(false, displayName + ": " + (throwable.message ?: throwable.javaClass.simpleName))
+            return Outcome(
+                false,
+                displayName + ": " + (throwable.message ?: throwable.javaClass.simpleName)
+            )
         }
         if (!written) {
-            YLog.debug(TAG + " 自动备份投稿后大小为 0: " + target)
+            YLog.debug("$TAG 自动备份投稿后大小为 0: $target")
             deleteMedia(resolver, target)
-            return Outcome(false, "投稿后大小为 0: " + displayName)
+            return Outcome(false, "投稿后大小为 0: $displayName")
         }
         YLog.debug(TAG + " 自动备份完成 " + displayName + " " + snapshot.summary)
         evictSnapshots(resolver, collection, displayName)
@@ -496,15 +380,16 @@ object LauncherBackupHooker : YukiBaseHooker() {
 
     /** 回读 MediaStore 行的大小（字节）；读不到按 0 处理，由调用方判失败 */
     private fun mediaSize(resolver: ContentResolver, uri: Uri): Long = runCatching {
-        resolver.query(uri, arrayOf(MediaStore.MediaColumns.SIZE), null, null, null)?.use { cursor ->
-            if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else 0L
-        } ?: 0L
+        resolver.query(uri, arrayOf(MediaStore.MediaColumns.SIZE), null, null, null)
+            ?.use { cursor ->
+                if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else 0L
+            } ?: 0L
     }.getOrDefault(0L)
 
     /** 清掉投稿失败的残行：IS_PENDING=1 的孤儿行用户看不到，但会一直占着配额 */
     private fun deleteMedia(resolver: ContentResolver, uri: Uri) {
         runCatching { resolver.delete(uri, null, null) }
-            .onFailure { YLog.debug(TAG + " 清理投稿残行失败: " + uri, it) }
+            .onFailure { YLog.debug("$TAG 清理投稿残行失败: $uri", it) }
     }
 
     /** 快照容器内容：meta.json 放概要（行数/隐藏数），layout.json 放全量数据（含 icon blob） */
@@ -522,7 +407,8 @@ object LauncherBackupHooker : YukiBaseHooker() {
         tag: LauncherSnapshotTag,
         time: Long = System.currentTimeMillis(),
     ): Result<SnapshotPayload> {
-        val dbFile = launcherDb() ?: return Result.failure(IllegalStateException("launcher.db not found"))
+        val dbFile =
+            launcherDb() ?: return Result.failure(IllegalStateException("launcher.db not found"))
         val rowCounts = LinkedHashMap<String, Int>()
         val tables = JSONObject()
         val database = openDatabase(dbFile, SQLiteDatabase.OPEN_READONLY)
@@ -536,9 +422,11 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 rowCounts[table] = rows.length()
             }
         } catch (throwable: Throwable) {
-            YLog.debug(TAG + " 导出布局数据失败", throwable)
+            YLog.debug("$TAG 导出布局数据失败", throwable)
             return Result.failure(
-                IllegalStateException("dump failed: " + (throwable.message ?: throwable.javaClass.simpleName))
+                IllegalStateException(
+                    "dump failed: " + (throwable.message ?: throwable.javaClass.simpleName)
+                )
             )
         } finally {
             runCatching { database.close() }
@@ -558,7 +446,11 @@ object LauncherBackupHooker : YukiBaseHooker() {
         )
         val layoutJson = LauncherBackupUtils.buildLayoutJson(tables, hidden)
         return Result.success(
-            SnapshotPayload(metaJson, layoutJson, "hidden=" + hidden.size + " tables=" + tables.length())
+            SnapshotPayload(
+                metaJson,
+                layoutJson,
+                "hidden=" + hidden.size + " tables=" + tables.length()
+            )
         )
     }
 
@@ -589,31 +481,33 @@ object LauncherBackupHooker : YukiBaseHooker() {
             )
             val selection = MediaStore.MediaColumns.RELATIVE_PATH + "=?"
             val entries = ArrayList<MediaSnapshot>()
-            resolver.query(collection, projection, selection, arrayOf(relativePath), null)?.use { cursor ->
-                while (cursor.moveToNext()) {
-                    val id = cursor.getLong(0)
-                    val displayName = cursor.getString(1) ?: continue
-                    //名字不符合约定的（用户自己放进来的文件）不参与淘汰
-                    val parsed = LauncherBackupUtils.parseSnapshotName(displayName) ?: continue
-                    //owner 不是宿主桌面进程的行删不掉（app 写的 manual / pre_restore），不参与淘汰
-                    if (cursor.getString(2) != hostPackage) {
-                        skippedForeign++
-                        continue
+            resolver.query(collection, projection, selection, arrayOf(relativePath), null)
+                ?.use { cursor ->
+                    while (cursor.moveToNext()) {
+                        val id = cursor.getLong(0)
+                        val displayName = cursor.getString(1) ?: continue
+                        //名字不符合约定的（用户自己放进来的文件）不参与淘汰
+                        val parsed = LauncherBackupUtils.parseSnapshotName(displayName) ?: continue
+                        //owner 不是宿主桌面进程的行删不掉（app 写的 manual / pre_restore），不参与淘汰
+                        if (cursor.getString(2) != hostPackage) {
+                            skippedForeign++
+                            continue
+                        }
+                        //时间取文件名里的时间戳：与 app 侧淘汰口径一致，不依赖 DATE_ADDED 的秒级截断
+                        entries += MediaSnapshot(parsed.name, parsed.tag, parsed.timeMillis, id)
                     }
-                    //时间取文件名里的时间戳：与 app 侧淘汰口径一致，不依赖 DATE_ADDED 的秒级截断
-                    entries += MediaSnapshot(parsed.name, parsed.tag, parsed.timeMillis, id)
                 }
-            }
             entries
         }.getOrElse { throwable ->
-            YLog.debug(TAG + " 列出投稿文件失败", throwable)
+            YLog.debug("$TAG 列出投稿文件失败", throwable)
             return
         }
         if (skippedForeign > 0) {
-            YLog.debug(TAG + " 跳过 " + skippedForeign + " 份非本进程投稿的旧快照（owner 不是 " + hostPackage + "，删不掉）")
+            YLog.debug("$TAG 跳过 $skippedForeign 份非本进程投稿的旧快照（owner 不是 $hostPackage，删不掉）")
         }
         val idByName = rows.associate { it.name to it.id }
-        val excluded = LauncherBackupUtils.parseSnapshotName(keepName)?.name?.let { setOf(it) } ?: emptySet()
+        val excluded =
+            LauncherBackupUtils.parseSnapshotName(keepName)?.name?.let { setOf(it) } ?: emptySet()
         LauncherBackupUtils.planEvictions(rows, LauncherBackupUtils.MAX_SNAPSHOTS, excluded)
             .forEach { candidate ->
                 val id = idByName[candidate.name] ?: return@forEach
@@ -628,17 +522,24 @@ object LauncherBackupHooker : YukiBaseHooker() {
      * 把 zip 容器写到 app 给的 content uri（"wt" = 覆盖写，provider 由 app 侧 FileProvider 提供）。
      * 只有 app 已 grantUriPermission 才能打开；失败返回 false，由调用方拼提示。
      */
-    private fun writeContainerTo(uriText: String, metaJson: String, layoutJson: String): Boolean = runCatching {
-        val context = hostContext ?: error("no context")
-        val uri = Uri.parse(uriText)
-        val stream = context.contentResolver.openOutputStream(uri, "wt")
-            ?: error("openOutputStream returned null")
-        stream.use { output -> LauncherBackupUtils.writeContainer(output, metaJson, layoutJson) }
-        true
-    }.getOrElse { throwable ->
-        YLog.debug(TAG + " 写备份文件失败", throwable)
-        false
-    }
+    private fun writeContainerTo(uriText: String, metaJson: String, layoutJson: String): Boolean =
+        runCatching {
+            val context = hostContext ?: error("no context")
+            val uri = uriText.toUri()
+            val stream = context.contentResolver.openOutputStream(uri, "wt")
+                ?: error("openOutputStream returned null")
+            stream.use { output ->
+                LauncherBackupUtils.writeContainer(
+                    output,
+                    metaJson,
+                    layoutJson
+                )
+            }
+            true
+        }.getOrElse { throwable ->
+            YLog.debug("$TAG 写备份文件失败", throwable)
+            false
+        }
 
     // ---------------- 恢复 ----------------
 
@@ -665,7 +566,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                     LauncherBackupUtils.LAYOUT_TABLES.forEach { table ->
                         val rows = payload.tables.optJSONArray(table) ?: return@forEach
                         if (table !in existing) {
-                            YLog.debug(TAG + " 当前库没有表，跳过: " + table)
+                            YLog.debug("$TAG 当前库没有表，跳过: $table")
                             return@forEach
                         }
                         restoreTable(database, table, rows)
@@ -676,8 +577,11 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 }
             }
         } catch (throwable: Throwable) {
-            YLog.debug(TAG + " 写回布局数据失败", throwable)
-            return Outcome(false, "restore db failed: " + (throwable.message ?: throwable.javaClass.simpleName))
+            YLog.debug("$TAG 写回布局数据失败", throwable)
+            return Outcome(
+                false,
+                "restore db failed: " + (throwable.message ?: throwable.javaClass.simpleName)
+            )
         } finally {
             runCatching { database.close() }
         }
@@ -690,20 +594,24 @@ object LauncherBackupHooker : YukiBaseHooker() {
 
         // 库已经写回成功，但桌面没重载 → 不能报成功：否则 toast 说完成而图标根本没变
         return if (reloadResult == null) {
-            Outcome(true, hiddenResult + "; reload=ok")
+            Outcome(true, "$hiddenResult; reload=ok")
         } else {
-            Outcome(false, "restore ok but reload failed: " + reloadResult + "; launcher restart may be required")
+            Outcome(
+                false,
+                "restore ok but reload failed: $reloadResult; launcher restart may be required"
+            )
         }
     }
 
     /** 读 app 给的 content uri 并解出 zip 条目；任何异常都当「读不出来」，由调用方统一报错 */
     private fun readContainerFrom(uriText: String): Map<String, String>? = runCatching {
         val context = hostContext ?: error("no context")
-        val uri = Uri.parse(uriText)
-        val stream = context.contentResolver.openInputStream(uri) ?: error("openInputStream returned null")
+        val uri = uriText.toUri()
+        val stream =
+            context.contentResolver.openInputStream(uri) ?: error("openInputStream returned null")
         stream.use { input -> LauncherBackupUtils.readContainer(input) }
     }.getOrElse { throwable ->
-        YLog.debug(TAG + " 读备份文件失败", throwable)
+        YLog.debug("$TAG 读备份文件失败", throwable)
         null
     }
 
@@ -735,7 +643,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 superclass()
             }
         if (manager == null || method == null) {
-            YLog.debug(TAG + " 取不到 DeepProtectedAppsManager.I，隐藏应用状态未同步")
+            YLog.debug("$TAG 取不到 DeepProtectedAppsManager.I，隐藏应用状态未同步")
             return "hidden=skip(no entry)"
         }
 
@@ -744,12 +652,18 @@ object LauncherBackupHooker : YukiBaseHooker() {
         val plan = sync.toHide.map { it to true } + sync.toUnhide.map { it to false }
         plan.forEach { (app, hidden) ->
             runCatching { method.invoke(app.packageName, hidden, userHandle(app.userId)) }
-                .onFailure { YLog.debug(TAG + " I() 调用异常: " + app.packageName + "#" + app.userId, it) }
+                .onFailure {
+                    YLog.debug(
+                        TAG + " I() 调用异常: " + app.packageName + "#" + app.userId,
+                        it
+                    )
+                }
         }
         var remaining = LauncherBackupUtils.planHiddenSync(snapshot, currentHiddenApps())
         var failed = 0
         if (remaining.toHide.isNotEmpty() || remaining.toUnhide.isNotEmpty()) {
-            val fallback = remaining.toHide.map { it to true } + remaining.toUnhide.map { it to false }
+            val fallback =
+                remaining.toHide.map { it to true } + remaining.toUnhide.map { it to false }
             YLog.debug(TAG + " I() 未生效 " + fallback.size + " 条，回退存储层 HiddenDataCollection")
             fallback.forEach { (app, hidden) ->
                 if (!applyStorageFallback(manager, app, hidden)) failed++
@@ -832,7 +746,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 ?.invoke()
             null
         }.getOrElse { throwable ->
-            YLog.debug(TAG + " forceReload 失败", throwable)
+            YLog.debug("$TAG forceReload 失败", throwable)
             throwable.message ?: throwable.javaClass.simpleName
         }
     }
@@ -849,7 +763,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             ?.firstMethodOrNull { name = "getCurType"; superclass() }
             ?.invoke() as? Int
     }.getOrElse {
-        YLog.debug(TAG + " 读取 launcher_mode 失败", it)
+        YLog.debug("$TAG 读取 launcher_mode 失败", it)
         null
     }
 
@@ -859,7 +773,8 @@ object LauncherBackupHooker : YukiBaseHooker() {
 
     private const val HIDDEN_PREFS_NAME = "app_hidden_prefs"
     private const val HIDDEN_PREFS_FILE = "app_hidden_prefs.xml"
-    private const val DEEP_PROTECTED_MANAGER = "com.android.launcher.filter.DeepProtectedAppsManager"
+    private const val DEEP_PROTECTED_MANAGER =
+        "com.android.launcher.filter.DeepProtectedAppsManager"
     private const val LAUNCHER_APP_STATE = "com.android.launcher3.LauncherAppState"
     private const val LAUNCHER_MODE_MANAGER = "com.android.launcher.mode.LauncherModeManager"
 
@@ -876,12 +791,13 @@ object LauncherBackupHooker : YukiBaseHooker() {
             .getOrDefault(emptyList())
         val columns = snapshotColumns.filter { it in currentColumns }
         if (columns.isEmpty()) {
-            YLog.debug(TAG + " 备份与当前库没有共同列，跳过: " + table)
+            YLog.debug("$TAG 备份与当前库没有共同列，跳过: $table")
             return
         }
         val quotedColumns = columns.joinToString(", ") { quote(it) }
         val placeholders = columns.joinToString(", ") { "?" }
-        val sql = "INSERT INTO " + quote(table) + " (" + quotedColumns + ") VALUES (" + placeholders + ")"
+        val sql =
+            "INSERT INTO " + quote(table) + " (" + quotedColumns + ") VALUES (" + placeholders + ")"
         for (index in 0 until rows.length()) {
             val row = rows.optJSONObject(index) ?: continue
             val args = columns.map { column -> toBindArg(row.opt(column)) }.toTypedArray()
@@ -898,6 +814,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         is JSONObject -> runCatching {
             Base64.decode(value.optString("blob"), Base64.NO_WRAP)
         }.getOrNull()
+
         is JSONArray -> value.toString()
         else -> value
     }
@@ -978,6 +895,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         Cursor.FIELD_TYPE_BLOB -> JSONObject().put(
             "blob", Base64.encodeToString(cursor.getBlob(index), Base64.NO_WRAP)
         )
+
         else -> cursor.getString(index) ?: JSONObject.NULL
     }
 
@@ -989,12 +907,13 @@ object LauncherBackupHooker : YukiBaseHooker() {
      * 随后 backup 才会报 "launcher.db not found"，属于静默选错。
      * 顺序：Context.getDataDir()（实测 device-encrypted /data/user_de/0/<pkg>）→ 同路径兜底 → 老 ColorOS 的 /data/data/<pkg>。
      */
+    @SuppressLint("SdCardPath")
     private fun resolveDataRoot(context: Context, packageName: String): File? {
         val candidates = listOfNotNull(
             runCatching { context.dataDir }.getOrNull(),
-            File("/data/user_de/0/" + packageName),
-            File("/data/user/0/" + packageName),
-            File("/data/data/" + packageName),
+            File("/data/user_de/0/$packageName"),
+            File("/data/user/0/$packageName"),
+            File("/data/data/$packageName"),
         )
         return candidates.firstOrNull { dir ->
             runCatching { File(dir, "databases/launcher.db").isFile }.getOrDefault(false)
