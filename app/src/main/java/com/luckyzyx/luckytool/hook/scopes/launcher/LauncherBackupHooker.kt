@@ -273,7 +273,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                         //回调里只做两件事，且都不许抛：把 Application 交给初始化、补一条自查
                         runCatching {
                             //instance 就是 LauncherApplication 自己（onCreate 的 this），这里能直接拿到 Application
-                            (instance as? Application)?.let { initHost(it) }
+                            instanceOrNull<Application>()?.let { initHost(it) }
                             requestSelfCheck("LauncherApplication#onCreate")
                         }.onFailure {
                             YLog.debug("$TAG 挂载点回调异常", it)
