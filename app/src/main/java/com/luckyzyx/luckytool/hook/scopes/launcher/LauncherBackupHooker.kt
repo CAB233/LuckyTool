@@ -64,6 +64,10 @@ object LauncherBackupHooker : YukiBaseHooker() {
 
     private const val TAG = "LauncherBackup"
 
+    /** 拿不到 Application 时的重试次数与间隔：Application#onCreate 通常就在几十毫秒内完成 */
+    private const val INIT_RETRY_TIMES = 50
+    private const val INIT_RETRY_DELAY_MS = 200L
+
     /** 单线程执行器：备份/恢复全部落盘动作都在这里，不占 launcher 主线程 */
     private val executor = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, TAG).apply { isDaemon = true }
@@ -99,6 +103,13 @@ object LauncherBackupHooker : YukiBaseHooker() {
     @Volatile
     private var mountInstalled = false
 
+    /** 宿主是否已初始化成功（Application 拿到、指令通道已注册）；重复触发不再重复注册 */
+    @Volatile
+    private var hostInitialized = false
+
+    /** 拿不到 Application 时的重试计数 */
+    private var initRetryCount = 0
+
     /** 未就绪时挂载点记下的自查原因：onHook 就绪后补跑，不丢事件 */
     @Volatile
     private var pendingSelfCheckReason: String? = null
@@ -106,8 +117,58 @@ object LauncherBackupHooker : YukiBaseHooker() {
     override fun onHook() {
         //挂载点尽量早装：桌面 Application#onCreate 可能就在这次模块装载之后紧接着跑
         installProcessStartMountPoint()
-        val context = hostApplication ?: return
+        tryInitHost()
+    }
+
+    /**
+     * 尝试初始化宿主。
+     *
+     * 为什么不能像以前那样「hostApplication 为空就直接 return」：onHook 常常早于 Application#onCreate
+     * 执行（模块在 app_process 阶段装载，Application 还没创建），此时 hostApplication 还是空，
+     * 一旦直接返回，指令通道就再也不会注册 —— 重启后点备份必然等到超时的直接原因。
+     * 所以这里三路兜底：hostApplication → ActivityThread.currentApplication() → 短间隔重试，
+     * 另有挂载点在 LauncherApplication#onCreate 时用钩到的实例直接初始化。
+     */
+    private fun tryInitHost() {
+        if (hostInitialized) return
+        val context = hostApplication ?: currentApplicationOrNull()
+        if (context == null) {
+            scheduleInitRetry()
+            return
+        }
+        initHost(context)
+    }
+
+    /** 拿不到 Application 时短间隔重试；超过上限就停手，交给挂载点或下次进程启动 */
+    private fun scheduleInitRetry() {
+        if (initRetryCount >= INIT_RETRY_TIMES) {
+            YLog.debug("$TAG 等不到 Application，暂不初始化（等 LauncherApplication#onCreate）")
+            return
+        }
+        initRetryCount++
+        runCatching {
+            Handler(Looper.getMainLooper()).postDelayed({
+                runCatching { tryInitHost() }.onFailure {
+                    YLog.debug("$TAG 初始化重试异常", it)
+                }
+            }, INIT_RETRY_DELAY_MS)
+        }.onFailure { YLog.debug("$TAG 提交初始化重试失败", it) }
+    }
+
+    /** 兜底取 Application：进程内 currentApplication 指向已创建的 Application，取不到返回 null */
+    private fun currentApplicationOrNull(): Application? = runCatching {
+        Class.forName("android.app.ActivityThread")
+            .getDeclaredMethod("currentApplication")
+            .invoke(null) as? Application
+    }.getOrNull()
+
+    /** 真正的初始化，只做一次；先注册通道再置 mountReady，避免指令落在空窗里 */
+    @Synchronized
+    private fun initHost(context: Application) {
+        if (hostInitialized) return
         val root = resolveDataRoot(context, appInfo.packageName) ?: run {
+            //数据目录不存在是确定性的（包名不对或 ROM 路径不同），别再用重试刷日志
+            initRetryCount = INIT_RETRY_TIMES
             YLog.debug("$TAG 取不到 launcher 数据目录，功能不可用")
             return
         }
@@ -122,6 +183,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         }
         installAutoBackupSelfCheck()
         mountReady = true
+        hostInitialized = true
         //挂载点可能先于 onHook 命中（模块被延迟装载时），这里补跑一次，不丢事件
         pendingSelfCheckReason?.let { reason ->
             pendingSelfCheckReason = null
@@ -166,8 +228,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
     private fun toastOutcome(command: LauncherCommand, outcome: Outcome) {
         val label = if (command.action == LauncherBackupUtils.ACTION_BACKUP) "备份" else "恢复"
         val text = when {
-            outcome.ok -> "布局" + label + "完成" +
-                    (if (outcome.message.isBlank()) "" else "（" + outcome.message + "）")
+            outcome.ok -> "布局" + label + "完成" + (if (outcome.message.isBlank()) "" else "（" + outcome.message + "）")
 
             else -> "布局" + label + "失败：" + outcome.message
         }
@@ -203,17 +264,20 @@ object LauncherBackupHooker : YukiBaseHooker() {
         if (mountInstalled) return
         mountInstalled = true
         runCatching {
-            "com.android.common.LauncherApplication".toClass()
-                .resolve()
-                .firstMethodOrNull { name = "onCreate"; emptyParameters() }
-                ?: error("no onCreate")
+            "com.android.common.LauncherApplication".toClass().resolve()
+                .firstMethodOrNull { name = "onCreate"; emptyParameters() } ?: error("no onCreate")
         }.onSuccess { method ->
             runCatching {
                 method.hook {
                     after {
-                        //回调里只允许这一句，且它自己也不许抛
-                        runCatching { requestSelfCheck("LauncherApplication#onCreate") }
-                            .onFailure { YLog.debug("$TAG 挂载点回调异常", it) }
+                        //回调里只做两件事，且都不许抛：把 Application 交给初始化、补一条自查
+                        runCatching {
+                            //instance 就是 LauncherApplication 自己（onCreate 的 this），这里能直接拿到 Application
+                            (instance as? Application)?.let { initHost(it) }
+                            requestSelfCheck("LauncherApplication#onCreate")
+                        }.onFailure {
+                            YLog.debug("$TAG 挂载点回调异常", it)
+                        }
                     }
                 }
                 YLog.debug("$TAG 挂载点命中: LauncherApplication#onCreate")
@@ -236,8 +300,12 @@ object LauncherBackupHooker : YukiBaseHooker() {
         }
         Handler(Looper.getMainLooper()).post {
             YLog.debug("$TAG 挂载点触发自查: $reason")
-            runCatching { enqueueAutoBackupSelfCheck() }
-                .onFailure { YLog.debug("$TAG 挂载点自查入队失败", it) }
+            runCatching { enqueueAutoBackupSelfCheck() }.onFailure {
+                YLog.debug(
+                    "$TAG 挂载点自查入队失败",
+                    it
+                )
+            }
         }
     }
 
@@ -292,8 +360,12 @@ object LauncherBackupHooker : YukiBaseHooker() {
 
     /** 自查要读库 + 写 1MB 级文件，全部丢到执行器上，不占桌面主线程 */
     private fun enqueueAutoBackupSelfCheck() {
-        runCatching { executor.execute { runAutoBackupSelfCheck() } }
-            .onFailure { YLog.debug("$TAG 提交自动备份自查失败", it) }
+        runCatching { executor.execute { runAutoBackupSelfCheck() } }.onFailure {
+            YLog.debug(
+                "$TAG 提交自动备份自查失败",
+                it
+            )
+        }
     }
 
     /** 到期判定：开关和周期从宿主 ModulePrefs 只读，时间戳只来自 [LauncherBackupGate] */
@@ -344,12 +416,9 @@ object LauncherBackupHooker : YukiBaseHooker() {
     /** 布局是否加载完成：ROM 里 LauncherModel.mModelLoaded 由 LoaderTransaction.commit() 置位 */
     private fun isModelLoaded(): Boolean = runCatching {
         val context = hostContext ?: return false
-        val model = launcherAppState(context)?.asResolver()
-            ?.optional(true)
-            ?.firstMethodOrNull { name = "getModel"; superclass() }
-            ?.invoke() ?: return false
-        model.asResolver().optional(true)
-            .firstMethodOrNull { name = "isModelLoaded"; superclass() }
+        val model = launcherAppState(context)?.asResolver()?.optional(true)
+            ?.firstMethodOrNull { name = "getModel"; superclass() }?.invoke() ?: return false
+        model.asResolver().optional(true).firstMethodOrNull { name = "isModelLoaded"; superclass() }
             ?.invoke() as? Boolean ?: false
     }.getOrElse {
         YLog.debug(TAG + " 读取布局加载状态失败: " + it.message)
@@ -361,9 +430,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
      * getInstance / getModel 在部分 ROM 上声明在父类里，所以带上 superclass()。
      */
     private fun launcherAppState(context: Context): Any? = runCatching {
-        LAUNCHER_APP_STATE.toClass(launcherClassLoader())
-            .resolve()
-            .optional(true)
+        LAUNCHER_APP_STATE.toClass(launcherClassLoader()).resolve().optional(true)
             .firstMethodOrNull { name = "getInstance"; parameters(Context::class); superclass() }
             ?.invoke(context)
     }.getOrNull()
@@ -400,6 +467,11 @@ object LauncherBackupHooker : YukiBaseHooker() {
         if (!writeContainerTo(uriText, snapshot.metaJson, snapshot.layoutJson)) {
             return Outcome(false, "write failed: $uriText")
         }
+        //手动备份也算这一轮完成：否则刚手动拍完，周期若已到期，半小时内还会再自动写一份
+        //恢复前补拍不算：它是恢复流程的附带产物，不能推迟用户设定的自动周期
+        if (tag == LauncherSnapshotTag.MANUAL) {
+            hostContext?.let { LauncherBackupGate.markSuccess(it) }
+        }
         YLog.debug(TAG + " 备份完成 " + snapshot.summary)
         return Outcome(true, snapshot.summary)
     }
@@ -425,14 +497,13 @@ object LauncherBackupHooker : YukiBaseHooker() {
             put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
             //RELATIVE_PATH 要以 / 结尾；目录由 RELATIVE_DIR 派生，避免两处写死
             put(MediaStore.MediaColumns.RELATIVE_PATH, LauncherBackupUtils.RELATIVE_DIR + "/")
-            put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream")
+            put(MediaStore.MediaColumns.MIME_TYPE, "application/zip")
             put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
         val target = runCatching { resolver.insert(collection, pending) }.getOrElse { throwable ->
             YLog.debug("$TAG 自动备份投稿失败", throwable)
             return Outcome(
-                false,
-                "insert failed: " + (throwable.message ?: throwable.javaClass.simpleName)
+                false, "insert failed: " + (throwable.message ?: throwable.javaClass.simpleName)
             )
         } ?: return Outcome(false, "insert failed: $displayName")
 
@@ -449,8 +520,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             YLog.debug("$TAG 自动备份写流失败: $target", throwable)
             deleteMedia(resolver, target)
             return Outcome(
-                false,
-                displayName + ": " + (throwable.message ?: throwable.javaClass.simpleName)
+                false, displayName + ": " + (throwable.message ?: throwable.javaClass.simpleName)
             )
         }
         if (!written) {
@@ -473,8 +543,13 @@ object LauncherBackupHooker : YukiBaseHooker() {
 
     /** 清掉投稿失败的残行：IS_PENDING=1 的孤儿行用户看不到，但会一直占着配额 */
     private fun deleteMedia(resolver: ContentResolver, uri: Uri) {
-        runCatching { resolver.delete(uri, null, null) }
-            .onFailure { YLog.debug("$TAG 清理投稿残行失败: $uri", it) }
+        runCatching {
+            resolver.delete(
+                uri,
+                null,
+                null
+            )
+        }.onFailure { YLog.debug("$TAG 清理投稿残行失败: $uri", it) }
     }
 
     /** 快照容器内容：meta.json 放概要（行数/隐藏数），layout.json 放全量数据（含 icon blob） */
@@ -496,8 +571,9 @@ object LauncherBackupHooker : YukiBaseHooker() {
             launcherDb() ?: return Result.failure(IllegalStateException("launcher.db not found"))
         val rowCounts = LinkedHashMap<String, Int>()
         val tables = JSONObject()
-        val database = openDatabase(dbFile, SQLiteDatabase.OPEN_READONLY)
-            ?: return Result.failure(IllegalStateException("cannot open launcher.db"))
+        val database = openDatabase(dbFile, SQLiteDatabase.OPEN_READONLY) ?: return Result.failure(
+            IllegalStateException("cannot open launcher.db")
+        )
         try {
             val existing = withRetry { queryTableNames(database) }
             LauncherBackupUtils.LAYOUT_TABLES.forEach { table ->
@@ -532,9 +608,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         val layoutJson = LauncherBackupUtils.buildLayoutJson(tables, hidden)
         return Result.success(
             SnapshotPayload(
-                metaJson,
-                layoutJson,
-                "hidden=" + hidden.size + " tables=" + tables.length()
+                metaJson, layoutJson, "hidden=" + hidden.size + " tables=" + tables.length()
             )
         )
     }
@@ -615,9 +689,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 ?: error("openOutputStream returned null")
             stream.use { output ->
                 LauncherBackupUtils.writeContainer(
-                    output,
-                    metaJson,
-                    layoutJson
+                    output, metaJson, layoutJson
                 )
             }
             true
@@ -635,14 +707,15 @@ object LauncherBackupHooker : YukiBaseHooker() {
         if (missing.isNotEmpty()) {
             return Outcome(false, "备份文件不完整：缺少 " + missing.joinToString(", "))
         }
-        val payload = LauncherBackupUtils.parseContainer(entries)
-            ?: return Outcome(
-                false,
-                "备份文件格式不支持或已损坏（version=" + LauncherBackupUtils.PAYLOAD_VERSION + "）",
-            )
+        val payload = LauncherBackupUtils.parseContainer(entries) ?: return Outcome(
+            false,
+            "备份文件格式不支持或已损坏（version=" + LauncherBackupUtils.PAYLOAD_VERSION + "）",
+        )
         val dbFile = launcherDb() ?: return Outcome(false, "launcher.db not found")
-        val database = openDatabase(dbFile, SQLiteDatabase.OPEN_READWRITE)
-            ?: return Outcome(false, "cannot open launcher.db for write")
+        val database = openDatabase(dbFile, SQLiteDatabase.OPEN_READWRITE) ?: return Outcome(
+            false,
+            "cannot open launcher.db for write"
+        )
         try {
             withRetry {
                 database.beginTransaction()
@@ -664,8 +737,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         } catch (throwable: Throwable) {
             YLog.debug("$TAG 写回布局数据失败", throwable)
             return Outcome(
-                false,
-                "restore db failed: " + (throwable.message ?: throwable.javaClass.simpleName)
+                false, "restore db failed: " + (throwable.message ?: throwable.javaClass.simpleName)
             )
         } finally {
             runCatching { database.close() }
@@ -713,20 +785,16 @@ object LauncherBackupHooker : YukiBaseHooker() {
 
         val context = hostContext ?: return "hidden=skip(no context)"
         val manager = runCatching {
-            DEEP_PROTECTED_MANAGER.toClass(launcherClassLoader())
-                .resolve()
-                .optional(true)
+            DEEP_PROTECTED_MANAGER.toClass(launcherClassLoader()).resolve().optional(true)
                 .firstMethodOrNull { name = "k"; parameters(Context::class); superclass() }
                 ?.invoke(context)
         }.getOrNull()
         //I(String, boolean, UserHandle)：布尔参数按原始类型 boolean 找，跟 getMethod 时的语义一致
-        val method = manager?.asResolver()
-            ?.optional(true)
-            ?.firstMethodOrNull {
-                name = "I"
-                parameters(String::class, java.lang.Boolean.TYPE, UserHandle::class)
-                superclass()
-            }
+        val method = manager?.asResolver()?.optional(true)?.firstMethodOrNull {
+            name = "I"
+            parameters(String::class, java.lang.Boolean.TYPE, UserHandle::class)
+            superclass()
+        }
         if (manager == null || method == null) {
             YLog.debug("$TAG 取不到 DeepProtectedAppsManager.I，隐藏应用状态未同步")
             return "hidden=skip(no entry)"
@@ -736,13 +804,17 @@ object LauncherBackupHooker : YukiBaseHooker() {
         // 所以必须回读 app_hidden_prefs 校验，仍不一致的再走存储层 HiddenDataCollection，否则会报假成功。
         val plan = sync.toHide.map { it to true } + sync.toUnhide.map { it to false }
         plan.forEach { (app, hidden) ->
-            runCatching { method.invoke(app.packageName, hidden, userHandle(app.userId)) }
-                .onFailure {
-                    YLog.debug(
-                        TAG + " I() 调用异常: " + app.packageName + "#" + app.userId,
-                        it
-                    )
-                }
+            runCatching {
+                method.invoke(
+                    app.packageName,
+                    hidden,
+                    userHandle(app.userId)
+                )
+            }.onFailure {
+                YLog.debug(
+                    TAG + " I() 调用异常: " + app.packageName + "#" + app.userId, it
+                )
+            }
         }
         var remaining = LauncherBackupUtils.planHiddenSync(snapshot, currentHiddenApps())
         var failed = 0
@@ -791,8 +863,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
 
     /** 用户句柄：UserHandle.of(int) 在部分 SDK 上不可直接引用，反射取；拿不到退回当前用户（真机 profile 基本都是 0） */
     private fun userHandle(userId: Int): UserHandle = runCatching {
-        UserHandle::class.resolve()
-            .optional(true)
+        UserHandle::class.resolve().optional(true)
             .firstMethodOrNull { name = "of"; parameters(java.lang.Integer.TYPE) }
             ?.invoke(userId) as? UserHandle
     }.getOrNull() ?: Process.myUserHandle()
@@ -802,9 +873,10 @@ object LauncherBackupHooker : YukiBaseHooker() {
         val context = hostContext
         if (context != null) {
             val live = runCatching {
-                context.getSharedPreferences(HIDDEN_PREFS_NAME, Context.MODE_PRIVATE).all
-                    .mapNotNull { entry -> (entry.value as? Int)?.let { entry.key to it } }
-                    .toMap()
+                context.getSharedPreferences(
+                    HIDDEN_PREFS_NAME,
+                    Context.MODE_PRIVATE
+                ).all.mapNotNull { entry -> (entry.value as? Int)?.let { entry.key to it } }.toMap()
             }.getOrNull()
             if (live != null) return live
         }
@@ -824,11 +896,10 @@ object LauncherBackupHooker : YukiBaseHooker() {
         return runCatching {
             val appState = launcherAppState(context) ?: error("no LauncherAppState")
             val model = appState.asResolver().optional(true)
-                .firstMethodOrNull { name = "getModel"; superclass() }
-                ?.invoke() ?: error("no LauncherModel")
+                .firstMethodOrNull { name = "getModel"; superclass() }?.invoke()
+                ?: error("no LauncherModel")
             model.asResolver().optional(true)
-                .firstMethodOrNull { name = "forceReload"; superclass() }
-                ?.invoke()
+                .firstMethodOrNull { name = "forceReload"; superclass() }?.invoke()
             null
         }.getOrElse { throwable ->
             YLog.debug("$TAG forceReload 失败", throwable)
@@ -838,14 +909,9 @@ object LauncherBackupHooker : YukiBaseHooker() {
 
     /** 当前桌面模式（Standard 0 / Drawer 2 / Simple 3）；取不到返回 null */
     private fun currentLauncherMode(): Int? = runCatching {
-        LAUNCHER_MODE_MANAGER.toClass(launcherClassLoader())
-            .resolve()
-            .optional(true)
-            .firstMethodOrNull { name = "getInstance"; emptyParameters() }
-            ?.invoke()
-            ?.asResolver()
-            ?.optional(true)
-            ?.firstMethodOrNull { name = "getCurType"; superclass() }
+        LAUNCHER_MODE_MANAGER.toClass(launcherClassLoader()).resolve().optional(true)
+            .firstMethodOrNull { name = "getInstance"; emptyParameters() }?.invoke()?.asResolver()
+            ?.optional(true)?.firstMethodOrNull { name = "getCurType"; superclass() }
             ?.invoke() as? Int
     }.getOrElse {
         YLog.debug("$TAG 读取 launcher_mode 失败", it)
@@ -872,8 +938,10 @@ object LauncherBackupHooker : YukiBaseHooker() {
         val currentColumns = queryColumns(database, table)
         database.execSQL("DELETE FROM " + quote(table))
         if (rows.length() == 0 || currentColumns.isEmpty()) return
-        val snapshotColumns = runCatching { rows.getJSONObject(0).keys().asSequence().toList() }
-            .getOrDefault(emptyList())
+        val snapshotColumns =
+            runCatching { rows.getJSONObject(0).keys().asSequence().toList() }.getOrDefault(
+                emptyList()
+            )
         val columns = snapshotColumns.filter { it in currentColumns }
         if (columns.isEmpty()) {
             YLog.debug("$TAG 备份与当前库没有共同列，跳过: $table")
@@ -916,10 +984,9 @@ object LauncherBackupHooker : YukiBaseHooker() {
     }
 
     /** 打开库；被占用时短重试（SQLITE_BUSY / database is locked） */
-    private fun openDatabase(file: File, mode: Int): SQLiteDatabase? =
-        runCatching {
-            withRetry { SQLiteDatabase.openDatabase(file.absolutePath, null, mode) }
-        }.getOrNull()
+    private fun openDatabase(file: File, mode: Int): SQLiteDatabase? = runCatching {
+        withRetry { SQLiteDatabase.openDatabase(file.absolutePath, null, mode) }
+    }.getOrNull()
 
     private fun <T> withRetry(attempts: Int = 3, block: () -> T): T {
         var last: Throwable? = null

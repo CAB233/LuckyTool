@@ -32,7 +32,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - App permission page — checks the notification, all files access, app list and install app permissions, each granted by a button on its row; a cold start opens it until all four are granted (it only checks: no automatic request and no automatic jump to the system settings page), with Root status, root source, Xposed status and framework version pinned on top, and it offers no skip entry
 - Custom status bar network speed refresh interval — off by default; adjustable from 0.1 s to 5 s in 0.1 s steps
 - MEMC configuration Activity list supports searching and shows activity names
-- Desktop layout backup and restore — from the launcher-related page, back up and restore icon positions, folders, the hotseat and the hidden-app state; periodic auto snapshots are written as zip files to Download/LuckyTool/launcher_backup with the newest 20 kept
+- Desktop layout backup and restore — from the launcher-related page, back up and restore icon positions, folders, the hotseat and the hidden-app state; periodic auto snapshots are written as .ltbackup files (a zip container holding meta.json and layout.json) to Download/LuckyTool/launcher_backup with the newest 20 kept
 
 #### Optimized
 
@@ -50,7 +50,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Fixed data backup and restore for set values and legacy string formats; unwritable entries are skipped and the result now reports how many entries succeeded and failed
 - Fixed donate data loading by switching to the jsDelivr mirror
 - Fixed repeated permission requests and repeated jumps to the system settings page after returning from it — a cold start no longer requests permissions or jumps to the system settings page at all, the permission check only queries, and every grant starts from a button inside the page
-- Fixed “Custom desktop layout row/column count” not taking effect C17
+- Fixed backups right after a reboot or a scope reload always timing out — the command is re-sent with a fresh token (up to 4 times) while the launcher process comes up, and the status row shows the attempt
 
 #### Changed
 

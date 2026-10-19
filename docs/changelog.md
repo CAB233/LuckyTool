@@ -31,7 +31,7 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 - 应用权限页 —— 检测通知、所有文件访问、应用列表、安装应用四项权限
 - 自定义状态栏网速刷新间隔 —— 默认不开启，可在 0.1 秒至 5 秒之间按 0.1 秒步进设置
 - MEMC 配置的 Activity 列表支持搜索并显示 Activity 名称
-- 桌面布局备份与恢复 —— 在「桌面相关」页内手动备份与恢复图标位置、文件夹、热座与隐藏应用状态；支持按周期自动快照，快照为 zip 文件，保存在 Download/LuckyTool/launcher_backup，最多保留 20 份
+- 桌面布局备份与恢复 —— 在「桌面相关」页内手动备份与恢复图标位置、文件夹、热座与隐藏应用状态；支持按周期自动快照，快照保存为 .ltbackup 文件（内部是 zip 容器，含 meta.json 与 layout.json），位于 Download/LuckyTool/launcher_backup，最多保留 20 份
 
 #### 优化
 
@@ -50,6 +50,7 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 - 修复捐赠数据加载（改用 jsDelivr 镜像）
 - 修复从系统设置页返回后重复申请权限、重复跳转的问题
 - 修复「自定义桌面布局行列数」不生效的问题 C17
+- 修复重启系统或重载作用域后立即备份必然超时的问题 —— 桌面进程未就绪时改为换新指令重发（最多 4 次），状态行显示等待进度
 
 #### 更改
 

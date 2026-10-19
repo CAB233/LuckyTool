@@ -35,7 +35,7 @@ import java.util.zip.ZipOutputStream
  *   避免同 uid 拷贝时拿到写入中途的撕裂数据）。
  * - 隐藏应用状态从 app_hidden_prefs 的 <int> 读出成 JSON map（键 pkg#userId，值是该条的 rank 原样），
  *   不再按原文拷 prefs 文件：拷文件对恢复没有意义（进程内是缓存），状态必须走 DPAM 的入口改。
- * - 备份容器是标准 zip（扩展名仍为 .ltbackup），内含 meta.json（概要）与 layout.json（布局数据）两个条目，
+ * - 备份容器是标准 zip（扩展名 .zip），内含 meta.json（概要）与 layout.json（布局数据）两个条目，
  *   经 FileProvider URI 交给 launcher 进程写/读：
  *   SAF 授权只给 app 的 uid，所以 app 必须先 grantUriPermission 把读/写权限授予桌面包名。
  * - 恢复由 hook 在 launcher 进程内完成，写完调 LauncherModel.forceReload() 让桌面重读库
@@ -46,8 +46,11 @@ object LauncherBackupUtils {
     /** 本地备份份数上限（超过时先删最旧的 auto） */
     const val MAX_SNAPSHOTS = 20
 
-    /** 备份文件后缀（内容其实是标准 zip，压缩工具可直接打开） */
+    /** 备份文件后缀（内容即标准 zip，压缩工具可直接打开） */
     const val FILE_SUFFIX = ".ltbackup"
+
+    /** 名字是否本工具的备份文件 */
+    fun isSnapshotFileName(name: String): Boolean = name.endsWith(FILE_SUFFIX)
 
     /** 备份目录（相对外部存储根）：Download/LuckyTool/launcher_backup */
     const val RELATIVE_DIR = "Download/LuckyTool/launcher_backup"
@@ -112,7 +115,13 @@ object LauncherBackupUtils {
     fun parseSnapshotFiles(files: List<Pair<String, Long>>): List<LauncherSnapshot> =
         files.mapNotNull { entry ->
             val parsed = parseSnapshotName(entry.first) ?: return@mapNotNull null
-            LauncherSnapshot(parsed.name, parsed.tag, parsed.timeMillis, entry.second)
+            LauncherSnapshot(
+                name = parsed.name,
+                tag = parsed.tag,
+                timeMillis = parsed.timeMillis,
+                sizeBytes = entry.second,
+                onDiskName = entry.first.trim(),
+            )
         }.sortedWith(compareByDescending<LauncherSnapshot> { it.timeMillis }.thenByDescending { it.name })
 
     // ---------------- 指令协议 ----------------
@@ -402,6 +411,9 @@ object LauncherBackupUtils {
     }
 }
 
+/** 等待桌面进程时的下发进度：界面据此显示「第 attempt/total 次」的分阶段提示 */
+data class LauncherBackupHint(val attempt: Int, val total: Int)
+
 /**
  * 备份文件的搬运与指令下发（只在 app 进程用；hook 侧不调这里）。
  *
@@ -411,9 +423,13 @@ object LauncherBackupUtils {
  */
 object LauncherBackupTransfer {
 
-    /** 等 hook 把文件写完的上限；超过就认为桌面作用域没启用或桌面没在跑 */
-    const val TIMEOUT_MS = 15_000L
+    /** 单次下发后等 hook 写文件的上限；等不到就换新 token 再发一次 */
+    const val ATTEMPT_TIMEOUT_MS = 5_000L
 
+    /** 下发次数上限：桌面进程重启后要等它起来，5s × 6 = 30s 总窗口 */
+    const val DISPATCH_ATTEMPTS = 6
+
+    /** 单次下发内轮询文件长度的间隔 */
     private const val POLL_INTERVAL_MS = 250L
 
     /** 连续两次长度相同才算写完（zip 尾部与中央目录比头部晚落盘） */
@@ -428,6 +444,11 @@ object LauncherBackupTransfer {
     /** 是否有备份/恢复正在跑（界面据此禁用按钮） */
     val busy: StateFlow<Boolean> = _busy
 
+    private val _busyHint = MutableStateFlow<LauncherBackupHint?>(null)
+
+    /** 等待桌面进程时的下发进度；不等待时为 null */
+    val busyHint: StateFlow<LauncherBackupHint?> = _busyHint
+
     /** 备份目录：Download/LuckyTool/launcher_backup */
     @Suppress("DEPRECATION")
     fun backupDir(): File =
@@ -439,7 +460,7 @@ object LauncherBackupTransfer {
         val entries = runCatching {
             // 0 字节的 .ltbackup 是「备份刚建文件、hook 还没写」或写失败的残骸，不能当成可用快照
             dir.listFiles()?.filter {
-                it.isFile && it.name.endsWith(LauncherBackupUtils.FILE_SUFFIX) && it.length() > 0L
+                it.isFile && LauncherBackupUtils.isSnapshotFileName(it.name) && it.length() > 0L
             }
                 ?.map { it.name to it.length() }
                 ?: emptyList()
@@ -455,6 +476,7 @@ object LauncherBackupTransfer {
                 backupLocked(context, tag)
             } finally {
                 _busy.value = false
+                _busyHint.value = null
             }
         }
 
@@ -479,6 +501,7 @@ object LauncherBackupTransfer {
             dispatch(context, launcherPackage, file, LauncherBackupTag.READ, ::buildRestore)
         } finally {
             _busy.value = false
+            _busyHint.value = null
         }
     }
 
@@ -512,6 +535,23 @@ object LauncherBackupTransfer {
         }
     }
 
+    /**
+     * 删除一份本地快照：不经过桌面进程，直接删文件（与 evict、导入失败时同样用 File.delete；
+     * 备份目录里 hook 写的自动快照在本 app 的 MANAGE_EXTERNAL_STORAGE 下同样可删）。
+     * 文件已经不在了按成功返回——目标状态已达成，界面重列后该行自然消失。
+     */
+    fun delete(context: Context, snapshot: LauncherSnapshot): LauncherTaskResult {
+        val file = File(backupDir(), snapshot.fileName)
+        if (!file.exists()) return LauncherTaskResult.Success(file)
+        return if (runCatching { file.delete() }.getOrDefault(false)) {
+            // 删完扫一次：让文件管理器里的残留条目跟着消失
+            scan(context, file)
+            LauncherTaskResult.Success(file)
+        } else {
+            LauncherTaskResult.Failure(LauncherTaskError.IO_ERROR, file.absolutePath)
+        }
+    }
+
     // ---------------- 内部实现 ----------------
 
     private suspend fun backupLocked(
@@ -535,20 +575,16 @@ object LauncherBackupTransfer {
         }
         val launcherPackage = LauncherBackupUtils.detectLauncherPackage(context)
             ?: return@withContext LauncherTaskResult.Failure(LauncherTaskError.NO_LAUNCHER)
-        val sent = dispatch(
+        val sent = dispatchUntilWritten(
             context = context,
             launcherPackage = launcherPackage,
             file = file,
             need = LauncherBackupTag.WRITE,
         ) { uri -> LauncherBackupUtils.buildBackupCommand(uri, tag) }
         if (sent is LauncherTaskResult.Failure) {
-            file.delete()
-            return@withContext sent
-        }
-        // 长度从 0 变成非 0 且稳定 = hook 写完了；超时说明没人消费这条指令
-        if (!awaitWritten(file)) {
+            // 整个窗口里没人写出内容：删掉空文件，别让它占保留名额、也别让人以为是可用快照
             runCatching { file.delete() }
-            return@withContext LauncherTaskResult.Failure(LauncherTaskError.TIMEOUT, file.name)
+            return@withContext sent
         }
         scan(context, file)
         evict(dir, file)
@@ -556,6 +592,53 @@ object LauncherBackupTransfer {
     }
 
     private fun buildRestore(uri: String): String = LauncherBackupUtils.buildRestoreCommand(uri)
+
+    /**
+     * 反复下发备份指令，直到 hook 把文件写出来。
+     *
+     * 为什么不只发一次：重启（force-stop / 重载 Hooker）之后 launcher 进程还没起来，
+     * prefs 里那条指令根本没人消费，一次下发几乎必然等到超时。hook 侧按 token 去重
+     * （[LauncherBackupHooker] 的 isDuplicateToken），所以每次换新 token 重发就等价于
+     * 「再探测一次桌面是否就绪」，而备份重复执行是安全的（同一路径覆盖写）。
+     * 总窗口 = [DISPATCH_ATTEMPTS] × [ATTEMPT_TIMEOUT_MS]，期间由 [busyHint] 报第几次。
+     *
+     * 恢复不走这里：重复执行恢复会反复写表并重载布局，不是幂等操作。
+     */
+    private suspend fun dispatchUntilWritten(
+        context: Context,
+        launcherPackage: String,
+        file: File,
+        need: LauncherBackupTag,
+        build: (String) -> String,
+    ): LauncherTaskResult = withContext(Dispatchers.IO) {
+        val uri = runCatching {
+            FileProvider.getUriForFile(
+                context,
+                BuildConfig.APPLICATION_ID + PROVIDER_SUFFIX,
+                file,
+            )
+        }.getOrElse { throwable ->
+            return@withContext LauncherTaskResult.Failure(
+                LauncherTaskError.GRANT_FAILED,
+                throwable.message ?: throwable.javaClass.simpleName,
+            )
+        }
+        // 授权按 uid + URI 生效：整个窗口共用一份授权，重发只重建指令内容（token 每次都新）
+        val granted = runCatching {
+            context.grantUriPermission(launcherPackage, uri, need.flags)
+            true
+        }.getOrDefault(false)
+        if (!granted) return@withContext LauncherTaskResult.Failure(LauncherTaskError.GRANT_FAILED, launcherPackage)
+        for (attempt in 1..DISPATCH_ATTEMPTS) {
+            _busyHint.value = LauncherBackupHint(attempt, DISPATCH_ATTEMPTS)
+            if (!LauncherBackupUtils.sendCommand(context, build(uri.toString()), launcherPackage)) {
+                return@withContext LauncherTaskResult.Failure(LauncherTaskError.SEND_FAILED, launcherPackage)
+            }
+            // 长度从 0 变成非 0 且稳定 = hook 写完了
+            if (awaitWritten(file, ATTEMPT_TIMEOUT_MS)) return@withContext LauncherTaskResult.Success(file)
+        }
+        LauncherTaskResult.Failure(LauncherTaskError.TIMEOUT, file.name)
+    }
 
     private suspend fun dispatch(
         context: Context,
@@ -588,8 +671,8 @@ object LauncherBackupTransfer {
     }
 
     /** 轮询文件长度：非 0 且连续两次不变即认为写完 */
-    private suspend fun awaitWritten(file: File): Boolean {
-        val deadline = System.currentTimeMillis() + TIMEOUT_MS
+    private suspend fun awaitWritten(file: File, timeoutMs: Long = ATTEMPT_TIMEOUT_MS): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
         var lastLength = -1L
         var stable = 0
         while (System.currentTimeMillis() < deadline) {
@@ -703,14 +786,19 @@ interface SnapshotCandidate {
     val fileName: String get() = name + LauncherBackupUtils.FILE_SUFFIX
 }
 
-/** 一份备份：基名、标签、时间、文件字节数 */
+/**
+ * 一份备份：基名、标签、时间、文件字节数。
+ * [onDiskName] 是它在备份目录里的真实文件名（外部导入的文件可能不带后缀），
+ * 恢复与淘汰都必须按真实文件名下手，否则导入进来的快照既恢复不了也删不掉。
+ */
 data class LauncherSnapshot(
     override val name: String,
     override val tag: LauncherSnapshotTag,
     override val timeMillis: Long,
     val sizeBytes: Long = 0L,
+    val onDiskName: String? = null,
 ) : SnapshotCandidate {
-    override val fileName: String get() = name + LauncherBackupUtils.FILE_SUFFIX
+    override val fileName: String get() = onDiskName ?: (name + LauncherBackupUtils.FILE_SUFFIX)
 }
 
 /** 一条指令：action|uri|token（backup 额外带 tag） */
