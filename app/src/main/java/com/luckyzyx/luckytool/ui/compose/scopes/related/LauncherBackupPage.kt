@@ -89,7 +89,8 @@ object LauncherBackupPage {
         // 与桌面相关页 LauncherRelatedPage 用同一份桌面包名：恢复后桌面进程必须重起才会重读库
         scopes = LAUNCHER_SCOPE_PACKAGES,
         restartEnabled = true,
-        onRefresh = { reload() },
+        // 不开下拉刷新：这一页靠「状态」「备份目录」两行与各操作完成后的重列刷新，
+        // PullToRefreshBox 会给列表再套一层竖向手势，和长列表滑动打架
     ) {
         val c = requireNotNull(context) { "ScopeScreen 未注入 Context" }
         val busy = busyState.value
