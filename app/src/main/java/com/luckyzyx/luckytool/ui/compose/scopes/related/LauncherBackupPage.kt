@@ -66,13 +66,6 @@ import java.util.Locale
  */
 object LauncherBackupPage {
 
-    /**
-     * 页面内容是否已经组合（下拉刷新与点击行在组合之外触发，需要一个入口）。
-     * 只记布尔值、不缓存 Context：object 里的静态 Context 字段会被 lint 判成 StaticFieldLeak，
-     * 需要 Context 的场合由组合期捕获的 applicationContext 直接传参。
-     */
-    private var pageComposed = false
-
     /** 由页面宿主在组合期登记的协程作用域与文件选择器启动器（点击行不在组合内，拿不到 remember） */
     private var pageScope: CoroutineScope? = null
     private var importLauncher: (() -> Unit)? = null
@@ -99,7 +92,6 @@ object LauncherBackupPage {
         onRefresh = { reload() },
     ) {
         val c = requireNotNull(context) { "ScopeScreen 未注入 Context" }
-        pageComposed = true
         val busy = busyState.value
         val hint = busyHintState.value
         val notice = noticeState.value
@@ -154,6 +146,10 @@ object LauncherBackupPage {
         } else {
             snapshots.forEach { snapshot ->
                 click(
+                    // 按快照文件名做稳定的列表项 key：删除后这一项才是「移除并淡出」的那一行，
+                    // 默认的槽位 key 会把动画落到编号相同的相邻行上
+                    itemKey = "snapshot:" + snapshot.fileName,
+                    animate = true,
                     title = snapshotTitle(c, snapshot),
                     summary = snapshotSummary(c, snapshot),
                     enabled = !busy && launcherPackage != null,
@@ -184,7 +180,6 @@ object LauncherBackupPage {
                 pageScope = coroutineScope
                 importLauncher = { importer.launch("*/*") }
                 onDispose {
-                    pageComposed = false
                     pageScope = null
                     importLauncher = null
                 }
@@ -227,9 +222,15 @@ object LauncherBackupPage {
         }
     }
 
-    /** 重列本地快照文件（下拉刷新、操作完成、列表首次组合都走这里）；内容不变则不写状态，避免重复组合 */
+    /**
+     * 重列本地快照文件（下拉刷新、操作完成、列表首次组合都走这里）；内容不变则不写状态，避免重复组合。
+     *
+     * 不再用「页面是否已组合」的布尔量把门：组合期登记的行在相邻条目增删时槽位会漂移，
+     * LazyColumn 因此重建承载宿主（作用域/对话框）的那一项，onDispose 会把那个布尔量抹成 false，
+     * 而写入状态的调用（删除、备份完成后）都在事件里同步发生 —— 门一关，行就留在屏幕上，
+     * 表现为「删了一次没反应，再删一次才刷新」。
+     */
     private fun reload() {
-        if (!pageComposed) return
         val fresh = LauncherBackupTransfer.listSnapshots()
         if (fresh != snapshotsState.value) snapshotsState.value = fresh
     }
@@ -265,16 +266,23 @@ object LauncherBackupPage {
         reload()
     }
 
-    /** 删除一份快照：不经过桌面进程，删完重列即可（失败照实提示，行不会消失） */
+    /**
+     * 删除一份快照：不经过桌面进程。成功时直接把这一行从列表状态里摘掉（文件已删，重列只会得到同一结论，
+     * 摘状态才能立刻触发淡出动画）；失败才重列，把行放回原位并照实提示。
+     */
     private fun deleteNow(context: Context, target: LauncherSnapshot) {
-        noticeState.value = when (val result = LauncherBackupTransfer.delete(context, target)) {
-            is LauncherTaskResult.Success ->
-                context.getString(R.string.launcher_backup_delete_ok, result.file.name)
+        when (val result = LauncherBackupTransfer.delete(context, target)) {
+            is LauncherTaskResult.Success -> {
+                snapshotsState.value = snapshotsState.value.filterNot { it.fileName == target.fileName }
+                noticeState.value = context.getString(R.string.launcher_backup_delete_ok, result.file.name)
+            }
 
-            is LauncherTaskResult.Failure ->
-                context.getString(R.string.launcher_backup_result_failed, errorText(context, result))
+            is LauncherTaskResult.Failure -> {
+                noticeState.value =
+                    context.getString(R.string.launcher_backup_result_failed, errorText(context, result))
+                reload()
+            }
         }
-        reload()
     }
 
     /** 状态行摘要：忙碌态优先，其次上一次结果提示，然后是就绪/无桌面两态 */
