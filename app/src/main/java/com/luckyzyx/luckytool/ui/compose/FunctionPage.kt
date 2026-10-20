@@ -92,16 +92,13 @@ import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import java.util.Arrays
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 
-// 功能子树的路由（FunctionTreeRoute / SearchRoute / ScopeRoute）统一声明在 NavRoutes.kt 的 Route 层级里，
-// 与 MainShell 的 tab 路由共用同一条返回栈。
-
-/**
- * 功能树目的地（shell 返回栈上的 [FunctionTreeRoute]）：功能树 + 顶栏版本/重启菜单。
- * 本页不持有返回栈，导航一律交给 shell 的 miuix-nav [NavController]：
- * 系统返回、预测性返回动画、侧滑返回都由 shell 的那一个 NavDisplay 统一处理。
- */
+/** 功能标签页只展示功能树；搜索和作用域页由应用的同一个导航栈管理。 */
 @Composable
-internal fun FunctionTreePage(activity: MainActivity, nav: NavController) {
+fun FunctionPage(
+    activity: MainActivity,
+    onOpenPage: (pageKey: String, title: String) -> Unit,
+    onOpenSearch: () -> Unit,
+) {
     var showVersionInfo by remember { mutableStateOf(false) }
     var showRestartMenu by remember { mutableStateOf(false) }
 
@@ -114,23 +111,10 @@ internal fun FunctionTreePage(activity: MainActivity, nav: NavController) {
     }
 
     FunctionTreeScreen(
-        onOpenPage = { key, title -> nav.pushOnce(ScopeRoute(key, title)) },
-        onOpenSearch = { nav.pushOnce(SearchRoute) },
+        onOpenPage = onOpenPage,
+        onOpenSearch = onOpenSearch,
         onShowVersionInfo = { showVersionInfo = true },
         onShowRestartMenu = { showRestartMenu = true },
-    )
-}
-
-/**
- * 全屏搜索目的地（shell 返回栈上的 [SearchRoute]）：顶栏返回键与（库驱动的）侧滑返回都直接弹 shell 栈。
- * 搜索页在栈上必然有上一页（功能树），内部栈概念消失后不再需要
- *「内部可退才 pop、否则交还 shell」的分支。侧滑手势由 NavDisplay 的 entry(swipeDismiss = …) 提供。
- */
-@Composable
-internal fun FunctionSearchPage(nav: NavController) {
-    FunctionSearchScreen(
-        onBack = { nav.pop() },
-        onOpen = { route -> nav.pushOnce(route) },
     )
 }
 
@@ -311,7 +295,7 @@ private data class SearchEntry(val pageKey: String, val pageTitle: String, val i
 /** 全屏搜索：索引 = 全部已注册页 headless 构建，spec 手动不可见与单 App 作用域未安装页不入索引；过滤平移旧 SearchResultAdapter 规则 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FunctionSearchScreen(onBack: () -> Unit, onOpen: (ScopeRoute) -> Unit) {
+internal fun FunctionSearchScreen(onBack: () -> Unit, onOpen: (ScopeRoute) -> Unit) {
     val context = LocalContext.current
     var query by rememberSaveable { mutableStateOf("") }
 

@@ -66,7 +66,7 @@ open class MainActivity : AppCompatActivity() {
     /** 当前是否位于 Home tab（冷启动默认 true = 起始目的地；checkOs 判断用） */
     var isOnHomeTab by mutableStateOf(true)
 
-    /** 跨 tab 跳转请求队列：Compose 页面 → Function 子树作用域页（MainShell 切 tab，FunctionPage 消费） */
+    /** 跨标签页打开作用域页，由 MainShell 入栈并保留来源标签。 */
     val functionNavRequests = MutableStateFlow<FunctionRequest?>(null)
 
     /** 启动阻塞门对话框（Xposed 未激活 / 无 root / 系统不支持）：非空即由 MainShell 渲染，见 GateDialog */

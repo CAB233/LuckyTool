@@ -791,7 +791,7 @@ class PrefScopeBuilder internal constructor(
 }
 
 /**
- * 作用域偏好页主体（无 Scaffold，供 ComposeView 容器 / NavHost 内容插槽使用，标题栏由宿主提供）。
+ * 作用域偏好页主体（无 Scaffold，标题栏由页面宿主提供）。
  *
  * 与旧 BaseScopePreferenceFeagment 行为对齐：
  * - [sendValue] 对应 `Context.sendPrefsValue(packName, key, value)`（dataChannel 通知宿主）
