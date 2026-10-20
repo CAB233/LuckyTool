@@ -29,6 +29,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.highcapable.betterandroid.ui.extension.view.toast
+import com.highcapable.yukihookapi.YukiHook
+import com.highcapable.yukihookapi.hook.xposed.reload.entity.ModuleReloadStatus
 import com.luckyzyx.luckytool.IPackageServiceController
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.service.ActivityManagerService
@@ -36,8 +38,6 @@ import com.luckyzyx.luckytool.service.PackagesService
 import com.luckyzyx.luckytool.service.PowerService
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
-import com.highcapable.yukihookapi.YukiHook
-import com.highcapable.yukihookapi.hook.xposed.reload.entity.ModuleReloadStatus
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.ShellUtils
 import kotlinx.coroutines.CoroutineScope
@@ -83,6 +83,7 @@ object RestartMenuUtils {
                 confirmFirst = true,
                 onDismiss
             )
+
             else -> when (LocalUiMode.current) {
                 UiMode.Miuix -> OverlayDialog(
                     show = true,
@@ -104,6 +105,7 @@ object RestartMenuUtils {
                                             }
                                             onDismiss()
                                         }
+
                                         else -> {
                                             ShellUtils.fastCmd(CommandUtils.killzygote)
                                             onDismiss()
@@ -115,36 +117,33 @@ object RestartMenuUtils {
                     }
                 }
 
-                UiMode.Material -> AlertDialog(
-                    onDismissRequest = onDismiss,
-                    text = {
-                        Column {
-                            items.forEachIndexed { index, label ->
-                                Text(
-                                    label,
-                                    Modifier.fillMaxWidth().clickable {
-                                        when (index) {
-                                            0 -> showConfirmScope = true
-                                            1 -> showOptimize = true
-                                            2 -> showConfirmHooker = true
-                                            3 -> {
-                                                PowerService.get(context) { controller ->
-                                                    controller?.reboot(false, null, false)
-                                                }
-                                                onDismiss()
+                UiMode.Material -> AlertDialog(onDismissRequest = onDismiss, text = {
+                    Column {
+                        items.forEachIndexed { index, label ->
+                            Text(label, Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    when (index) {
+                                        0 -> showConfirmScope = true
+                                        1 -> showOptimize = true
+                                        2 -> showConfirmHooker = true
+                                        3 -> {
+                                            PowerService.get(context) { controller ->
+                                                controller?.reboot(false, null, false)
                                             }
-                                            else -> {
-                                                ShellUtils.fastCmd(CommandUtils.killzygote)
-                                                onDismiss()
-                                            }
+                                            onDismiss()
                                         }
-                                    }.padding(horizontal = 24.dp, vertical = 14.dp)
-                                )
-                            }
+
+                                        else -> {
+                                            ShellUtils.fastCmd(CommandUtils.killzygote)
+                                            onDismiss()
+                                        }
+                                    }
+                                }
+                                .padding(horizontal = 24.dp, vertical = 14.dp))
                         }
-                    },
-                    confirmButton = {}
-                )
+                    }
+                }, confirmButton = {})
             }
         }
     }
@@ -155,17 +154,13 @@ object RestartMenuUtils {
      */
     @Composable
     fun RestartScopeDialog(
-        context: Context,
-        scopes: Array<String>,
-        isSystem: Boolean = false,
-        onDismiss: () -> Unit
+        context: Context, scopes: Array<String>, isSystem: Boolean = false, onDismiss: () -> Unit
     ) {
         if (scopes.isEmpty()) return
         val isSystemPage = isSystem && scopes.first() == "system"
         val items = if (isSystemPage) {
             arrayOf(
-                R.string.reload_hooker,
-                R.string.reload_only_this_page_hooker
+                R.string.reload_hooker, R.string.reload_only_this_page_hooker
             ).map { stringResource(it) }
         } else {
             arrayOf(
@@ -185,7 +180,10 @@ object RestartMenuUtils {
         when {
             showConfirmScope -> ConfirmRestartAllScopeDialog(context, onDismiss)
             showConfirmHooker -> ConfirmRestartAllHookerDialog(context, onDismiss)
-            showOptimize -> OptimizeDexDialog(context, optimizeScopes, optimizeConfirmFirst, onDismiss)
+            showOptimize -> OptimizeDexDialog(
+                context, optimizeScopes, optimizeConfirmFirst, onDismiss
+            )
+
             else -> when (LocalUiMode.current) {
                 UiMode.Miuix -> OverlayDialog(
                     show = true,
@@ -216,16 +214,19 @@ object RestartMenuUtils {
                                                 optimizeConfirmFirst = true
                                                 showOptimize = true
                                             }
+
                                             2 -> showConfirmHooker = true
                                             3 -> {
                                                 restartScope(context, scopes)
                                                 onDismiss()
                                             }
+
                                             4 -> {
                                                 optimizeScopes = buildScopeMaps(context, scopes)
                                                 optimizeConfirmFirst = false
                                                 showOptimize = true
                                             }
+
                                             else -> {
                                                 restartHooker(context, scopes)
                                                 onDismiss()
@@ -238,56 +239,55 @@ object RestartMenuUtils {
                     }
                 }
 
-                UiMode.Material -> AlertDialog(
-                    onDismissRequest = onDismiss,
-                    text = {
-                        Column {
-                            items.forEachIndexed { index, label ->
-                                Text(
-                                    label,
-                                    Modifier.fillMaxWidth().clickable {
-                                        if (isSystemPage) {
-                                            when (index) {
-                                                0 -> showConfirmHooker = true
-                                                else -> {
-                                                    restartHooker(context, scopes)
-                                                    onDismiss()
-                                                }
-                                            }
-                                        } else {
-                                            when (index) {
-                                                0 -> showConfirmScope = true
-                                                1 -> {
-                                                    optimizeScopes = buildScopeMaps(
-                                                        context,
-                                                        context.resources.getStringArray(R.array.xposed_scope)
-                                                    )
-                                                    optimizeConfirmFirst = true
-                                                    showOptimize = true
-                                                }
-                                                2 -> showConfirmHooker = true
-                                                3 -> {
-                                                    restartScope(context, scopes)
-                                                    onDismiss()
-                                                }
-                                                4 -> {
-                                                    optimizeScopes = buildScopeMaps(context, scopes)
-                                                    optimizeConfirmFirst = false
-                                                    showOptimize = true
-                                                }
-                                                else -> {
-                                                    restartHooker(context, scopes)
-                                                    onDismiss()
-                                                }
+                UiMode.Material -> AlertDialog(onDismissRequest = onDismiss, text = {
+                    Column {
+                        items.forEachIndexed { index, label ->
+                            Text(label, Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (isSystemPage) {
+                                        when (index) {
+                                            0 -> showConfirmHooker = true
+                                            else -> {
+                                                restartHooker(context, scopes)
+                                                onDismiss()
                                             }
                                         }
-                                    }.padding(horizontal = 24.dp, vertical = 14.dp)
-                                )
-                            }
+                                    } else {
+                                        when (index) {
+                                            0 -> showConfirmScope = true
+                                            1 -> {
+                                                optimizeScopes = buildScopeMaps(
+                                                    context,
+                                                    context.resources.getStringArray(R.array.xposed_scope)
+                                                )
+                                                optimizeConfirmFirst = true
+                                                showOptimize = true
+                                            }
+
+                                            2 -> showConfirmHooker = true
+                                            3 -> {
+                                                restartScope(context, scopes)
+                                                onDismiss()
+                                            }
+
+                                            4 -> {
+                                                optimizeScopes = buildScopeMaps(context, scopes)
+                                                optimizeConfirmFirst = false
+                                                showOptimize = true
+                                            }
+
+                                            else -> {
+                                                restartHooker(context, scopes)
+                                                onDismiss()
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(horizontal = 24.dp, vertical = 14.dp))
                         }
-                    },
-                    confirmButton = {}
-                )
+                    }
+                }, confirmButton = {})
             }
         }
     }
@@ -323,8 +323,7 @@ object RestartMenuUtils {
                 },
                 dismissButton = {
                     TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
-                }
-            )
+                })
         }
     }
 
@@ -355,8 +354,7 @@ object RestartMenuUtils {
                 },
                 dismissButton = {
                     TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
-                }
-            )
+                })
         }
     }
 
@@ -409,6 +407,7 @@ object RestartMenuUtils {
                 if (packName == "com.android.systemui") return@forEachIndexed
                 val uid = Process.myUid() / 100000
                 controller?.forceStopPackage(packName, uid)
+                LogUtils.d("restartScope", "forceStopPackage", packName, true)
             }
         }
         if (killSystemUI) ShellUtils.fastCmd(CommandUtils.killSysui)
@@ -523,8 +522,7 @@ object RestartMenuUtils {
                             TextButton(onClick = onDismiss) {
                                 Text(stringResource(android.R.string.cancel))
                             }
-                        }
-                    )
+                        })
                 }
             }
 
@@ -579,8 +577,7 @@ object RestartMenuUtils {
                                 )
                             }
                         },
-                        confirmButton = {}
-                    )
+                        confirmButton = {})
                 }
             }
 
@@ -616,8 +613,7 @@ object RestartMenuUtils {
                             TextButton(onClick = onDismiss) {
                                 Text(stringResource(android.R.string.cancel))
                             }
-                        }
-                    )
+                        })
                 }
             }
         }

@@ -310,5 +310,13 @@ object LauncherRelatedPage {
                 summary = if (osCode >= 30) c.getString(R.string.launcher_layout_max_columns_summary) else null,
             )
         }
+
+        // 桌面布局备份/恢复不再是功能树顶层条目，收进本页末尾
+        category(c.getString(R.string.launcher_backup))
+        page(
+            title = c.getString(R.string.launcher_backup_entry),
+            target = "launcherBackup",
+            summary = c.getString(R.string.launcher_backup_entry_summary),
+        )
     }
 }

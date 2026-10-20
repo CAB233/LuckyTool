@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.ApplicationInfo
 import android.os.Build
+import android.widget.Toast
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
 import org.lsposed.hiddenapibypass.HiddenApiBypass
@@ -25,9 +26,13 @@ object PredictiveBackUtils {
 
     fun isSupported(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
 
-    fun apply(context: Context, enable: Boolean) {
-        if (!isSupported()) return
-        runCatching {
+    /**
+     * 返回失败原因而不是静默吞掉：该 flag 是否真的写进去决定了系统是否再画预测性返回预览，
+     * 排查“关掉开关后返回动画依旧缩放/虚化”时必须能区分「写入失败」和「系统不理会」。
+     */
+    fun apply(context: Context, enable: Boolean): Result<Unit> {
+        if (!isSupported()) return Result.failure(IllegalStateException("SDK ${Build.VERSION.SDK_INT} 不支持预测性返回"))
+        return runCatching {
             HiddenApiBypass.addHiddenApiExemptions("Landroid/content/pm/ApplicationInfo;")
             classOf<ApplicationInfo>().resolve().firstMethod {
                 name = "setEnableOnBackInvokedCallback"; parameters(classOf<Boolean>())
@@ -44,7 +49,13 @@ object PredictiveBackUtils {
      */
     fun applyImmediately(context: Context, enable: Boolean) {
         if (!isSupported()) return
-        apply(context, enable)
+        val result = apply(context, enable)
+        Toast.makeText(
+            context,
+            if (result.isSuccess) "预测性返回：已写入 ${if (enable) "开启" else "关闭"}，界面已重建"
+            else "预测性返回：写入失败 — ${result.exceptionOrNull()?.message}",
+            Toast.LENGTH_LONG,
+        ).show()
         context.findActivity()?.recreate()
     }
 

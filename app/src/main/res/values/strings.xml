@@ -716,6 +716,8 @@
     <string name="enable_custom_app_language">Enable custom app language</string>
     <string name="disable_app_archiving">Auto release app space off by default</string>
     <string name="disable_app_archiving_summary">All apps are opted out of auto-archiving (uninstall app but keep data when storage is low) by default</string>
+    <string name="disable_app_archive_button">Hide app archive button</string>
+    <string name="disable_app_archive_button_summary">Hide the Archive button on the app info page and bring back the Open button; archived apps keep their Restore button</string>
     
     <!--FloatingWindowDialogRelated-->
     <string name="FloatingWindowDialogRelated">Floating Window / Dialog Related</string>
@@ -1523,4 +1525,54 @@
     <string name="force_enable_oplus_keyboard_blur_summary">Force the Xiaobu keyboard to use the liquid glass blur, ignoring the system blur switch, the app whitelist, the built-in theme and the folding state.</string>
     <string name="oplus_keyboard_blur_radius">Blur strength</string>
     <string name="oplus_keyboard_blur_radius_summary">The blur radius the keyboard asks the system for. The built-in value is 150, and a larger value blurs more.</string>
+    <!-- 桌面布局备份/恢复 -->
+    <string name="launcher_backup">Desktop layout backup</string>
+    <string name="launcher_backup_entry">Desktop layout backup and restore</string>
+    <string name="launcher_backup_entry_summary">Back up the home screen layout and restore it from a snapshot</string>
+    <string name="launcher_backup_category_settings">Backup settings</string>
+    <string name="launcher_backup_category_actions">Actions</string>
+    <string name="launcher_backup_category_history">Snapshot history</string>
+    <string name="launcher_backup_status">Snapshot status</string>
+    <string name="launcher_backup_busy">Working…</string>
+    <string name="launcher_backup_waiting_launcher">Waiting for the launcher process… (attempt %1$d/%2$d)</string>
+    <string name="launcher_backup_no_launcher">Launcher package not detected: enable the launcher scope in LSPosed and open the home screen once.</string>
+    <string name="launcher_backup_ok_ready">Ready · %1$s</string>
+    <string name="launcher_backup_send_failed">Cannot reach the launcher process: check the launcher scope in LSPosed.</string>
+    <string name="launcher_backup_root">Snapshot directory</string>
+    <string name="launcher_backup_backup_now">Back up now</string>
+    <string name="launcher_backup_backup_now_summary">Export the layout tables and the hidden-app state into a new snapshot file</string>
+    <string name="launcher_backup_import">Import a snapshot file</string>
+    <string name="launcher_backup_import_summary">Pick a .ltbackup snapshot file and copy it into the snapshot directory</string>
+    <string name="launcher_backup_empty">No snapshots yet</string>
+    <string name="launcher_backup_result_ok">Done</string>
+    <string name="launcher_backup_result_failed">Failed: %1$s</string>
+    <string name="launcher_backup_result_sent">Command sent · the result shows up in the launcher toast</string>
+    <string name="launcher_backup_restore_title">Restore snapshot</string>
+    <string name="launcher_backup_restore_message">%1$s\nA pre-restore snapshot is taken first, then the layout tables are replaced and the launcher reloads.</string>
+    <string name="launcher_backup_restore_confirm">Restore</string>
+    <string name="launcher_backup_cancel">Cancel</string>
+    <string name="launcher_backup_delete">Delete snapshot</string>
+    <string name="launcher_backup_delete_title">Delete snapshot</string>
+    <string name="launcher_backup_delete_message">%1$s\nThis cannot be undone. Delete this snapshot?</string>
+    <string name="launcher_backup_delete_confirm">Delete</string>
+    <string name="launcher_backup_delete_ok">Deleted %1$s</string>
+    <string name="launcher_backup_err_create">Cannot create the snapshot file: %1$s</string>
+    <string name="launcher_backup_err_exists">The snapshot file already exists: %1$s</string>
+    <string name="launcher_backup_err_grant">Cannot grant file access to the launcher: %1$s</string>
+    <string name="launcher_backup_err_timeout">The launcher process did not respond: right after a system reboot or a scope reload, return to the home screen first so the launcher process restarts, then try again; if it still fails, check that the launcher scope is enabled</string>
+    <string name="launcher_backup_err_empty">The snapshot file is empty: %1$s</string>
+    <string name="launcher_backup_err_pre_restore">Cannot take the pre-restore snapshot, restore aborted: %1$s</string>
+    <string name="launcher_backup_err_io">File error: %1$s</string>
+    <string name="launcher_backup_err_invalid">This file is not a valid desktop layout backup</string>
+    <string name="launcher_backup_auto">Automatic backup</string>
+    <string name="launcher_backup_auto_summary">The launcher process checks the interval itself and writes the snapshot to Download; the launcher scope must be enabled in LSPosed. A manual backup also restarts the countdown</string>
+    <string name="launcher_backup_interval">Backup interval</string>
+    <string name="launcher_backup_interval_summary">Current: %s</string>
+    <string name="launcher_backup_interval_6h">6 hours</string>
+    <string name="launcher_backup_interval_12h">12 hours</string>
+    <string name="launcher_backup_interval_24h">24 hours</string>
+    <string name="launcher_backup_interval_48h">48 hours</string>
+    <string name="launcher_backup_tag_auto">Auto</string>
+    <string name="launcher_backup_tag_manual">Manual</string>
+    <string name="launcher_backup_tag_pre_restore">Before restore</string>
 </resources>

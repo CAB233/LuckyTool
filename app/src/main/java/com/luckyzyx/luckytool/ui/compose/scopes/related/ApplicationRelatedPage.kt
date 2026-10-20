@@ -316,6 +316,17 @@ object ApplicationRelatedPage {
                 }
             }
         }
+        //隐藏应用详情页的归档按钮（已归档应用的“恢复”按钮保留）
+        if (getOSVersionCode >= 36) {
+            switch(
+                key = "disable_app_archive_button",
+                title = c.getString(R.string.disable_app_archive_button),
+                summary = c.getString(R.string.disable_app_archive_button_summary),
+                onChange = { v ->
+                    c.sendPrefsValue("com.android.settings", "disable_app_archive_button", v)
+                },
+            )
+        }
     }
 
     private fun com.luckyzyx.luckytool.ui.compose.components.PrefScopeBuilder.wlanWhitelist(

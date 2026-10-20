@@ -137,6 +137,8 @@ internal class PrefEntry(
     val groupable: Boolean,
     val bare: Boolean,
     val groupBreak: Boolean = false,
+    /** 该行参与列表增删动画（需要 [itemKey] 稳定，默认关闭） */
+    val animate: Boolean,
     val render: @Composable (slot: Int) -> Unit,
 ) {
     var segIndex: Int = 0
@@ -261,6 +263,7 @@ class PrefScopeBuilder internal constructor(
         groupable: Boolean = true,
         bare: Boolean = false,
         groupBreak: Boolean = false,
+        animate: Boolean = false,
         render: @Composable (slot: Int) -> Unit,
     ) {
         val slot = entries.size
@@ -274,6 +277,7 @@ class PrefScopeBuilder internal constructor(
             groupable = groupable,
             bare = bare,
             groupBreak = groupBreak,
+            animate = animate,
             render = render,
         )
     }
@@ -507,9 +511,8 @@ class PrefScopeBuilder internal constructor(
                 steps = ((valueRange.last - valueRange.first) / step - 1).coerceAtLeast(0),
                 trackRange = valueRange.first.toFloat()..valueRange.last.toFloat(),
             )
-            var dragging by remember { mutableStateOf(false) }
-            // 外部值变化同步（拖动期间不覆盖用户手势）
-            if (!dragging) {
+            // 外部值变化同步：拖动期间 stored 不变，因此不会覆盖用户手势
+            LaunchedEffect(stored) {
                 sliderState.value = stored.coerceIn(valueRange.first, valueRange.last).toFloat()
             }
             val current = sliderState.value.roundToInt()
@@ -542,12 +545,8 @@ class PrefScopeBuilder internal constructor(
                         }
                         Slider(
                             state = sliderState,
-                            onValueChange = {
-                                dragging = true
-                                sliderState.value = it
-                            },
+                            onValueChange = { sliderState.value = it },
                             onValueChangeFinished = {
-                                dragging = false
                                 val min = valueRange.first
                                 val stepped = (((sliderState.value - min) / step).roundToInt() * step + min)
                                     .coerceIn(valueRange.first, valueRange.last)
@@ -727,7 +726,14 @@ class PrefScopeBuilder internal constructor(
         trailing: (@Composable () -> Unit)? = null,
         onLongClick: (() -> Unit)? = null,
         onClick: (() -> Unit)? = null,
-    ) = emit(null, null, title, summary) { slot ->
+        /**
+         * 稳定的列表项 key（默认按槽位编号）：同一业务行在相邻行增删时槽位会漂移，
+         * 需要「删掉的就是这一行」的动画时传业务键。
+         */
+        itemKey: String? = null,
+        /** 该行参与列表增删动画（配合稳定 [itemKey]；默认关闭，其余页面行为不变） */
+        animate: Boolean = false,
+    ) = emit(itemKey, null, title, summary, animate = animate) { slot ->
         if (LocalUiMode.current == UiMode.Miuix) {
             // value 非空 → 导航入口（库内箭头）；否则纯点击行（可选自定义 trailing）。
             // Miuix 行自带 insideMargin(16dp)：不再套 material 线的 16dp 外层 padding
@@ -871,7 +877,11 @@ fun ScopeScreen(
                     if (entry.groupBreak) {
                         // 保留零高度槽位，让搜索索引和滚动定位仍与 entry.slot 一致。
                         return@item
-                    } else if (entry.bare) {
+                    }
+                    // 逐行增删动画：只挂到 DSL 显式声明 animate 的行，其余页面行为完全不变。
+                    // 淡出/淡入按 key 认身份，所以这类行必须同时传稳定的 itemKey（默认槽位 key 会漂移）。
+                    val animModifier = if (entry.animate) Modifier.animateItem() else Modifier
+                    if (entry.bare) {
                         // 分类标题：不套卡片，对齐旧 PreferenceCategory 的观感（标题裸渲染在分组卡片之上）。
                         // 顶部间距沿用原卡片路径的取值，纵向节奏与改动前一致。
                         val topGap = if (LocalUiMode.current == UiMode.Miuix) {
@@ -886,7 +896,7 @@ fun ScopeScreen(
                         } else {
                             Modifier
                         }
-                        Box(modifier = Modifier.padding(top = topGap).then(bareModifier)) {
+                        Box(modifier = animModifier.padding(top = topGap).then(bareModifier)) {
                             entry.render(entry.slot)
                         }
                     } else if (LocalUiMode.current == UiMode.Miuix) {
@@ -894,14 +904,14 @@ fun ScopeScreen(
                             index = entry.segIndex,
                             count = entry.segCount,
                             highlighted = builder.highlightSlot.value == entry.slot,
-                            modifier = Modifier.padding(top = miuixTopGap(entry.slot, entry.segIndex)),
+                            modifier = animModifier.padding(top = miuixTopGap(entry.slot, entry.segIndex)),
                         ) {
                             entry.render(entry.slot)
                         }
                     } else {
                         MaterialItem(index = entry.segIndex, count = entry.segCount) {
                             Box(
-                                modifier = Modifier.padding(
+                                modifier = animModifier.padding(
                                     top = when {
                                         entry.slot == 0 -> 0.dp
                                         entry.segIndex == 0 -> 8.dp
