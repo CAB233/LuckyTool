@@ -439,13 +439,22 @@ internal fun DarkModeAppRow(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         var sliderValue by remember(info) { mutableFloatStateOf(curType.toFloat()) }
+                        // material3 的 SliderState 是非受控语义，值必须由调用方写回
+                        val sliderState = rememberSliderState(
+                            value = curType.toFloat(),
+                            steps = 3,
+                            trackRange = 0f..4f,
+                        )
+                        // 列表复用行时把滑条同步到当前应用的类型
+                        LaunchedEffect(info.packageName) {
+                            sliderState.value = curType.toFloat()
+                        }
                         Slider(
-                            state = rememberSliderState(
-                                value = sliderValue,
-                                steps = 3,
-                                trackRange = 0f..4f
-                            ),
-                            onValueChange = { sliderValue = it },
+                            state = sliderState,
+                            onValueChange = {
+                                sliderValue = it
+                                sliderState.value = it
+                            },
                             modifier = Modifier.weight(1f),
                             onValueChangeFinished = { onTypeChange(sliderValue.toInt()) },
                         )

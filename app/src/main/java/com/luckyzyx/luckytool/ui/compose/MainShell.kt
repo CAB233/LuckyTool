@@ -33,7 +33,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -41,12 +40,15 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.activity.MainActivity
@@ -71,6 +73,10 @@ import com.luckyzyx.luckytool.ui.theme.UiMode
 import kotlin.system.exitProcess
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.nav.core.NavController
+import top.yukonga.miuix.kmp.nav.core.NavDisplay
+import top.yukonga.miuix.kmp.nav.core.rememberNavController
+import top.yukonga.miuix.kmp.nav.transition.NavSwipeDirection
 import top.yukonga.miuix.kmp.shader.isRenderEffectSupported
 import top.yukonga.miuix.kmp.nav.core.rememberNavController
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -406,5 +412,21 @@ private fun PermissionGateScreen(activity: MainActivity) {
         ) { padding ->
             Box(Modifier.fillMaxSize().padding(padding)) { gateContent() }
         }
+    }
+}
+
+/**
+ * 底栏 tab 语义：点 tab 即把返回栈重置成该 tab 的根，不保留各 tab 的子栈（不做 saveState/restoreState）。
+ *
+ * 主页 [HomeRoute] 永远是栈底：非主页 tab 的根压在主页上面，于是「在其它 tab 的根上返回」= 退回主页，
+ * 而不是退出 App（退出只发生在主页根上——栈只剩一项时库不注册预测性返回，事件透传给系统）。
+ * 整条栈的替换放在同一个 mutable 快照里提交：NavDisplay 要求栈非空，清空与压入之间不能被观察到空栈。
+ */
+private fun NavController.resetToTabRoot(route: Route) {
+    val target = if (route == HomeRoute) listOf(HomeRoute) else listOf(HomeRoute, route)
+    if (backStack == target) return
+    Snapshot.withMutableSnapshot {
+        backStack.clear()
+        backStack.addAll(target)
     }
 }

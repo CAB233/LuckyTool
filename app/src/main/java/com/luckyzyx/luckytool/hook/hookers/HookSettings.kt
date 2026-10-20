@@ -12,6 +12,7 @@ import com.luckyzyx.luckytool.hook.scopes.settings.CustomizeDeviceOTACardBackgro
 import com.luckyzyx.luckytool.hook.scopes.settings.CustomizeDeviceSharingPageParameters
 import com.luckyzyx.luckytool.hook.scopes.settings.DarkModeList
 import com.luckyzyx.luckytool.hook.scopes.settings.DisableAccessibilityDialog
+import com.luckyzyx.luckytool.hook.scopes.settings.DisableAppArchiveButton
 import com.luckyzyx.luckytool.hook.scopes.settings.DisableAppArchivingUI
 import com.luckyzyx.luckytool.hook.scopes.settings.DisableSettingOtgAutoOff
 import com.luckyzyx.luckytool.hook.scopes.settings.EnableCustomAppLanguage
@@ -181,8 +182,13 @@ object HookSettings : YukiBaseHooker() {
         //《自动释放应用空间》默认关闭 - 开关 UI 显示
         if (osCode >= 36) loadHooker(DisableAppArchivingUI)
 
-        //禁用无障碍对话框
-        if (osCode >= 38) loadHooker(DisableAccessibilityDialog)
+        //隐藏应用详情页的归档按钮
+        if (osCode >= 36) loadHooker(DisableAppArchiveButton)
+
+        //禁用无障碍对话框 C17（与 framework 侧共用同一开关）
+        if (preferences(ModulePrefs).getBoolean("disable_accessibility_warning_dialog", false)) {
+            if (osCode >= 40) loadHooker(DisableAccessibilityDialog)
+        }
 
         //电源键
 //        //Source PowerButtonPreferenceController

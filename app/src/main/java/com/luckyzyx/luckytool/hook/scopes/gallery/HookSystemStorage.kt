@@ -51,6 +51,7 @@ class HookSystemStorage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
             preferences(ModulePrefs).getBoolean("enable_national_day_watermark", false)
 
         //Source OtherSystemStorage
+        //配置键已由 String 改为 vab 对象, 类内字符串随版本变动不可作锚点, 改为纯结构特征定位
         dexKitBridge.findClass {
             matcher {
                 fields {
@@ -65,7 +66,6 @@ class HookSystemStorage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                     add { paramCount(0);returnType(classOf<Boolean>()) }
 //                    add { paramCount(4);returnType(Boolean::class.java) }
                 }
-                usingStrings("configNode")
             }
         }.apply {
             checkDataList("HookSystemStorage")

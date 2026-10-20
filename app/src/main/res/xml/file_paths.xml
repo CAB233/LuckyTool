@@ -19,6 +19,11 @@
             name="files"
             path="/" />
     
+    <!--桌面布局备份文件：Download/LuckyTool/launcher_backup，hook 侧用授权后的 content uri 读写-->
+    <external-path
+            name="launcher_backup"
+            path="Download/LuckyTool/launcher_backup/" />
+
     <!--配置root-path。这样子可以读取到sd卡和一些应用分身的目录-->
     <!--suppress AndroidElementNotAllowed -->
     <root-path

@@ -532,6 +532,12 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
+                        // material3 的 SliderState 是非受控语义：值必须由调用方写回 state，
+                        // 否则滑块位置永远停在初始值（拖动无视觉反馈）
+                        val sliderState = rememberSliderState(
+                            value = pageScale,
+                            trackRange = PageScaleMin..PageScaleMax,
+                        )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Rounded.AspectRatio,
@@ -552,17 +558,17 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
                                 )
                             }
                             Text(
-                                text = "${(pageScale * 100).roundToInt()}%",
+                                text = "${(sliderState.value * 100).roundToInt()}%",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         Slider(
-                            state = rememberSliderState(
-                                value = pageScale,
-                                trackRange = PageScaleMin..PageScaleMax
-                            ),
-                            onValueChange = { pageScale = it },
+                            state = sliderState,
+                            onValueChange = {
+                                pageScale = it
+                                sliderState.value = it
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             onValueChangeFinished = {
                                 context.putFloat(
@@ -587,6 +593,12 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
+                        // 同 page_scale：SliderState 需要调用方写回
+                        val sliderState = rememberSliderState(
+                            value = moduleLines.toFloat(),
+                            steps = 3,
+                            trackRange = ModuleLinesMin.toFloat()..ModuleLinesMax.toFloat(),
+                        )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Rounded.Description,
@@ -613,12 +625,11 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
                             )
                         }
                         Slider(
-                            state = rememberSliderState(
-                                value = moduleLines.toFloat(),
-                                steps = 3,
-                                trackRange = ModuleLinesMin.toFloat()..ModuleLinesMax.toFloat()
-                            ),
-                            onValueChange = { moduleLines = it.roundToInt() },
+                            state = sliderState,
+                            onValueChange = {
+                                moduleLines = it.roundToInt()
+                                sliderState.value = it
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             onValueChangeFinished = {
                                 context.putInt(
