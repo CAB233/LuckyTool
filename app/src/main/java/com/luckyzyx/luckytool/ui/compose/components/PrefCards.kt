@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,15 +28,17 @@ import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefItem
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixSwitchItem
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 
 /**
  * 卡片行 / 卡原语（KernelSU 风格分段卡片 / 独立卡片）。
  *
- * **「设置区块」的唯一 API 是 `PrefScope` DSL**（`category()` / `switch()` / `click()` / `list()` /
+ * **「设置区块」的唯一 API 是 `PrefScope` DSL**（`group()` / `category()` / `switch()` / `click()` / `list()` /
  * `custom()`，见 `ui/compose/components/PrefScope.kt`）—— 所有标准设置页与作用域页都走它。
  * 本文件只保留 `custom()` 逃生舱（无法走 DSL 的自定义控件里的单行 / 单卡）所需的原始行 / 卡原语：
  * [PrefGroup] + [PrefRow] + [PrefSwitchRow]（组内行，形状由所属 [PrefGroup] 决定）、
- * [PrefCard] + [PrefSwitchCard]（不属于任何分段组的独立卡片）、[PrefIconBadge]（左侧彩色徽标）。
+ * [PrefCard] + [PrefSwitchCard]（不属于任何分段组的独立卡片）、[PrefIcon] / [PrefIconBadge]（行首图标）。
  *
  * UI 线分派：material 线用 `Segmented*` 原语 + `MaterialTheme`；Miuix 线用 `miuix/MiuixPref*`
  * 原语 + `MiuixTheme`；分派开关统一读 [LocalUiMode]。
@@ -108,7 +111,26 @@ fun PrefRow(
     }
 }
 
-/** 左侧彩色徽标图标：固定色圆角底 + 白色矢量图标（功能树分类页 / 其他页 / 设置页通用） */
+/** 设置入口的单色图标，使用当前外观的中性前景色和默认图标尺寸。 */
+@Composable
+fun PrefIcon(icon: ImageVector) {
+    if (LocalUiMode.current == UiMode.Miuix) {
+        MiuixIcon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.padding(end = 6.dp),
+            tint = MiuixTheme.colorScheme.onBackground,
+        )
+    } else {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/** 功能树分类使用的彩色徽标；应用图标由功能页自行加载。 */
 @Composable
 fun PrefIconBadge(
     icon: ImageVector,

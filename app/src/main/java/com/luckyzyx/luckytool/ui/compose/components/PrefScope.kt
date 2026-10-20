@@ -125,6 +125,7 @@ data class PrefIndexItem(
  * 组内条目不设内圆角与间距，见 [com.luckyzyx.luckytool.ui.theme.DesignTokens]）；
  * [groupable] = false 的条目独占一张卡片（分类标题，以及 [PrefScopeBuilder.custom] 显式声明 standalone 的逃生舱）。
  * [bare] = true 的条目（仅分类标题）完全裸渲染，不套任何卡片容器，对齐旧 PreferenceCategory 观感。
+ * [groupBreak] 只分隔卡片组，保留零高度槽位以维持索引位置。
  */
 internal class PrefEntry(
     val slot: Int,
@@ -135,6 +136,7 @@ internal class PrefEntry(
     val pageTarget: String?,
     val groupable: Boolean,
     val bare: Boolean,
+    val groupBreak: Boolean = false,
     val render: @Composable (slot: Int) -> Unit,
 ) {
     var segIndex: Int = 0
@@ -258,6 +260,7 @@ class PrefScopeBuilder internal constructor(
         pageTarget: String? = null,
         groupable: Boolean = true,
         bare: Boolean = false,
+        groupBreak: Boolean = false,
         render: @Composable (slot: Int) -> Unit,
     ) {
         val slot = entries.size
@@ -270,6 +273,7 @@ class PrefScopeBuilder internal constructor(
             pageTarget = pageTarget,
             groupable = groupable,
             bare = bare,
+            groupBreak = groupBreak,
             render = render,
         )
     }
@@ -301,6 +305,14 @@ class PrefScopeBuilder internal constructor(
     }
 
     // ---------------- DSL 项 ----------------
+
+    /** 开始一张无标题分组卡片；沿用列表的组间距，不额外绘制分类标题。 */
+    fun group() = emit(
+        null, null, null, null,
+        groupable = false,
+        bare = true,
+        groupBreak = true,
+    ) { }
 
     /**
      * 分类标题（对应旧 addCategory / categoryPreference）：不套卡片，裸渲染在分组卡片之上。
@@ -856,7 +868,10 @@ fun ScopeScreen(
         } else {
             builder.entries.forEach { entry ->
                 item(key = entry.itemKey) {
-                    if (entry.bare) {
+                    if (entry.groupBreak) {
+                        // 保留零高度槽位，让搜索索引和滚动定位仍与 entry.slot 一致。
+                        return@item
+                    } else if (entry.bare) {
                         // 分类标题：不套卡片，对齐旧 PreferenceCategory 的观感（标题裸渲染在分组卡片之上）。
                         // 顶部间距沿用原卡片路径的取值，纵向节奏与改动前一致。
                         val topGap = if (LocalUiMode.current == UiMode.Miuix) {

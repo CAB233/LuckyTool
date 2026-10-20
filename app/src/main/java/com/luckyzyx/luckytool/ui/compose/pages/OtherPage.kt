@@ -26,16 +26,18 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.AddToHomeScreen
-import androidx.compose.material.icons.filled.AutoFixHigh
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.automirrored.rounded.AddToHomeScreen
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Adb
+import androidx.compose.material.icons.rounded.AutoFixHigh
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
@@ -52,7 +54,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -72,7 +73,7 @@ import com.luckyzyx.luckytool.service.TilesService
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.AppPickerDialog
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
-import com.luckyzyx.luckytool.ui.compose.components.PrefIconBadge
+import com.luckyzyx.luckytool.ui.compose.components.PrefIcon
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.TopBarActionButton
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialPageScaffold
@@ -141,7 +142,7 @@ fun OtherPage(activity: MainActivity) {
             TopBarActionButton(
                 onClick = { showOptimizePicker = true },
                 contentDescription = "优化App",
-                painter = rememberVectorPainter(Icons.Filled.AutoFixHigh),
+                painter = rememberVectorPainter(Icons.Rounded.AutoFixHigh),
             )
         },
     ) { padding ->
@@ -186,11 +187,14 @@ fun OtherPage(activity: MainActivity) {
                 state = settings,
                 modifier = scopeModifier,
             ) {
-                // 全部入口合并为一张分段卡片（KernelSU 主题页外观）
+                // 快捷入口、显示与触控、调试各自成组。
+                group()
                 click(
                     title = quickEntryTitle,
                     summary = quickEntrySummary,
-                    leading = { PrefIconBadge(Icons.Filled.Bolt, Color(0xFFFF9800)) },
+                    leading = { PrefIcon(Icons.Rounded.Bolt) },
+                    value = "",
+                    trailing = { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null) },
                     onClick = {
                         activity.requestFunctionNavigation("quick_entry", quickEntryTitle)
                     },
@@ -199,7 +203,7 @@ fun OtherPage(activity: MainActivity) {
                     click(
                         title = tileListTitle,
                         summary = tileListSummary,
-                        leading = { PrefIconBadge(Icons.Filled.GridView, Color(0xFF4CAF50)) },
+                        leading = { PrefIcon(Icons.Rounded.GridView) },
                         onClick = {
                             context.showToast(tileListClickTips)
                             showTileDialog = true
@@ -210,17 +214,17 @@ fun OtherPage(activity: MainActivity) {
                     title = setModuleShortcutsTitle,
                     summary = setModuleShortcutsSummary,
                     leading = {
-                        PrefIconBadge(
-                            Icons.AutoMirrored.Filled.AddToHomeScreen,
-                            Color(0xFF3F51B5)
-                        )
+                        PrefIcon(Icons.AutoMirrored.Rounded.AddToHomeScreen)
                     },
                     onClick = { showShortcutDialog = true },
                 )
+                group()
                 click(
                     title = fpsTitle,
                     summary = fpsSummary,
-                    leading = { PrefIconBadge(Icons.Filled.Speed, Color(0xFFE91E63)) },
+                    leading = { PrefIcon(Icons.Rounded.Speed) },
+                    value = "",
+                    trailing = { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null) },
                     onClick = {
                         activity.requestFunctionNavigation("force_fps", fpsTitle)
                     },
@@ -229,15 +233,16 @@ fun OtherPage(activity: MainActivity) {
                     click(
                         title = touchSamplingTitle,
                         summary = touchSamplingSummary,
-                        leading = { PrefIconBadge(Icons.Filled.TouchApp, Color(0xFF009688)) },
+                        leading = { PrefIcon(Icons.Rounded.TouchApp) },
                         onClick = { showTouchDialog = true },
                     )
                 }
                 if (hasAdbNow) {
+                    group()
                     click(
                         title = remoteAdbTitle,
                         summary = remoteAdbSummary,
-                        leading = { PrefIconBadge(Icons.Filled.Terminal, Color(0xFF607D8B)) },
+                        leading = { PrefIcon(Icons.Rounded.Adb) },
                         onClick = { showAdbDialog = true },
                     )
                 }
