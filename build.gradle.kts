@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -25,5 +27,10 @@ tasks {
     register("clean", Delete::class) {
         delete(layout.buildDirectory)
         description = ""
+    }
+    withType<KotlinJvmCompile>().configureEach {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_21)
+        }
     }
 }

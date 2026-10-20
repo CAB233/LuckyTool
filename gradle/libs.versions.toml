@@ -3,7 +3,7 @@ agp = "9.4.1"
 kotlin = "2.4.21"
 ksp = "2.3.12"
 
-yukihook = "1.5.0-beta.13"
+yukihook = "1.5.0"
 kavaref = "1.1.1"
 betterandroid = "1.1.6"
 
@@ -12,7 +12,7 @@ material3 = "1.5.0-beta01"
 materialKolor = "5.0.1"
 activity-compose = "1.13.0"
 kotlinx-coroutines = "1.11.0"
-kotlinx-serialization = "1.11.0"
+kotlinx-serialization = "1.12.0"
 lifecycle = "2.11.0"
 
 miuix = "0.9.4"
@@ -37,7 +37,6 @@ lsplugin-resopt = { id = "org.lsposed.lsplugin.resopt", version = "1.6" }
 lsplugin-lsparanoid = { id = "org.lsposed.lsparanoid", version.ref = "lsparanoid" }
 
 [libraries]
-xposed-api = { group = "de.robv.android.xposed", name = "api", version = "82" }
 libxposed-api = { group = "io.github.libxposed", name = "api", version = "102.0.0" }
 libxposed-service = { group = "io.github.libxposed", name = "service", version = "102.0.0" }
 
