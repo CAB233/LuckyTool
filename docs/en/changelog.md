@@ -25,7 +25,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Custom action key event interception (ringtone cycle) — adds “no-op” and “ringtone cycle” interception modes to custom action keys
 - Manual scope hot reload — reload the scope process directly after changing a switch, without rebooting
 - Expand the update list by default in the software store
-- Miuix UI style — switch between the Material and Miuix appearances in Settings
+- Miuix UI style — switch between the Material and Miuix appearances in Settings, defaulting to Miuix
 - Cold-start animation — logo entrance and app-name fade-in
 - Custom status bar icon order
 - Force enable the Xiaobu keyboard liquid glass blur — ignores the system blur switch, the app whitelist, the built-in theme and the folding state; the blur strength is adjustable

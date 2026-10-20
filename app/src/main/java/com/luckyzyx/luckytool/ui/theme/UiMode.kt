@@ -8,9 +8,8 @@ import androidx.compose.runtime.staticCompositionLocalOf
  * - [Miuix]：Miuix 外观线（KernelSU 默认）
  * - [Material]：Material 3 Expressive 外观线
  *
- * 与 KernelSU 唯一的差异：LuckyTool 目前只有主题页 / 底部导航等部分界面提供了 Miuix 实现，
- * 其余页面仍由 Material 组件渲染，因此默认值取 [Material]（保持既有观感），
- * 由用户在「设置 → 界面风格」中显式切换。
+ * 默认值取 [Miuix]（对齐 KernelSU 默认观感）；LuckyTool 目前只有主题页 / 底部导航等部分界面
+ * 提供了 Miuix 实现，其余页面仍由 Material 组件渲染，用户可在「设置 → 界面风格」中切回 [Material]。
  */
 enum class UiMode(val value: String) {
     Miuix("miuix"),
@@ -22,9 +21,9 @@ enum class UiMode(val value: String) {
             else -> Miuix
         }
 
-        val DEFAULT_VALUE = Material.value
+        val DEFAULT_VALUE = Miuix.value
     }
 }
 
 /** 当前界面风格（对齐 KernelSU `LocalUiMode`） */
-val LocalUiMode = staticCompositionLocalOf { UiMode.Material }
+val LocalUiMode = staticCompositionLocalOf { UiMode.fromValue(UiMode.DEFAULT_VALUE) }
