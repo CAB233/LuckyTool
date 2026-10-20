@@ -18,13 +18,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.BrightnessMedium
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.SignalCellularAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -37,7 +31,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -46,9 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -57,10 +48,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
-import com.luckyzyx.luckytool.ui.compose.components.PrefIndexItem
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.ScrollTarget
 import com.luckyzyx.luckytool.ui.compose.components.PrefIconBadge
@@ -71,12 +62,10 @@ import com.luckyzyx.luckytool.ui.compose.components.material.MaterialPageScaffol
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialTextField
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageContent
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageRegistry
-import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.AppIconCache
 import com.luckyzyx.luckytool.utils.AppUtils
-import com.luckyzyx.luckytool.utils.LogUtils
 import com.luckyzyx.luckytool.utils.PrefState
 import com.luckyzyx.luckytool.utils.RestartMenuUtils
 import com.luckyzyx.luckytool.utils.SettingsPrefs
@@ -84,8 +73,6 @@ import com.luckyzyx.luckytool.utils.formatStringAuto
 import com.luckyzyx.luckytool.utils.sendPrefsValue
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TablePlugin
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.nav.core.NavController
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
@@ -117,33 +104,6 @@ fun FunctionPage(
         onShowRestartMenu = { showRestartMenu = true },
     )
 }
-
-/** 页标题：对齐旧功能树 root 标题（apps/others = App 标签；related/statusbar = 覆盖表） */
-private fun pageTitle(context: Context, spec: ScopePageSpec): String {
-    ScopePageRegistry.treeTitleRes[spec.pageKey]?.let { return context.getString(it) }
-    val pack = spec.displayPackName ?: if (spec.pageKey == "android_related") "android" else spec.packName
-    return AppUtils(context).getAppLabel(pack).toString()
-}
-
-private data class TreeRow(
-    val pageKey: String,
-    val title: String,
-    val summary: String?,
-    val packName: String? = null,
-)
-
-/** 分类页彩色徽标配色：固定色（不随深浅色模式变化，与应用图标一致）+ 白色矢量图标 */
-private data class CategoryBadge(val icon: ImageVector, val color: Color)
-
-private val categoryBadges: Map<String, CategoryBadge> = mapOf(
-    "android_related" to CategoryBadge(Icons.Filled.Android, Color(0xFF3DDC84)),
-    "statusbar" to CategoryBadge(Icons.Filled.SignalCellularAlt, Color(0xFF4285F4)),
-    "launcher" to CategoryBadge(Icons.Filled.Home, Color(0xFFFF9800)),
-    "aod" to CategoryBadge(Icons.Filled.BrightnessMedium, Color(0xFF9C27B0)),
-    "lock_screen" to CategoryBadge(Icons.Filled.Lock, Color(0xFF00BCD4)),
-    "application" to CategoryBadge(Icons.Filled.Apps, Color(0xFF3F51B5)),
-    "miscellaneous" to CategoryBadge(Icons.Filled.MoreHoriz, Color(0xFF607D8B)),
-)
 
 /** 功能树条目左侧图标：分类页用彩色圆角徽标 + 白色矢量图标，应用页用 App 图标（圆角裁剪），无图标回退通用应用图标 */
 @Composable
@@ -201,29 +161,11 @@ private fun FunctionTreeScreen(
 ) {
     val context = LocalContext.current
     val settings = remember { PrefState.of(context, SettingsPrefs) }
-    val rows by produceState(initialValue = emptyList<TreeRow>(), key1 = Unit) {
-        value = try {
-            withContext(Dispatchers.IO) {
-                ScopePageRegistry.treeOrder.mapNotNull { key ->
-                    val spec = ScopePageRegistry[key] ?: return@mapNotNull null
-                    if (!spec.isVisible(context)) return@mapNotNull null
-                    if (!ScopePageRegistry.isScopeAppPresent(context, spec)) return@mapNotNull null
-                    val index = ScopePageRegistry.buildIndex(context, spec)
-                    // 自带整页渲染的特殊页（暗色模式列表/意图/自定义浮窗等）不声明共享行、索引恒空，
-                    // 空索引不代表不可见；判据与 ScopePageRegistry.hasVisibleContent 一致
-                    if (index.isEmpty() && !spec.selfRendered) return@mapNotNull null
-                    val summary = index.mapNotNull { it.title }.take(3).joinToString(" · ").ifEmpty { null }
-                    val packName = if (key in categoryBadges) null else (spec.displayPackName ?: spec.packName)
-                    TreeRow(key, pageTitle(context, spec), summary, packName)
-                }
-            }
-        } catch (t: Throwable) {
-            // buildIndex 内部已逐页兜底，此处再兜底 isVisible/图标/标题等外层自定义逻辑，
-            // 避免任一页面构建异常导致整棵功能树为空（白屏）
-            LogUtils.e("FunctionPage", "buildTree", t.toString(), true)
-            emptyList()
-        }
-    }
+    // 数据在 App 打开时就由 FunctionPageData 后台构建好（见 MainShell 的 preload）；
+    // 这里只读快照，进入本页时先渲染旧快照、后台重算完再替换 —— 首帧不再现场跑 50 页偏好 DSL
+    val snapshot by FunctionPageData.snapshot.collectAsStateWithLifecycle()
+    val rows = snapshot?.rows.orEmpty()
+    LaunchedEffect(context) { FunctionPageData.revalidate(context) }
 
     MaterialPageScaffold(
         title = stringResource(R.string.nav_function),
@@ -290,8 +232,6 @@ private fun FunctionTreeScreen(
     }
 }
 
-private data class SearchEntry(val pageKey: String, val pageTitle: String, val item: PrefIndexItem)
-
 /** 全屏搜索：索引 = 全部已注册页 headless 构建，spec 手动不可见与单 App 作用域未安装页不入索引；过滤平移旧 SearchResultAdapter 规则 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -311,18 +251,10 @@ internal fun FunctionSearchScreen(onBack: () -> Unit, onOpen: (ScopeRoute) -> Un
         keyboardController?.show()
     }
 
-    val entries by produceState(initialValue = emptyList<SearchEntry>(), key1 = Unit) {
-        value = try {
-            withContext(Dispatchers.IO) {
-                ScopePageRegistry.all().filter { it.isVisible(context) && ScopePageRegistry.isScopeAppPresent(context, it) }.flatMap { spec ->
-                    ScopePageRegistry.buildIndex(context, spec).map { item -> SearchEntry(spec.pageKey, pageTitle(context, spec), item) }
-                }
-            }
-        } catch (t: Throwable) {
-            LogUtils.e("FunctionPage", "buildSearchEntries", t.toString(), true)
-            emptyList()
-        }
-    }
+    // 索引与功能树同一份预取快照（FunctionPageData），进搜索页即有结果，不再现场构建
+    val snapshot by FunctionPageData.snapshot.collectAsStateWithLifecycle()
+    val entries = snapshot?.searchEntries.orEmpty()
+    LaunchedEffect(context) { FunctionPageData.revalidate(context) }
 
     // 过滤规则对齐 SearchResultAdapter.getFilter：key/title/summary contains(ignoreCase)，并补充页标题匹配
     val filtered = remember(entries, query) {
