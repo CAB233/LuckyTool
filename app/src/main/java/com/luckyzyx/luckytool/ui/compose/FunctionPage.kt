@@ -1,9 +1,6 @@
 package com.luckyzyx.luckytool.ui.compose
 
 import android.content.Context
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -60,19 +57,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.navigation.NavDestination.Companion.hasRoute
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
 import com.luckyzyx.luckytool.ui.compose.components.PrefIndexItem
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.ScrollTarget
-import com.luckyzyx.luckytool.ui.compose.components.EdgeSwipeDismiss
 import com.luckyzyx.luckytool.ui.compose.components.PrefIconBadge
 import com.luckyzyx.luckytool.ui.compose.components.TopBarActionButton
 import com.luckyzyx.luckytool.ui.compose.components.TopBarOverflowItem
@@ -82,7 +72,6 @@ import com.luckyzyx.luckytool.ui.compose.components.material.MaterialTextField
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageContent
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageRegistry
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
-import com.luckyzyx.luckytool.ui.shell.LocalEnableSwipeDismiss
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.AppIconCache
@@ -97,51 +86,19 @@ import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TablePlugin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import java.util.Arrays
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 
-// Function 子树类型安全路由（迁移方案 §7：ScopeRoute(scopeId, key, position) 等价物）
-// 注意：FunctionRoute 是 shell 级 tab 路由（MainShell），此处是 Function tab 内部导航。
-
-@Serializable
-data object FunctionTreeRoute
-
-@Serializable
-data object SearchRoute
-
-@Serializable
-data class ScopeRoute(
-    val pageKey: String,
-    val title: String = "",
-    val scrollKey: String = "",
-    val scrollPosition: Int = -1,
-)
-
-/**
- * Function tab：Compose 功能树 + 全屏搜索 + 作用域页宿主（P3 终局，替代旧
- * XposedFragment/ComposeScopeFragment + function_nav.xml 子树）。
- */
+/** 功能标签页只展示功能树；搜索和作用域页由应用的同一个导航栈管理。 */
 @Composable
-fun FunctionPage(activity: MainActivity, onShellBack: () -> Unit) {
-    val navController = rememberNavController()
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val atTree = backStackEntry?.destination?.hasRoute<FunctionTreeRoute>() == true
-    // 内部栈是否还有上一页可退：功能树根是内部栈根（无上一页），作用域页/搜索页有上一页可退。
-    // 跨 tab 直达不再走本子树（改由 MainShell 压入全屏作用域页），此处只服务功能树 → 作用域页的常规流程。
-    val canPopInternal = navController.previousBackStackEntry != null
-
+fun FunctionPage(
+    activity: MainActivity,
+    onOpenPage: (pageKey: String, title: String) -> Unit,
+    onOpenSearch: () -> Unit,
+) {
     var showVersionInfo by remember { mutableStateOf(false) }
-
-    // 返回键不再自己注册 BackHandler：Activity 的 NavigationEventDispatcher 按「后注册者优先」派发，
-    // 下方内层 NavHost 的处理器注册在本页之后，内部栈可退时由它接管（预测性返回动画也由它驱动）；
-    // 内部栈到底时它自行禁用，事件继续落到 shell NavHost 的处理器上，
-    // 因此「功能页 → 主页」同样带预测性返回动画（功能树根 → 上一 tab/退出）。
-    // 若这里再挂 BackHandler，它会抢在 shell 之前以非预测方式 pop，功能页返回主页就没有预览动画了。
-    // 侧滑返回（EdgeSwipeDismiss）与服务页顶栏返回键不是系统返回手势，仍按下方的显式逻辑处理。
-
     var showRestartMenu by remember { mutableStateOf(false) }
 
     if (showVersionInfo) {
@@ -152,60 +109,12 @@ fun FunctionPage(activity: MainActivity, onShellBack: () -> Unit) {
         RestartMenuUtils.RestartMenuDialog(activity) { showRestartMenu = false }
     }
 
-    EdgeSwipeDismiss(
-        enabled = LocalEnableSwipeDismiss.current && !atTree,
-        onDismiss = { if (canPopInternal) navController.popBackStack() else onShellBack() },
-    ) {
-        NavHost(
-            navController = navController,
-            startDestination = FunctionTreeRoute,
-            modifier = Modifier.fillMaxSize(),
-            // 预测性返回：当前页横滑右移，上一页从左侧滑入；不加淡入淡出，保证当前页不透明地在顶层滑走
-            predictivePopEnterTransition = {
-                slideInHorizontally(
-                    animationSpec = tween(400),
-                    initialOffsetX = { fullWidth -> -fullWidth / 4 },
-                )
-            },
-            predictivePopExitTransition = {
-                slideOutHorizontally(
-                    animationSpec = tween(400),
-                    targetOffsetX = { fullWidth -> fullWidth },
-                )
-            },
-        ) {
-            composable<FunctionTreeRoute> {
-                FunctionTreeScreen(
-                    onOpenPage = { key, title -> navController.navigate(ScopeRoute(key, title)) },
-                    onOpenSearch = { navController.navigate(SearchRoute) },
-                    onShowVersionInfo = { showVersionInfo = true },
-                    onShowRestartMenu = { showRestartMenu = true },
-                )
-            }
-            composable<SearchRoute> {
-                FunctionSearchScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpen = { route -> navController.navigate(route) },
-                )
-            }
-            composable<ScopeRoute> { entry ->
-                val route = entry.toRoute<ScopeRoute>()
-                ScopePageHost(
-                    activity = activity,
-                    route = route,
-                    // 顶栏返回键与系统返回键一致：内部有上一页退内部栈，跨 tab 直达的根页交还 shell
-                    onBack = {
-                        if (navController.previousBackStackEntry != null) {
-                            navController.popBackStack()
-                        } else {
-                            onShellBack()
-                        }
-                    },
-                    onNavigate = { key, title -> navController.navigate(ScopeRoute(key, title ?: "", "", -1)) },
-                )
-            }
-        }
-    }
+    FunctionTreeScreen(
+        onOpenPage = onOpenPage,
+        onOpenSearch = onOpenSearch,
+        onShowVersionInfo = { showVersionInfo = true },
+        onShowRestartMenu = { showRestartMenu = true },
+    )
 }
 
 /** 页标题：对齐旧功能树 root 标题（apps/others = App 标签；related/statusbar = 覆盖表） */
@@ -385,7 +294,7 @@ private data class SearchEntry(val pageKey: String, val pageTitle: String, val i
 /** 全屏搜索：索引 = 全部已注册页 headless 构建，spec 手动不可见与单 App 作用域未安装页不入索引；过滤平移旧 SearchResultAdapter 规则 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FunctionSearchScreen(onBack: () -> Unit, onOpen: (ScopeRoute) -> Unit) {
+internal fun FunctionSearchScreen(onBack: () -> Unit, onOpen: (ScopeRoute) -> Unit) {
     val context = LocalContext.current
     var query by rememberSaveable { mutableStateOf("") }
 

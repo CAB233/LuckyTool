@@ -123,7 +123,7 @@ fun LuckyTheme(
     content: @Composable () -> Unit,
 ) {
     // 切换 ui_mode 时两条外观线位于不同的组合位置：直接切换会销毁重建整棵内容子树
-    //（NavHost / NavController / 返回栈 / 页面内 remember 全部丢失，观感等同重启应用）。
+    //（导航宿主、返回栈和页面状态全部丢失，观感等同重启应用）。
     // movableContentOf 把同一份内容在两条外观线之间「搬移」：槽表（状态）随内容走，只有主题被替换。
     // content 通过 rememberUpdatedState 间接化，避免把首次组合的 lambda 实例永久固化。
     val currentContent = rememberUpdatedState(content)

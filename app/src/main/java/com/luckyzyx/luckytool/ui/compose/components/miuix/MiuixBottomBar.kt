@@ -1,6 +1,6 @@
 /*
  * Miuix 外观线底栏（迁移自 KernelSU `ui/component/bottombar/BottomBarMiuix.kt` 的 UI 部分）。
- * KernelSU 用 pager 选页，LuckyTool 用 NavHost 路由，故选中项与点击回调由调用方传入。
+ * 选中标签与点击回调由调用方管理，页面导航由 miuix-nav 承担。
  */
 package com.luckyzyx.luckytool.ui.compose.components.miuix
 

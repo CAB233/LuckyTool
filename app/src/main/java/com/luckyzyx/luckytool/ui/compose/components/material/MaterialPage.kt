@@ -152,9 +152,11 @@ fun MaterialPageScaffold(
         },
         floatingActionButton = floatingActionButton,
         bottomBar = bottomBar,
-        contentWindowInsets = WindowInsets.safeDrawing.only(
-            WindowInsetsSides.Top + WindowInsetsSides.Horizontal
-        ),
+        contentWindowInsets = if (LocalBottomBarPresent.current) {
+            WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        } else {
+            WindowInsets.safeDrawing
+        },
         content = movableContent,
     )
 }
