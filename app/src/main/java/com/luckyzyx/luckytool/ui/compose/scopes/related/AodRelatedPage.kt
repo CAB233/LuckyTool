@@ -31,6 +31,7 @@ object AodRelatedPage {
         pageKey = "aod",
         prefsName = ModulePrefs,
         packName = "com.android.systemui",
+        displayPackName = "com.oplus.aod",
         scopes = arrayOf("com.android.systemui", "com.oplus.aod", "com.oplus.uiengine"),
         restartEnabled = true,
         isVisible = { SDK >= A13 && checkPackName("com.oplus.aod") },

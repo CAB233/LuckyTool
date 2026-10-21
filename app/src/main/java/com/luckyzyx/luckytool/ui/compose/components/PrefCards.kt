@@ -1,21 +1,15 @@
 package com.luckyzyx.luckytool.ui.compose.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialItem
@@ -38,7 +32,7 @@ import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
  * `custom()`，见 `ui/compose/components/PrefScope.kt`）—— 所有标准设置页与作用域页都走它。
  * 本文件只保留 `custom()` 逃生舱（无法走 DSL 的自定义控件里的单行 / 单卡）所需的原始行 / 卡原语：
  * [PrefGroup] + [PrefRow] + [PrefSwitchRow]（组内行，形状由所属 [PrefGroup] 决定）、
- * [PrefCard] + [PrefSwitchCard]（不属于任何分段组的独立卡片）、[PrefIcon] / [PrefIconBadge]（行首图标）。
+ * [PrefCard] + [PrefSwitchCard]（不属于任何分段组的独立卡片）、[PrefIcon]（行首图标）。
  *
  * UI 线分派：material 线用 `Segmented*` 原语 + `MaterialTheme`；Miuix 线用 `miuix/MiuixPref*`
  * 原语 + `MiuixTheme`；分派开关统一读 [LocalUiMode]。
@@ -126,30 +120,6 @@ fun PrefIcon(icon: ImageVector) {
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface,
-        )
-    }
-}
-
-/** 功能树分类使用的彩色徽标；应用图标由功能页自行加载。 */
-@Composable
-fun PrefIconBadge(
-    icon: ImageVector,
-    color: Color,
-    modifier: Modifier = Modifier,
-    contentDescription: String? = null,
-) {
-    Box(
-        modifier = modifier
-            .size(40.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(color),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = Color.White,
-            modifier = Modifier.size(22.dp),
         )
     }
 }

@@ -157,6 +157,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.appiconloader.iconloaderlib)
 
     //Android UI
     implementation(libs.betterandroid.ui.component)
