@@ -313,18 +313,20 @@ fun MiuixFloatingBottomBar(
         dampedDragAnimation.animateToValue(index.toFloat())
     }
 
-    val interactiveHighlight = remember(animationScope, tabWidthPx, dampedDragAnimation) {
-        MiuixInteractiveHighlight(
-            animationScope = animationScope,
-            position = { size, _ ->
-                Offset(
-                    if (isLtr) (dampedDragAnimation.value + 0.5f) * tabWidthPx + panelOffset
-                    else size.width - (dampedDragAnimation.value + 0.5f) * tabWidthPx + panelOffset,
-                    size.height / 2f
-                )
-            }
-        )
-    }
+    val interactiveHighlight = if (isBlurEnabled) {
+        remember(animationScope, tabWidthPx, dampedDragAnimation) {
+            MiuixInteractiveHighlight(
+                animationScope = animationScope,
+                position = { size, _ ->
+                    Offset(
+                        if (isLtr) (dampedDragAnimation.value + 0.5f) * tabWidthPx + panelOffset
+                        else size.width - (dampedDragAnimation.value + 0.5f) * tabWidthPx + panelOffset,
+                        size.height / 2f
+                    )
+                }
+            )
+        }
+    } else null
 
     val baseHighlight = rememberGravityRotatedHighlight(iosIndicatorSpecular, extraDegrees = -45f)
     val pillHighlight = rememberGravityRotatedHighlight(iosIndicatorSpecular, extraDegrees = 90f)
@@ -380,7 +382,7 @@ fun MiuixFloatingBottomBar(
                     }
                 )
                 .then(
-                    if (isBlurEnabled) {
+                    if (interactiveHighlight != null) {
                         interactiveHighlight.modifier.then(interactiveHighlight.gestureModifier)
                     } else Modifier
                 )
@@ -394,7 +396,7 @@ fun MiuixFloatingBottomBar(
             }
         }
 
-        if (isBlurEnabled) {
+        if (interactiveHighlight != null) {
             CompositionLocalProvider(
                 LocalFloatingBottomBarTabScale provides {
                     lerp(1f, 1.2f, dampedDragAnimation.pressProgress)

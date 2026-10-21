@@ -57,6 +57,8 @@ import androidx.compose.material.icons.rounded.Colorize
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.DesignServices
 import androidx.compose.material.icons.rounded.Style
+import androidx.compose.material.icons.rounded.Swipe
+import androidx.compose.material.icons.rounded.ViewCarousel
 import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material3.ButtonGroupDefaults
@@ -185,11 +187,12 @@ private const val KeyDarkTheme = "dark_theme"
  *
  * 组成对齐 KernelSU ColorPaletteScreenMaterial：
  * 主题预览卡片 → 主题色选择（跟随系统 + 15 预设）→ 主题模式分段按钮
- * → 调色风格 / 色彩规格下拉 → 动态取色开关 → 预测式返回开关。
+ * → 调色风格 / 色彩规格下拉 → 动态取色开关 → 返回与切页手势。
  *
  * 偏好键沿用 LuckyTool 既有约定（SettingsPrefs）：
  * dark_theme（0 跟随系统 / 1 深色 / 2 浅色 / 3 深色 AMOLED）、key_color、
- * palette_style、color_spec、use_dynamic_color、enable_predictive_back。
+ * palette_style、color_spec、use_dynamic_color、enable_predictive_back、
+ * enable_swipe_dismiss、pager_interception_mode。
  * 写入后通过 [ThemePrefs.notifyChanged] 让应用主题即时重算，无需 recreate。
  */
 @Composable
@@ -258,6 +261,9 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
                 true
             )
         )
+    }
+    var pagerMode by remember {
+        mutableIntStateOf(ShellSettingsController.get(context).pagerInterceptionMode)
     }
     // 预测式返回手势（需 Android 14+，反射 ApplicationInfo.setEnableOnBackInvokedCallback）
     var predictiveBack by remember {
@@ -496,13 +502,13 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
                 }
             }
 
-            // 预测式返回手势（需 Android 14+，反射 ApplicationInfo.setEnableOnBackInvokedCallback）
-            if (PredictiveBackUtils.isSupported()) {
-                item {
-                    MaterialGroup(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        content = listOf(
-                            {
+            // 系统不支持预测性返回时，另外两项应用内手势仍可配置。
+            item {
+                MaterialGroup(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    content = buildList<@Composable () -> Unit> {
+                        if (PredictiveBackUtils.isSupported()) {
+                            add {
                                 MaterialSwitchItem(
                                     icon = Icons.AutoMirrored.Rounded.MenuOpen,
                                     title = stringResource(R.string.settings_enable_predictive_back),
@@ -519,10 +525,40 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
                                         PredictiveBackUtils.applyImmediately(context, it)
                                     },
                                 )
-                            },
-                        ),
-                    )
-                }
+                            }
+                        }
+                        add {
+                            MaterialSwitchItem(
+                                icon = Icons.Rounded.Swipe,
+                                title = stringResource(R.string.settings_enable_swipe_dismiss),
+                                summary = stringResource(R.string.settings_enable_swipe_dismiss_summary),
+                                checked = swipeDismiss,
+                                onCheckedChange = {
+                                    swipeDismiss = it
+                                    context.putBoolean(SettingsPrefs, ShellSettingsController.KEY_SWIPE_DISMISS, it)
+                                    ThemePrefs.notifyChanged()
+                                },
+                            )
+                        }
+                        add {
+                            MaterialDropdownItem(
+                                icon = Icons.Rounded.ViewCarousel,
+                                title = stringResource(R.string.settings_pager_gesture_mode),
+                                items = listOf(
+                                    stringResource(R.string.settings_pager_gesture_native),
+                                    stringResource(R.string.settings_pager_gesture_cross_axis),
+                                    stringResource(R.string.settings_pager_gesture_ios_like),
+                                ),
+                                selectedIndex = pagerMode,
+                                onItemSelected = {
+                                    pagerMode = it
+                                    context.putInt(SettingsPrefs, ShellSettingsController.KEY_PAGER_MODE, it)
+                                    ThemePrefs.notifyChanged()
+                                },
+                            )
+                        }
+                    },
+                )
             }
 
             // 界面缩放（page_scale）：拖动只更新页内状态，松手才提交偏好，避免重建全应用密度
@@ -864,17 +900,17 @@ private fun ColorButtonMaterial(
  * 组成对齐 KernelSU ColorPaletteScreenMiuix：
  * 主题预览卡片 → 主题模式 TabRow（跟随系统 / 浅色 / 深色）→ Monet 取色卡片（含强调色 /
  * 色彩风格 / 色彩标准）→ Miuix 外观卡片（模糊 / 悬浮底栏 / 液态玻璃 / 导航角标）
- * → 外壳行为卡片（预测式返回 + 界面缩放，含输入对话框）→ 模块描述最大行数 → 底部留白。
+ * → 外壳行为卡片（返回 / 切页手势 + 界面缩放，含输入对话框）→ 模块描述最大行数 → 底部留白。
  *
  * 与 KernelSU 的差异：
  * 1. 不做 UiState / Actions 抽象，直接读写 SettingsPrefs；
- * 2. 不提供「翻页手势」下拉（本应用已隐藏，无对应功能）；「预测式返回」开关已提供（targetSdk 37）；
+ * 2. 一级页保留 LuckyTool 的五个标签，手势模式与 KernelSU 一致；
  * 3. 不调用 MonetColorsProvider.UpdateCss()（本应用无该实现）。
  *
  * 偏好键沿用 LuckyTool 既有约定（SettingsPrefs）：
  * dark_theme（0-3 普通 / 4-7 Monet）、miuix_monet、key_color、palette_style、color_spec、
  * enable_blur、enable_floating_bottom_bar、enable_floating_bottom_bar_blur、
- * enable_navigation_badge、enable_predictive_back、enable_swipe_dismiss、page_scale、
+ * enable_navigation_badge、enable_predictive_back、enable_swipe_dismiss、pager_interception_mode、page_scale、
  * module_description_max_lines。
  * 写入后通过 [ThemePrefs.notifyChanged] 让应用主题即时重算，无需 recreate。
  */
@@ -942,6 +978,8 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
     }
 
     // 外壳行为项
+    var swipeDismiss by remember { mutableStateOf(ShellSettingsController.get(context).swipeDismiss) }
+    var pagerMode by remember { mutableIntStateOf(ShellSettingsController.get(context).pagerInterceptionMode) }
     var pageScale by remember {
         mutableFloatStateOf(
             context.getFloat(SettingsPrefs, ShellSettingsController.KEY_PAGE_SCALE, 1.0f)
@@ -1026,6 +1064,16 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
         context.putBoolean(SettingsPrefs, ShellSettingsController.KEY_PREDICTIVE_BACK, enabled)
         // 即时生效：反射改写 ApplicationInfo 后重建 Activity（新窗口读取新 flag）
         PredictiveBackUtils.applyImmediately(context, enabled)
+    }
+    val setSwipeDismiss: (Boolean) -> Unit = { enabled ->
+        swipeDismiss = enabled
+        context.putBoolean(SettingsPrefs, ShellSettingsController.KEY_SWIPE_DISMISS, enabled)
+        ThemePrefs.notifyChanged()
+    }
+    val setPagerMode: (Int) -> Unit = { mode ->
+        pagerMode = mode
+        context.putInt(SettingsPrefs, ShellSettingsController.KEY_PAGER_MODE, mode)
+        ThemePrefs.notifyChanged()
     }
 
     val scrollBehavior = MiuixScrollBehavior()
@@ -1262,7 +1310,7 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
                         }
                     }
 
-                    // 外壳行为：预测式返回 + 界面缩放
+                    // 外壳行为：返回 / 切页手势 + 界面缩放
                     MiuixCard(
                         modifier = Modifier
                             .padding(top = 12.dp)
@@ -1284,6 +1332,39 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
                                 onCheckedChange = { setPredictiveBack(it) }
                             )
                         }
+
+                        SwitchPreference(
+                            title = stringResource(R.string.settings_enable_swipe_dismiss),
+                            summary = stringResource(R.string.settings_enable_swipe_dismiss_summary),
+                            startAction = {
+                                MiuixIcon(
+                                    Icons.Rounded.Swipe,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = null,
+                                    tint = colorScheme.onBackground,
+                                )
+                            },
+                            checked = swipeDismiss,
+                            onCheckedChange = setSwipeDismiss,
+                        )
+                        OverlayDropdownPreference(
+                            title = stringResource(R.string.settings_pager_gesture_mode),
+                            items = listOf(
+                                stringResource(R.string.settings_pager_gesture_native),
+                                stringResource(R.string.settings_pager_gesture_cross_axis),
+                                stringResource(R.string.settings_pager_gesture_ios_like),
+                            ),
+                            startAction = {
+                                MiuixIcon(
+                                    Icons.Rounded.ViewCarousel,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = null,
+                                    tint = colorScheme.onBackground,
+                                )
+                            },
+                            selectedIndex = pagerMode,
+                            onSelectedIndexChange = setPagerMode,
+                        )
 
                         // 拖动只更新页内状态，松手才提交偏好，避免重建全应用密度
                         var sliderValue by remember(pageScale) { mutableFloatStateOf(pageScale) }

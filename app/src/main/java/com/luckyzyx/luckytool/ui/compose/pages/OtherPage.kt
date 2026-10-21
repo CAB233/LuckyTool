@@ -44,7 +44,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,8 +60,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import com.luckyzyx.luckytool.IAdbDebugController
 import com.luckyzyx.luckytool.ITileServiceController
 import com.luckyzyx.luckytool.R
@@ -74,6 +71,7 @@ import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
 import com.luckyzyx.luckytool.ui.compose.components.PrefIcon
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.OtherTopBarActions
+import com.luckyzyx.luckytool.ui.compose.components.MainPageActivationEffect
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialPageScaffold
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
@@ -109,13 +107,12 @@ import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OtherPage(activity: MainActivity) {
+fun OtherPage(activity: MainActivity, isCurrentPage: Boolean = true) {
     val context = LocalContext.current
     val settings = remember { PrefState.of(context, SettingsPrefs) }
     val otherPrefs = remember { PrefState.of(context, OtherPrefs) }
     val scope = rememberCoroutineScope()
-    // 初始值从进程级缓存取：tab 切换销毁本页组合、remember 会重置，若从 null 起步
-    // 每次切回都会重新加载并重放显隐动画；用服务端已缓存的存活控制器做种子即可瞬时还原
+    // 使用存活控制器作为恢复种子；分页保留本页状态，切换标签不重新加载。
     var tileController by remember { mutableStateOf(TilesService.getCachedController()) }
     var adbController by remember { mutableStateOf(AdbService.getCachedController()) }
     var showOptimizePicker by remember { mutableStateOf(false) }
@@ -125,14 +122,12 @@ fun OtherPage(activity: MainActivity) {
     var showTouchDialog by remember { mutableStateOf(false) }
     var showAdbDialog by remember { mutableStateOf(false) }
 
-    // tiles / adb 控制器：首次组合与每次恢复都触发（RootService 冷启动 daemon 未就绪时
-    // 首次 bind 回调未必触发，双触发确保首载）。
+    // 预组合不绑定服务，首次进入及当前页恢复前台时刷新控制器。
     fun loadControllers() {
         TilesService.get(activity) { tileController = it }
         AdbService.get(activity) { adbController = it }
     }
-    LaunchedEffect(Unit) { loadControllers() }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { loadControllers() }
+    MainPageActivationEffect(isCurrentPage, ::loadControllers, ::loadControllers)
 
     MaterialPageScaffold(
         title = stringResource(R.string.nav_other),
@@ -250,6 +245,8 @@ fun OtherPage(activity: MainActivity) {
             scopeContent()
         }
     }
+
+    if (!isCurrentPage) return
 
     if (showOptimizePicker) {
         AppPickerDialog(

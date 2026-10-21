@@ -23,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,8 +39,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.BuildConfig
 import com.luckyzyx.luckytool.R
@@ -50,6 +47,7 @@ import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.HomeTopBarActions
+import com.luckyzyx.luckytool.ui.compose.components.MainPageActivationEffect
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialPageScaffold
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialTonalCard
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefDefaults
@@ -91,7 +89,7 @@ import java.io.File
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun HomePage(activity: MainActivity) {
+fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
     val context = LocalContext.current
     val settings = remember { PrefState.of(context, SettingsPrefs) }
     val zh = remember(context) { isZh(context) }
@@ -126,9 +124,8 @@ fun HomePage(activity: MainActivity) {
         }
     }
 
-    // 旧 onViewCreated：自动检查更新（每次进入页面组合执行一次）
-    LaunchedEffect(Unit) {
-        if (!settings.getBoolean("auto_check_update", true)) return@LaunchedEffect
+    fun checkForUpdates() {
+        if (!settings.getBoolean("auto_check_update", true)) return
         UpdateUtils(activity, isDev).checkUpdate { info ->
             // 导航角标：有新版本时在「主页」tab 上提示（受主题页的导航角标开关控制）
             ShellBadgeState.updateAvailable = getVersionCode < info.code
@@ -141,9 +138,7 @@ fun HomePage(activity: MainActivity) {
         }
     }
 
-    // 系统信息 + 模块状态：首次组合与每次恢复都触发。
-    // RootService 冷启动时 daemon 可能尚未就绪，首次 ON_RESUME 的 bind 回调未必能触发；
-    // 用 LaunchedEffect(Unit) 补一次首载触发，确保无需重新切换页面即可加载数据。
+    // 仅当前页首次激活或恢复前台时读取；预组合其他标签不会发起服务请求。
     fun loadHomeData() {
         GlobalFuncService.get(activity) { controller ->
             val ota = controller?.otaVersion
@@ -161,8 +156,14 @@ fun HomePage(activity: MainActivity) {
             checkDexOptimize(controller)
         }
     }
-    LaunchedEffect(Unit) { loadHomeData() }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { loadHomeData() }
+    MainPageActivationEffect(
+        isCurrentPage = isCurrentPage,
+        onFirstActive = {
+            checkForUpdates()
+            loadHomeData()
+        },
+        onResume = ::loadHomeData,
+    )
 
     MaterialPageScaffold(
         title = stringResource(R.string.app_name),
@@ -343,6 +344,9 @@ fun HomePage(activity: MainActivity) {
             scopeContent()
         }
     }
+
+    // 异步结果可以保留，但只在主页真正可交互时展示弹层。
+    if (!isCurrentPage) return
 
     if (showAbout) {
         when (LocalUiMode.current) {

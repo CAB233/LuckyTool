@@ -21,13 +21,18 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -43,6 +48,10 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.basic.TopAppBar as MiuixTopAppBar
+import top.yukonga.miuix.kmp.basic.TopAppBarState as MiuixTopAppBarState
+import top.yukonga.miuix.kmp.basic.rememberTopAppBarState as rememberMiuixTopAppBarState
+
+private data class HeaderScrollPosition(val collapsedFraction: Float, val contentOffset: Float)
 
 /**
  * 宿主是否已经提供底部导航栏（MainShell 的 NavigationBar 已消费系统导航栏 inset）。
@@ -97,11 +106,42 @@ fun MaterialPageScaffold(
     val movableContent = remember {
         movableContentOf<PaddingValues> { innerPadding -> currentContent.value(innerPadding) }
     }
+    val uiMode = LocalUiMode.current
+    val materialState = rememberTopAppBarState()
+    val miuixState = rememberMiuixTopAppBarState()
+    var previousUiMode by remember { mutableStateOf(uiMode) }
+    var pendingHeaderPosition by remember(uiMode) {
+        mutableStateOf(
+            when {
+                previousUiMode == uiMode -> null
+                previousUiMode == UiMode.Miuix -> HeaderScrollPosition(miuixState.collapsedFraction, miuixState.contentOffset)
+                else -> HeaderScrollPosition(materialState.collapsedFraction, materialState.contentOffset)
+            }
+        )
+    }
+    SideEffect { previousUiMode = uiMode }
+    // 两套顶栏各自保留原生状态；目标顶栏测量后再按折叠比例换算，避免重置标题。
+    val restoreHeaderPosition = Modifier.onSizeChanged {
+        val position = pendingHeaderPosition ?: return@onSizeChanged
+        val limit = if (uiMode == UiMode.Miuix) miuixState.heightOffsetLimit else materialState.heightOffsetLimit
+        if (!limit.isFinite() || limit == -Float.MAX_VALUE) return@onSizeChanged
+        val offset = limit * position.collapsedFraction.coerceIn(0f, 1f)
+        if (uiMode == UiMode.Miuix) {
+            miuixState.heightOffset = offset
+            miuixState.contentOffset = position.contentOffset
+        } else {
+            materialState.heightOffset = offset
+            materialState.contentOffset = position.contentOffset
+        }
+        pendingHeaderPosition = null
+    }
     // 两条外观线分别使用 KernelSU 对应的原生顶栏组件与滚动行为。
-    if (LocalUiMode.current == UiMode.Miuix) {
+    if (uiMode == UiMode.Miuix) {
         MiuixPageScaffold(
             title = title,
             modifier = modifier,
+            topAppBarState = miuixState,
+            topAppBarModifier = restoreHeaderPosition,
             onBack = onBack,
             actions = actions,
             floatingActionButton = floatingActionButton,
@@ -110,11 +150,12 @@ fun MaterialPageScaffold(
         )
         return
     }
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(materialState)
     MaterialScaffold(
         modifier = modifier,
         topBar = {
             LargeFlexibleTopAppBar(
+                modifier = restoreHeaderPosition,
                 navigationIcon = {
                     if (onBack != null) MaterialTopBarBackButton(onClick = onBack)
                 },
@@ -149,6 +190,8 @@ fun MaterialPageScaffold(
 @Composable
 private fun MiuixPageScaffold(
     title: String,
+    topAppBarState: MiuixTopAppBarState,
+    topAppBarModifier: Modifier,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
@@ -156,11 +199,12 @@ private fun MiuixPageScaffold(
     bottomBar: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    val scrollBehavior = MiuixScrollBehavior()
+    val scrollBehavior = MiuixScrollBehavior(state = topAppBarState)
     Scaffold(
         modifier = modifier,
         topBar = {
             MiuixTopAppBar(
+                modifier = topAppBarModifier,
                 title = title,
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Assignment
@@ -33,14 +34,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -78,7 +75,7 @@ import kotlin.system.exitProcess
 /** 跨标签页打开作用域页时保留来源标签。 */
 data class FunctionRequest(val pageKey: String, val title: String?)
 
-private enum class MainTab(val labelRes: Int, val iconRes: Int, val mIcon: ImageVector) {
+internal enum class MainTab(val labelRes: Int, val iconRes: Int, val mIcon: ImageVector) {
     Other(R.string.nav_other, R.drawable.ic_baseline_dashboard_24, Icons.Rounded.Dashboard),
     Function(R.string.nav_function, R.drawable.ic_baseline_extension_24, Icons.Rounded.Extension),
     Home(R.string.nav_home, R.drawable.ic_baseline_home_24, Icons.Rounded.Home),
@@ -92,14 +89,16 @@ private val FloatingBarInset = 76.dp
 @Composable
 fun MainShell(activity: MainActivity) {
     val navController = rememberNavController<AppRoute>(MainRoute)
-    var selectedTab by rememberSaveable { mutableStateOf(MainTab.Home) }
+    val pagerState = rememberPagerState(initialPage = MainTab.Home.ordinal) { MainTab.entries.size }
+    val mainPagerState = rememberMainPagerState(pagerState)
+    val settledTab = MainTab.entries[pagerState.settledPage]
     val atMain = navController.backStack.last() == MainRoute
     val isMiuix = LocalUiMode.current == UiMode.Miuix
     val containerColor = if (isMiuix) MiuixTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainer
 
-    LaunchedEffect(atMain, selectedTab) {
-        activity.isOnFunctionTab = atMain && selectedTab == MainTab.Function
-        activity.isOnHomeTab = atMain && selectedTab == MainTab.Home
+    LaunchedEffect(atMain, settledTab) {
+        activity.isOnFunctionTab = atMain && settledTab == MainTab.Function
+        activity.isOnHomeTab = atMain && settledTab == MainTab.Home
     }
     LaunchedEffect(activity, navController) {
         activity.functionNavRequests.collect { request ->
@@ -117,9 +116,10 @@ fun MainShell(activity: MainActivity) {
     }
 
     // 标签页不是页面栈：主页之外的标签先返回主页，页面返回由 NavDisplay 接管。
-    BackHandler(enabled = atMain && selectedTab != MainTab.Home && activity.gateDialog == null) {
-        selectedTab = MainTab.Home
-    }
+    MainPagerBackHandler(
+        state = mainPagerState,
+        enabled = atMain && activity.gateDialog == null,
+    )
 
     val shellContent: @Composable (PaddingValues) -> Unit = { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -128,13 +128,21 @@ fun MainShell(activity: MainActivity) {
                 modifier = Modifier.fillMaxSize(),
                 mainContent = {
                     MainTabs(
-                        activity = activity,
-                        selectedTab = selectedTab,
-                        onSelected = { selectedTab = it },
-                        onOpenTheme = { navController.navigateTo(ThemeRoute) },
-                        onOpenPage = { key, title -> navController.navigateTo(ScopeRoute(key, title)) },
-                        onOpenSearch = { navController.navigateTo(SearchRoute) },
-                    )
+                        mainPagerState = mainPagerState,
+                        isActive = atMain && activity.gateDialog == null,
+                    ) { tab, isCurrentPage ->
+                        when (tab) {
+                            MainTab.Home -> HomePage(activity, isCurrentPage)
+                            MainTab.Other -> OtherPage(activity, isCurrentPage)
+                            MainTab.Function -> FunctionPage(
+                                activity = activity,
+                                onOpenPage = { key, title -> navController.navigateTo(ScopeRoute(key, title)) },
+                                onOpenSearch = { navController.navigateTo(SearchRoute) },
+                            )
+                            MainTab.Log -> LogPage()
+                            MainTab.Setting -> SettingPage(activity) { navController.navigateTo(ThemeRoute) }
+                        }
+                    }
                 },
                 themeContent = { ThemeScreen(onBack = { navController.pop() }) },
                 searchContent = {
@@ -183,13 +191,10 @@ fun MainShell(activity: MainActivity) {
 }
 
 @Composable
-private fun MainTabs(
-    activity: MainActivity,
-    selectedTab: MainTab,
-    onSelected: (MainTab) -> Unit,
-    onOpenTheme: () -> Unit,
-    onOpenPage: (String, String) -> Unit,
-    onOpenSearch: () -> Unit,
+internal fun MainTabs(
+    mainPagerState: MainPagerState,
+    isActive: Boolean,
+    pageContent: @Composable (tab: MainTab, isCurrentPage: Boolean) -> Unit,
 ) {
     val isMiuix = LocalUiMode.current == UiMode.Miuix
     val enableBlur = LocalEnableBlur.current
@@ -197,8 +202,8 @@ private fun MainTabs(
     val enableBadge = LocalEnableNavigationBadge.current
     val floatingBar = isMiuix && LocalEnableFloatingBottomBar.current
     val tabs = MainTab.entries
-    val selectedIndex = selectedTab.ordinal
-    val onSelect: (Int) -> Unit = { index -> tabs.getOrNull(index)?.let(onSelected) }
+    val selectedIndex = mainPagerState.selectedPage
+    val onSelect: (Int) -> Unit = { index -> if (isActive) mainPagerState.animateToPage(index) }
     val tabStateHolder = rememberSaveableStateHolder()
 
     // 只录制页面内容，底栏/胶囊必须在采样层之外，避免渲染树循环引用。
@@ -248,7 +253,7 @@ private fun MainTabs(
                     tonalElevation = 0.dp,
                 ) {
                     tabs.forEach { tab ->
-                        val selected = selectedTab == tab
+                        val selected = selectedIndex == tab.ordinal
                         // 角标数据源：主页发现新版本（对齐 KernelSU 导航角标开关）
                         val showBadge = enableBadge &&
                             tab == MainTab.Home &&
@@ -300,13 +305,16 @@ private fun MainTabs(
                         .consumeWindowInsets(innerPadding)
                         .then(if (backdrop != null && needBackdrop) Modifier.layerBackdrop(backdrop) else Modifier),
                 ) {
-                    tabStateHolder.SaveableStateProvider(selectedTab.name) {
-                        when (selectedTab) {
-                            MainTab.Home -> HomePage(activity)
-                            MainTab.Other -> OtherPage(activity)
-                            MainTab.Function -> FunctionPage(activity, onOpenPage, onOpenSearch)
-                            MainTab.Log -> LogPage()
-                            MainTab.Setting -> SettingPage(activity, onOpenTheme)
+                    MainPager(
+                        state = mainPagerState,
+                        gesturesEnabled = isActive,
+                        pageKey = { tabs[it].name },
+                    ) { index ->
+                        val tab = tabs[index]
+                        val isCurrentPage = isActive && index == mainPagerState.pagerState.settledPage &&
+                            !mainPagerState.pagerState.isScrollInProgress
+                        tabStateHolder.SaveableStateProvider(tab.name) {
+                            pageContent(tab, isCurrentPage)
                         }
                     }
                 }

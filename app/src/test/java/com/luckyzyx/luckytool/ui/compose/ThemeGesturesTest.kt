@@ -1,0 +1,151 @@
+package com.luckyzyx.luckytool.ui.compose
+
+import android.app.Application
+import android.os.Bundle
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import com.luckyzyx.luckytool.ui.compose.pages.ThemeScreen
+import com.luckyzyx.luckytool.ui.shell.LocalEnableSwipeDismiss
+import com.luckyzyx.luckytool.ui.shell.LocalPagerInterceptionMode
+import com.luckyzyx.luckytool.ui.shell.PagerModeCrossAxis
+import com.luckyzyx.luckytool.ui.shell.ShellSettingsController
+import com.luckyzyx.luckytool.ui.theme.ColorMode
+import com.luckyzyx.luckytool.ui.theme.LuckyAppTheme
+import com.luckyzyx.luckytool.ui.theme.ThemeController
+import com.luckyzyx.luckytool.ui.theme.UiMode
+import com.luckyzyx.luckytool.utils.SettingsPrefs
+import com.luckyzyx.luckytool.utils.appPrefs
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [32], application = Application::class, qualifiers = "zh-rCN-w411dp-h880dp-xhdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class ThemeGesturesTest {
+    @Test
+    fun `both appearances expose working gesture preferences below the predictive back API level`() {
+        for (mode in UiMode.entries) {
+            for (color in listOf(ColorMode.LIGHT, ColorMode.DARK)) {
+                ThemeHost(mode, color).use { h ->
+                    assertTrue(h.swipe)
+                    assertEquals(PagerModeCrossAxis, h.pagerMode)
+                    h.scrollTo("横移返回手势")
+                    assertNull(h.ui.textNode("预测性返回手势"))
+                    h.ui.clickText("横移返回手势")
+                    h.ui.advance()
+                    assertFalse(h.swipe)
+                    assertFalse(ShellSettingsController.get(h.ui.activity).swipeDismiss)
+                    h.scrollTo("页面切换手势")
+                    h.ui.snapshot("theme-${mode.name.lowercase()}-${color.name.lowercase()}")
+                    for ((index, label) in listOf(2 to "iOS 风格", 0 to "默认", 1 to "跨轴拦截")) {
+                        h.ui.clickText("页面切换手势")
+                        h.ui.advance()
+                        h.ui.snapshot("theme-${mode.name.lowercase()}-${color.name.lowercase()}-menu")
+                        h.ui.clickText(label)
+                        h.ui.advance()
+                        assertEquals(index, h.pagerMode)
+                        assertEquals(index, ShellSettingsController.get(h.ui.activity).pagerInterceptionMode)
+                    }
+                    assertFalse("These preferences must not recreate the activity", h.ui.activity.isChangingConfigurations)
+                }
+            }
+        }
+    }
+
+    @Test
+    @Config(sdk = [35])
+    fun `supported Android shows predictive back before swipe and pager mode`() {
+        for (mode in UiMode.entries) {
+            ThemeHost(mode, ColorMode.LIGHT).use { h ->
+                h.scrollTo("预测性返回手势")
+                assertNotNull(h.ui.textNode("横移返回手势"))
+                assertNotNull(h.ui.textNode("页面切换手势"))
+                val predictiveY = h.ui.textNode("预测性返回手势")!!.boundsInRoot.top
+                val swipeY = h.ui.textNode("横移返回手势")!!.boundsInRoot.top
+                val pagerY = h.ui.textNode("页面切换手势")!!.boundsInRoot.top
+                assertTrue(predictiveY < swipeY && swipeY < pagerY)
+            }
+        }
+    }
+
+    @Test
+    fun `gesture choices persist through activity recreation`() {
+        for (mode in UiMode.entries) {
+            val saved: Bundle
+            ThemeHost(mode, ColorMode.LIGHT).use { h ->
+                h.scrollTo("横移返回手势")
+                h.ui.clickText("横移返回手势")
+                h.ui.advance()
+                h.scrollTo("页面切换手势")
+                h.ui.clickText("页面切换手势")
+                h.ui.advance()
+                h.ui.clickText("iOS 风格")
+                h.ui.advance()
+                saved = h.ui.saveAndClose()
+            }
+            ThemeHost(mode, ColorMode.LIGHT, saved).use { h ->
+                assertFalse(h.swipe)
+                assertEquals(2, h.pagerMode)
+                h.scrollTo("页面切换手势")
+                assertNotNull(h.ui.textNode("iOS 风格"))
+            }
+        }
+    }
+
+    private class ThemeHost(mode: UiMode, color: ColorMode, saved: Bundle? = null) : AutoCloseable {
+        val ui = ComposeGestureHost(saved)
+        var swipe = true
+        var pagerMode = -1
+
+        init {
+            if (saved == null) {
+                ui.activity.appPrefs(SettingsPrefs).edit().clear()
+                    .putString(ThemeController.KEY_UI_MODE, mode.value)
+                    .putString("dark_theme", color.value.toString())
+                    .putBoolean("use_dynamic_color", false)
+                    .commit()
+            }
+            ui.setContent {
+                CompositionLocalProvider(LocalDensity provides Density(2f)) {
+                    LuckyAppTheme {
+                        val enabled = LocalEnableSwipeDismiss.current
+                        val interceptionMode = LocalPagerInterceptionMode.current
+                        SideEffect { swipe = enabled; pagerMode = interceptionMode }
+                        if (mode == UiMode.Miuix) {
+                            top.yukonga.miuix.kmp.basic.Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) {
+                                ThemeScreen(onBack = {})
+                            }
+                        } else {
+                            androidx.compose.material3.Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) {
+                                ThemeScreen(onBack = {})
+                            }
+                        }
+                    }
+                }
+            }
+            ui.advance()
+        }
+
+        fun scrollTo(text: String) {
+            repeat(8) {
+                val node = ui.textNode(text)
+                if (node != null && node.boundsInRoot.top in 250f..1200f) return
+                ui.drag(420f, 1400f, 420f, 650f)
+            }
+            check(ui.textNode(text) != null) { "Could not scroll to $text" }
+        }
+
+        override fun close() = ui.close()
+    }
+}

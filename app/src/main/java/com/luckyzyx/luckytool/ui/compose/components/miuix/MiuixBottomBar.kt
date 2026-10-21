@@ -4,6 +4,7 @@
  */
 package com.luckyzyx.luckytool.ui.compose.components.miuix
 
+import android.os.Build
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -81,7 +82,8 @@ fun MiuixBottomBar(
             onSelected = onSelected,
             backdrop = backdrop,
             tabsCount = items.size,
-            isBlurEnabled = floatingBlur,
+            // 玻璃高光使用 AGSL（API 33），不能只检查 API 31 已支持的 RenderEffect。
+            isBlurEnabled = floatingBlur && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
         ) { activateTab ->
             items.forEachIndexed { index, item ->
                 MiuixFloatingBottomBarItem(

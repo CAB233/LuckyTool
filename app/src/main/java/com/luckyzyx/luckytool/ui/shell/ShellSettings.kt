@@ -99,7 +99,7 @@ val LocalEnableFloatingBottomBarBlur = staticCompositionLocalOf { false }
 /** 边缘横移返回手势开关 */
 val LocalEnableSwipeDismiss = staticCompositionLocalOf { true }
 
-/** 页面切换手势模式（LuckyTool 无横向分页，仅透传偏好） */
+/** 五个一级页面共用的分页手势模式。 */
 val LocalPagerInterceptionMode = staticCompositionLocalOf { PagerModeCrossAxis }
 
 /** 模块描述最大行数 */
