@@ -43,7 +43,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.MenuOpen
 import androidx.compose.material.icons.filled.Brightness1
 import androidx.compose.material.icons.filled.Brightness3
 import androidx.compose.material.icons.filled.Brightness4
@@ -500,7 +500,7 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
                         content = listOf(
                             {
                                 MaterialSwitchItem(
-                                    icon = Icons.AutoMirrored.Rounded.ArrowBack,
+                                    icon = Icons.AutoMirrored.Rounded.MenuOpen,
                                     title = stringResource(R.string.settings_enable_predictive_back),
                                     summary = stringResource(R.string.settings_enable_predictive_back_summary),
                                     checked = predictiveBack,
@@ -1275,7 +1275,7 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
                                 summary = stringResource(id = R.string.settings_enable_predictive_back_summary),
                                 startAction = {
                                     MiuixIcon(
-                                        MiuixIcons.Back,
+                                        Icons.AutoMirrored.Rounded.MenuOpen,
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = stringResource(id = R.string.settings_enable_predictive_back),
                                         tint = colorScheme.onBackground
