@@ -28,9 +28,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.AddToHomeScreen
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Adb
-import androidx.compose.material.icons.rounded.AutoFixHigh
-import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.TouchApp
@@ -54,7 +53,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -75,7 +73,7 @@ import com.luckyzyx.luckytool.ui.compose.components.AppPickerDialog
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
 import com.luckyzyx.luckytool.ui.compose.components.PrefIcon
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
-import com.luckyzyx.luckytool.ui.compose.components.TopBarActionButton
+import com.luckyzyx.luckytool.ui.compose.components.OtherTopBarActions
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialPageScaffold
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
@@ -139,11 +137,7 @@ fun OtherPage(activity: MainActivity) {
     MaterialPageScaffold(
         title = stringResource(R.string.nav_other),
         actions = {
-            TopBarActionButton(
-                onClick = { showOptimizePicker = true },
-                contentDescription = "优化App",
-                painter = rememberVectorPainter(Icons.Rounded.AutoFixHigh),
-            )
+            OtherTopBarActions(onOptimize = { showOptimizePicker = true })
         },
     ) { padding ->
         val layoutDirection = LocalLayoutDirection.current
@@ -192,7 +186,7 @@ fun OtherPage(activity: MainActivity) {
                 click(
                     title = quickEntryTitle,
                     summary = quickEntrySummary,
-                    leading = { PrefIcon(Icons.Rounded.Bolt) },
+                    leading = { PrefIcon(Icons.AutoMirrored.Rounded.OpenInNew) },
                     value = "",
                     trailing = { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null) },
                     onClick = {

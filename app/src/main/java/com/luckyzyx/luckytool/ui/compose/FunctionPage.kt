@@ -45,6 +45,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
+import com.luckyzyx.luckytool.ui.compose.components.FunctionTopBarActions
 import com.luckyzyx.luckytool.ui.compose.components.PrefIndexItem
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.ScrollTarget
@@ -149,20 +150,10 @@ private fun FunctionTreeScreen(
     MaterialPageScaffold(
         title = stringResource(R.string.nav_function),
         actions = {
-            TopBarActionButton(
-                onClick = onOpenSearch,
-                contentDescription = stringResource(R.string.menu_search),
-                painter = painterResource(R.drawable.ic_baseline_search_24),
-            )
-            TopBarActionButton(
-                onClick = onShowRestartMenu,
-                contentDescription = stringResource(R.string.menu_reboot),
-                painter = painterResource(R.drawable.ic_baseline_refresh_24),
-            )
-            TopBarActionButton(
-                onClick = onShowVersionInfo,
-                contentDescription = stringResource(R.string.menu_versioninfo),
-                painter = painterResource(R.drawable.ic_baseline_extension_24),
+            FunctionTopBarActions(
+                onSearch = onOpenSearch,
+                onRestart = onShowRestartMenu,
+                onVersionInfo = onShowVersionInfo,
             )
         },
     ) { padding ->

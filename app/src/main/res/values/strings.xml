@@ -1455,6 +1455,7 @@
     <string name="select_color">Select Color</string>
     <string name="current_color">Current Color: %1$s</string>
     <string name="menu_more">More</string>
+    <string name="action_optimize_apps">Optimize apps</string>
     <string name="menu_import_xml">Import Xml</string>
 
 

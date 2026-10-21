@@ -160,6 +160,8 @@
     <string name="reboot">重启系统</string>
     <string name="fast_reboot">快速重启</string>
     <string name="menu_versioninfo">版本信息</string>
+    <string name="menu_more">更多</string>
+    <string name="action_optimize_apps">优化应用</string>
     <string name="scope_version_info">作用域版本信息</string>
     <string name="show_system_app">显示系统应用</string>
     <!--Xposed-->
