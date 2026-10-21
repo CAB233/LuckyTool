@@ -13,6 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
+import com.luckyzyx.luckytool.hook.scopes.android.InstallerRoutingPolicy
 import com.luckyzyx.luckytool.ui.compose.components.AppPickerDialog
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialListItem
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialSwitchItem
@@ -162,10 +163,7 @@ object ApplicationRelatedPage {
             wlanWhitelist(c, key = "custom_wlan_sla_game_whitelist")
         }
         // 应用安装
-        category(
-            c.getString(R.string.AppInstallationRelated),
-            c.getString(R.string.PackageInstaller_summary),
-        )
+        category(c.getString(R.string.AppInstallationRelated))
         page(
             title = c.getString(R.string.corepatch),
             target = "corePatch",
@@ -218,6 +216,15 @@ object ApplicationRelatedPage {
             key = "remove_adb_install_confirm",
             title = c.getString(R.string.remove_adb_install_confirm),
             summary = c.getString(R.string.remove_adb_install_confirm_summary),
+        )
+        switch(
+            key = InstallerRoutingPolicy.PREFERENCE_KEY,
+            title = c.getString(R.string.allow_third_party_installer),
+            summary = c.getString(R.string.allow_third_party_installer_summary),
+            default = false,
+            onChange = { value ->
+                c.sendPrefsValue("system", InstallerRoutingPolicy.PREFERENCE_KEY, value)
+            },
         )
         // 其他限制
         category(c.getString(R.string.ApplyOtherRestrictions))

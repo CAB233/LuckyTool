@@ -1575,4 +1575,6 @@
     <string name="launcher_backup_tag_auto">Auto</string>
     <string name="launcher_backup_tag_manual">Manual</string>
     <string name="launcher_backup_tag_pre_restore">Before restore</string>
+    <string name="allow_third_party_installer">Allow third-party installers</string>
+    <string name="allow_third_party_installer_summary">Use your chosen default app to open APK files and remember the installer selection</string>
 </resources>

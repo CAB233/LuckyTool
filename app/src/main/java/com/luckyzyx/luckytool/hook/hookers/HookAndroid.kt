@@ -5,6 +5,7 @@ import com.luckyzyx.luckytool.hook.globals.HookGlobalFeatureConfig
 import com.luckyzyx.luckytool.hook.globals.HookGlobalPmsFeature
 import com.luckyzyx.luckytool.hook.globals.HookGlobalSystemConfig
 import com.luckyzyx.luckytool.hook.globals.HookGlobalSystemProperties
+import com.luckyzyx.luckytool.hook.scopes.android.AllowThirdPartyInstaller
 import com.luckyzyx.luckytool.hook.scopes.android.ADBInstallConfirm
 import com.luckyzyx.luckytool.hook.scopes.android.ActionButtonKeyInterceptor
 import com.luckyzyx.luckytool.hook.scopes.android.AllowUntrustedTouch
@@ -76,6 +77,9 @@ object HookAndroid : YukiBaseHooker() {
 
         //应用分身限制
         loadHooker(MultiAppConfig)
+
+        // APK 默认安装器选择。
+        loadHooker(AllowThirdPartyInstaller)
 
         //USB安装确认
         loadHooker(ADBInstallConfirm)
