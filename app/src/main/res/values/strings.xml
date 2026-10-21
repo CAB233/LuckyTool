@@ -54,7 +54,7 @@
     <string name="settings_color_style">Color Style</string>
     <string name="settings_color_spec">Color Spec</string>
     <string name="settings_enable_blur">Blur</string>
-    <string name="settings_enable_blur_summary">Enable blur effect for top and bottom bars.</string>
+    <string name="settings_enable_blur_summary">Enable blur effect for the bottom bar.</string>
     <string name="settings_floating_bottom_bar">Floating bottom bar</string>
     <string name="settings_floating_bottom_bar_summary">Use Apple style floating bottom bar.</string>
     <string name="settings_enable_glass">Liquid glass</string>

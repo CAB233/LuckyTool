@@ -87,7 +87,7 @@ object ShellSettingsController {
 /** 底部导航角标开关 */
 val LocalEnableNavigationBadge = staticCompositionLocalOf { true }
 
-/** 顶栏 / 底栏背景模糊开关（Miuix 外观线，对齐 KernelSU `LocalEnableBlur`） */
+/** 底栏背景模糊开关（Miuix 顶栏使用库默认样式）。 */
 val LocalEnableBlur = staticCompositionLocalOf { false }
 
 /** 悬浮底栏开关（对齐 KernelSU `LocalEnableFloatingBottomBar`） */

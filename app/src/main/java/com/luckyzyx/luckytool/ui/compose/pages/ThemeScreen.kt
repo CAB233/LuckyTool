@@ -61,7 +61,9 @@ import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -80,6 +82,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -101,10 +104,7 @@ import com.luckyzyx.luckytool.ui.compose.components.material.MaterialSwitchItem
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialTonalCard
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialTopBarBackButton
 import com.luckyzyx.luckytool.ui.compose.components.material.materialTopAppBarColors
-import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixBlurredBar
-import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixCompactTopBar
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixScaleDialog
-import com.luckyzyx.luckytool.ui.compose.components.miuix.rememberMiuixBlurBackdrop
 import com.luckyzyx.luckytool.ui.shell.ModuleLinesMax
 import com.luckyzyx.luckytool.ui.shell.ModuleLinesMin
 import com.luckyzyx.luckytool.ui.shell.PageScaleMax
@@ -143,7 +143,8 @@ import top.yukonga.miuix.kmp.basic.Slider as MiuixSlider
 import top.yukonga.miuix.kmp.basic.SliderDefaults
 import top.yukonga.miuix.kmp.basic.TabRow as MiuixTabRow
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
-import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.TopAppBar as MiuixTopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.preference.ArrowPreference
@@ -284,12 +285,14 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
         dynamicColor = dynamicColor,
     )
 
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     MaterialScaffold(
         topBar = {
-            TopAppBar(
+            LargeFlexibleTopAppBar(
                 navigationIcon = { MaterialTopBarBackButton(onClick = onBack) },
-                title = { Text(stringResource(R.string.theme_title)) },
+                title = { Text(stringResource(R.string.settings_theme)) },
                 colors = materialTopAppBarColors(),
+                scrollBehavior = scrollBehavior,
                 windowInsets = WindowInsets.safeDrawing.only(
                     WindowInsetsSides.Top + WindowInsetsSides.Horizontal
                 ),
@@ -307,7 +310,8 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .padding(paddingValues)
+                .nestedScroll(scrollBehavior.nestedScrollConnection),
             verticalArrangement = Arrangement.spacedBy(13.dp),
         ) {
             item {
@@ -1024,33 +1028,28 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
         PredictiveBackUtils.applyImmediately(context, enabled)
     }
 
-    // 模糊开关仅对预览与顶栏生效，与 KernelSU 一样由偏好直接驱动
-    val backdrop = rememberMiuixBlurBackdrop(enableBlur)
-    val blurActive = backdrop != null
-    val barColor = if (blurActive) Color.Transparent else colorScheme.surface
+    val scrollBehavior = MiuixScrollBehavior()
     val isDark = colorMode.resolveDarkTheme()
 
     MiuixScaffold(
         topBar = {
-            MiuixBlurredBar(backdrop) {
-                MiuixCompactTopBar(
-                    color = barColor,
-                    title = stringResource(R.string.settings_theme),
-                    navigationIcon = {
-                        MiuixIconButton(onClick = onBack) {
-                            val layoutDirection = LocalLayoutDirection.current
-                            MiuixIcon(
-                                modifier = Modifier.graphicsLayer {
-                                    if (layoutDirection == LayoutDirection.Rtl) scaleX = -1f
-                                },
-                                imageVector = MiuixIcons.Back,
-                                contentDescription = null,
-                                tint = colorScheme.onBackground
-                            )
-                        }
-                    },
-                )
-            }
+            MiuixTopAppBar(
+                scrollBehavior = scrollBehavior,
+                title = stringResource(R.string.settings_theme),
+                navigationIcon = {
+                    MiuixIconButton(onClick = onBack) {
+                        val layoutDirection = LocalLayoutDirection.current
+                        MiuixIcon(
+                            modifier = Modifier.graphicsLayer {
+                                if (layoutDirection == LayoutDirection.Rtl) scaleX = -1f
+                            },
+                            imageVector = MiuixIcons.Back,
+                            contentDescription = null,
+                            tint = colorScheme.onBackground
+                        )
+                    }
+                },
+            )
         },
         // 空槽位：OverlayDropdownPreference / OverlayDialog 默认 renderInRootScaffold = true，
         // 弹层冒泡到根部 Miuix Scaffold 的默认 popupHost（各页不得自装 host），本页仅声明不自装。
@@ -1062,7 +1061,7 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
     ) { innerPadding ->
         val showScaleDialog = rememberSaveable { mutableStateOf(false) }
 
-        Box(modifier = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier) {
+        Box(Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxHeight()

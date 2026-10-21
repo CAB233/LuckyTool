@@ -418,12 +418,11 @@ internal fun ScopePageHost(
             // 水平内边距此处不叠加（material 线由作用域内容自带，Miuix 线由列表级 12dp contentPadding 提供）。
             //
             // 骨架内边距传递：
-            // - material 线：innerPadding 整块交给内容（与今天逐字一致，m3 顶栏 64dp 由 innerPadding 承担）。
+            // - Material 线：innerPadding 整块交给内容，包含大标题折叠后的实际顶栏高度。
             // - Miuix 线：骨架给的是真实 innerPadding，其中 top = 顶栏高度；top 经 LocalScopeTopInset 交给
             //   列表充当 contentPadding.top（内容滚动到模糊顶栏之下，KernelSU 式 scroll-under），这里只保留
             //   start/end/bottom 外置 padding（横屏 displayCutout 水平内缩与底部 inset 不能丢）。
-            // 顶栏不再折叠（标题恒定展开、不随上滑吸顶），两条线都不再把列表滚动联动到顶栏，
-            // 因此这里不接任何 nestedScrollConnection。
+            // 两条外观线的默认折叠行为均由页面骨架统一连接，内容不重复接入同一条滚动连接。
             val pageContentModifier = if (uiMode == UiMode.Miuix) {
                 val layoutDirection = LocalLayoutDirection.current
                 Modifier
