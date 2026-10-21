@@ -84,7 +84,7 @@ import java.io.File
  * 主页（旧 HomeFragment 的 Compose 等价实现）。
  * 状态卡 / 更新卡 / 系统信息卡 / 捐赠卡 / 授权提示与旧实现逐项对齐。
  *
- * 外观对齐 KernelSU 主题页（ThemeScreen）：可折叠大标题 AppBar +
+ * 页面外观：可折叠大标题 AppBar +
  * surfaceContainer 底色 + 16dp 内容边距 + surfaceBright 分段卡片。
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -297,7 +297,7 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
                         }
                     }
                 }
-                // 更新卡 / 系统信息卡 / 捐赠卡合并为一张分段卡片（KernelSU 主题页外观）
+                // 更新卡 / 系统信息卡 / 捐赠卡合并为一张分段卡片
                 updateInfoNow?.let { info ->
                     click(title = info, onClick = { updateClick?.invoke() })
                 }

@@ -20,17 +20,17 @@ import top.yukonga.miuix.kmp.theme.ThemePaletteStyle
 import top.yukonga.miuix.kmp.theme.ThemeController as MiuixThemeController
 
 /**
- * Miuix 外观线主题（迁移自 KernelSU `ui/theme/MiuixTheme.kt`）。
+ * Miuix 外观线主题。
  *
- * 取色管线与 KernelSU 完全一致：
+ * 取色管线：
  * - 直接把 `ThemeController(色板模式, keyColor, isDark, paletteStyle, colorSpec)` 交给 `MiuixTheme`，
  *   Miuix 自己生成整套色板（不构造 MiuixColorScheme）；
  * - `key_color != 0` 时用它当种子；`keyColor == 0` 且走 Monet 时借用 Material3 的系统动态主色；
  * - paletteStyle / colorSpec 按名称映射到 miuix 的枚举，SPEC_2025 在不支持的风格上回退 SPEC_2021；
  * - 深色切换同步系统栏前景色。
  *
- * 两处刻意的差异：
- * 1. `ThemeController` 用 `remember` 缓存（KernelSU 每次重组都新建，属于浪费）；
+ * 主题组合：
+ * 1. `ThemeController` 用 `remember` 缓存，避免重复创建；
  * 2. Miuix 主题内部再套一层 Material3 Expressive 主题（同一套种子色），
  *    因为 LuckyTool 目前只有主题页 / 底部导航等部分界面是 Miuix 实现，
  *    其余 Material 页面需要继续跟随用户配色，否则 Miuix 模式下会出现两套色板。

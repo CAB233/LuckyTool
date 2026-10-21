@@ -189,10 +189,10 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                 modifier = scopeModifier,
             ) {
                 // ---------------- 主题 ----------------
-                // 主题模式 / 主题色 / 调色风格 / 色彩规格 / 动态取色 全部迁至独立主题页（对齐 KernelSU colorpalette）
+                // 主题模式 / 主题色 / 调色风格 / 色彩规格 / 动态取色 全部迁至独立主题页
                 group()
                 // 界面风格切换（Material / Miuix）：放在设置页而不是主题页，
-                // 保证切到 Miuix 后仍能在这里切回 Material。顺序对齐 KernelSU：界面风格在上，主题入口在下
+                // 保证切到 Miuix 后仍能在这里切回 Material。界面风格在上，主题入口在下。
                 list(
                     key = ThemeController.KEY_UI_MODE,
                     title = settingsUiModeTitle,

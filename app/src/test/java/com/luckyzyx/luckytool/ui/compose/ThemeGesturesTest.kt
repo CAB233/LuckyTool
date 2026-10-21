@@ -8,6 +8,9 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import com.luckyzyx.luckytool.ui.compose.pages.ThemeScreen
+import com.luckyzyx.luckytool.ui.shell.FloatingBottomBarStyle
+import com.luckyzyx.luckytool.ui.shell.LocalFloatingBottomBarStyle
+import com.luckyzyx.luckytool.ui.shell.LocalEnableBlur
 import com.luckyzyx.luckytool.ui.shell.LocalEnableSwipeDismiss
 import com.luckyzyx.luckytool.ui.shell.LocalPagerInterceptionMode
 import com.luckyzyx.luckytool.ui.shell.PagerModeCrossAxis
@@ -103,10 +106,49 @@ class ThemeGesturesTest {
         }
     }
 
+    @Test
+    fun `floating styles are revealed by the switch and persist with independent global blur`() {
+        val saved: Bundle
+        ThemeHost(UiMode.Miuix, ColorMode.LIGHT).use { h ->
+            h.scrollTo("悬浮底栏")
+            assertNull(h.ui.textNode("悬浮底栏样式"))
+            h.ui.clickText("悬浮底栏")
+            h.ui.advance()
+            h.scrollTo("悬浮底栏样式")
+            for ((style, label) in listOf(
+                FloatingBottomBarStyle.IosLike to "iOS 风格（液态玻璃）",
+                FloatingBottomBarStyle.Miuix to "Miuix",
+                FloatingBottomBarStyle.IosLike to "iOS 风格（液态玻璃）",
+            )) {
+                h.ui.clickText("悬浮底栏样式")
+                h.ui.advance()
+                h.ui.snapshot("theme-floating-style-menu")
+                h.ui.clickText(label)
+                h.ui.advance()
+                assertEquals(style, h.floatingStyle)
+                assertEquals(style, ShellSettingsController.get(h.ui.activity).floatingBottomBarStyle)
+                assertFalse("Style choice must not turn on global blur", h.blur)
+            }
+            h.ui.clickText("模糊")
+            h.ui.advance()
+            assertTrue(h.blur)
+            assertEquals(FloatingBottomBarStyle.IosLike, h.floatingStyle)
+            h.ui.snapshot("theme-floating-style-selected")
+            saved = h.ui.saveAndClose()
+        }
+        ThemeHost(UiMode.Miuix, ColorMode.LIGHT, saved).use { h ->
+            assertEquals(FloatingBottomBarStyle.IosLike, h.floatingStyle)
+            assertTrue(h.blur)
+            assertTrue(ShellSettingsController.get(h.ui.activity).enableFloatingBottomBar)
+        }
+    }
+
     private class ThemeHost(mode: UiMode, color: ColorMode, saved: Bundle? = null) : AutoCloseable {
         val ui = ComposeGestureHost(saved)
         var swipe = true
         var pagerMode = -1
+        var floatingStyle = FloatingBottomBarStyle.Miuix
+        var blur = false
 
         init {
             if (saved == null) {
@@ -121,7 +163,14 @@ class ThemeGesturesTest {
                     LuckyAppTheme {
                         val enabled = LocalEnableSwipeDismiss.current
                         val interceptionMode = LocalPagerInterceptionMode.current
-                        SideEffect { swipe = enabled; pagerMode = interceptionMode }
+                        val style = LocalFloatingBottomBarStyle.current
+                        val blurEnabled = LocalEnableBlur.current
+                        SideEffect {
+                            swipe = enabled
+                            pagerMode = interceptionMode
+                            floatingStyle = style
+                            blur = blurEnabled
+                        }
                         if (mode == UiMode.Miuix) {
                             top.yukonga.miuix.kmp.basic.Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) {
                                 ThemeScreen(onBack = {})

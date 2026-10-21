@@ -3,13 +3,12 @@ package com.luckyzyx.luckytool.ui.theme
 import androidx.compose.runtime.staticCompositionLocalOf
 
 /**
- * 界面风格（迁移自 KernelSU `ui/UiMode.kt`，取值字符串完全一致，便于偏好互通）。
+ * 界面风格及其持久化值。
  *
- * - [Miuix]：Miuix 外观线（KernelSU 默认）
+ * - [Miuix]：Miuix 外观线
  * - [Material]：Material 3 Expressive 外观线
  *
- * 默认值取 [Miuix]（对齐 KernelSU 默认观感）；LuckyTool 目前只有主题页 / 底部导航等部分界面
- * 提供了 Miuix 实现，其余页面仍由 Material 组件渲染，用户可在「设置 → 界面风格」中切回 [Material]。
+ * 默认值取 [Miuix]，用户可在「设置 → 界面风格」中切换为 [Material]。
  */
 enum class UiMode(val value: String) {
     Miuix("miuix"),
@@ -25,5 +24,5 @@ enum class UiMode(val value: String) {
     }
 }
 
-/** 当前界面风格（对齐 KernelSU `LocalUiMode`） */
+/** 当前界面风格 */
 val LocalUiMode = staticCompositionLocalOf { UiMode.fromValue(UiMode.DEFAULT_VALUE) }

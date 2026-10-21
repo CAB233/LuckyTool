@@ -26,7 +26,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 
 /**
- * 卡片行 / 卡原语（KernelSU 风格分段卡片 / 独立卡片）。
+ * 卡片行 / 卡原语，支持分段卡片与独立卡片。
  *
  * **「设置区块」的唯一 API 是 `PrefScope` DSL**（`group()` / `category()` / `switch()` / `click()` / `list()` /
  * `custom()`，见 `ui/compose/components/PrefScope.kt`）—— 所有标准设置页与作用域页都走它。
@@ -181,7 +181,7 @@ fun PrefRowInset(
 
 /**
  * 独立卡片（不属于任何分段组时使用）。
- * 外观与主题页一致：KernelSU MaterialListItem（surfaceBright 容器 + 16dp 外圆角）/
+ * 外观与主题页一致：Material（surfaceBright 容器 + 16dp 外圆角）/
  * Miuix `MiuixPrefItem`（16dp 外圆角 + 12dp 水平内缩）。
  */
 @Composable

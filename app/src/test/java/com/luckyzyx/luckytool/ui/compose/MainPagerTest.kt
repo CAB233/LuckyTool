@@ -24,14 +24,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.navigationevent.DirectNavigationEventInput
 import com.luckyzyx.luckytool.ui.compose.components.MainPageActivationEffect
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialPageScaffold
+import com.luckyzyx.luckytool.ui.shell.FloatingBottomBarStyle
+import com.luckyzyx.luckytool.ui.shell.LocalEnableBlur
+import com.luckyzyx.luckytool.ui.shell.ShellBadgeState
 import com.luckyzyx.luckytool.ui.shell.LocalEnableFloatingBottomBar
-import com.luckyzyx.luckytool.ui.shell.LocalEnableFloatingBottomBarBlur
+import com.luckyzyx.luckytool.ui.shell.LocalFloatingBottomBarStyle
 import com.luckyzyx.luckytool.ui.shell.LocalPagerInterceptionMode
 import com.luckyzyx.luckytool.ui.shell.PagerModeCrossAxis
 import com.luckyzyx.luckytool.ui.shell.PagerModeIosLike
@@ -58,22 +67,27 @@ import top.yukonga.miuix.kmp.utils.overScrollVertical
 class MainPagerTest {
     @Test
     fun `all bottom bars coordinate rapid navigation without an obsolete target winning`() {
-        for ((mode, floating) in listOf(UiMode.Material to false, UiMode.Miuix to false, UiMode.Miuix to true)) {
-            PagerHost(mode, floating, glass = floating).use { h ->
+        for ((mode, floating, style) in listOf(
+            Triple(UiMode.Material, false, FloatingBottomBarStyle.Miuix),
+            Triple(UiMode.Miuix, false, FloatingBottomBarStyle.Miuix),
+            Triple(UiMode.Miuix, true, FloatingBottomBarStyle.Miuix),
+            Triple(UiMode.Miuix, true, FloatingBottomBarStyle.IosLike),
+        )) {
+            PagerHost(mode, floating, floatingStyle = style).use { h ->
                 assertEquals(2, h.state.pagerState.settledPage)
-                h.ui.clickText("设置")
+                h.ui.clickLabel("设置")
                 assertEquals(4, h.state.selectedPage)
                 h.ui.advance(80)
-                h.ui.clickText("其他")
+                h.ui.clickLabel("其他")
                 assertEquals(0, h.state.selectedPage)
                 h.ui.advance(80)
-                h.ui.clickText("功能")
+                h.ui.clickLabel("功能")
                 h.ui.advance()
                 h.assertSettled(1)
-                h.ui.clickText("功能")
+                h.ui.clickLabel("功能")
                 h.ui.advance()
                 h.assertSettled(1)
-                h.ui.snapshot("${mode.name.lowercase()}-${if (floating) "floating" else "bottom"}")
+                h.ui.snapshot("${mode.name.lowercase()}-${if (floating) style.name else "bottom"}")
             }
         }
     }
@@ -95,13 +109,13 @@ class MainPagerTest {
     @Test
     @Config(sdk = [35])
     fun `liquid glass bottom bar shares the same pager navigation`() {
-        PagerHost(UiMode.Miuix, floating = true, glass = true).use { h ->
-            h.ui.clickText("其他")
+        PagerHost(UiMode.Miuix, floating = true, floatingStyle = FloatingBottomBarStyle.IosLike, blur = true).use { h ->
+            h.ui.clickLabel("其他")
             h.ui.advance()
             h.assertSettled(0)
             h.ui.drag(700f, 800f, 120f, 800f)
             h.assertSettled(1)
-            h.ui.clickText("设置")
+            h.ui.clickLabel("设置")
             h.ui.advance()
             h.assertSettled(4)
         }
@@ -165,10 +179,10 @@ class MainPagerTest {
             assertEquals(5, h.instances.size)
             assertEquals(listOf(0, 0, 1, 0, 0), MainTab.entries.map { h.loads[it] ?: 0 })
             val initialInstances = h.instances.toMap()
-            h.ui.clickText("其他")
+            h.ui.clickLabel("其他")
             h.ui.advance()
             assertEquals(1, h.loads[MainTab.Other])
-            h.ui.clickText("主页")
+            h.ui.clickLabel("主页")
             h.ui.advance()
             assertEquals(1, h.loads[MainTab.Home])
             MainTab.entries.forEach { assertSame(initialInstances[it], h.instances[it]) }
@@ -184,7 +198,7 @@ class MainPagerTest {
         val saved: Bundle
         val position: Int
         PagerHost(withHeaders = true).use { h ->
-            h.ui.clickText("设置")
+            h.ui.clickLabel("设置")
             h.ui.advance()
             h.ui.drag(410f, 1300f, 410f, 450f)
             position = h.lists.getValue(MainTab.Setting).firstVisibleItemIndex
@@ -219,10 +233,10 @@ class MainPagerTest {
                 collapsed = h.topInsets.getValue(MainTab.Home)
                 h.ui.snapshot("header-${appearance.name.lowercase()}-collapsed")
                 assertTrue("$appearance header must collapse: $expanded -> $collapsed", collapsed < expanded - 30f)
-                h.ui.clickText("设置")
+                h.ui.clickLabel("设置")
                 h.ui.advance()
                 assertEquals(expanded, h.topInsets.getValue(MainTab.Setting), 1f)
-                h.ui.clickText("主页")
+                h.ui.clickLabel("主页")
                 h.ui.advance()
                 assertEquals(collapsed, h.topInsets.getValue(MainTab.Home), 1f)
                 saved = h.ui.saveAndClose()
@@ -236,14 +250,14 @@ class MainPagerTest {
     @Test
     fun `back returns to home while a blocking handler takes priority over paging`() {
         PagerHost().use { h ->
-            h.ui.clickText("设置")
+            h.ui.clickLabel("设置")
             h.ui.advance()
             val input = DirectNavigationEventInput()
             h.ui.activity.navigationEventDispatcher.addInput(input)
             h.active = false
             h.ui.advance()
             h.ui.drag(160f, 800f, 720f, 800f)
-            h.ui.clickText("其他")
+            h.ui.clickLabel("其他")
             h.ui.advance()
             input.backCompleted()
             h.ui.advance()
@@ -258,14 +272,113 @@ class MainPagerTest {
         }
     }
 
+    @Test
+    fun `both floating styles keep five accessible targets at maximum scale on narrow screens`() {
+        for (style in FloatingBottomBarStyle.entries) {
+            for (direction in LayoutDirection.entries) {
+                for (color in listOf(ColorMode.LIGHT, ColorMode.DARK)) {
+                    PagerHost(
+                        UiMode.Miuix, floating = true, floatingStyle = style,
+                        width = 720, density = 2.2f, direction = direction, color = color,
+                    ).use { h ->
+                        val tabs = h.ui.nodes().filter { it.config.getOrNull(SemanticsProperties.Role) == Role.Tab &&
+                            it.config.getOrNull(SemanticsActions.OnClick)?.action != null }
+                        assertEquals(5, tabs.size)
+                        for (tab in tabs) {
+                            val bounds = tab.boundsInRoot
+                            assertTrue("$style target width: $bounds", bounds.width >= 48 * 2.2f - 1)
+                            assertTrue("$style target height: $bounds", bounds.height >= 48 * 2.2f - 1)
+                            assertTrue("$style target clipped: $bounds", bounds.left >= 0 && bounds.right <= 720)
+                        }
+                        for (tab in MainTab.entries) {
+                            val label = h.ui.activity.getString(tab.labelRes)
+                            assertTrue("Floating labels must be icon descriptions", h.ui.textNode(label) == null)
+                            h.ui.clickLabel(label)
+                            h.ui.advance()
+                            h.assertSettled(tab.ordinal)
+                            assertEquals(1, h.ui.nodes().count {
+                                it.config.getOrNull(SemanticsProperties.Selected) == true &&
+                                    it.config.getOrNull(SemanticsActions.OnClick)?.action != null
+                            })
+                        }
+                        h.ui.snapshot("floating-${style.name}-${direction.name}-${color.name}-110")
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `floating style and blur changes retain page state and badges`() {
+        PagerHost(UiMode.Miuix, floating = true, withHeaders = true).use { h ->
+            h.ui.clickLabel("设置")
+            h.ui.advance()
+            h.ui.drag(410f, 1300f, 410f, 450f)
+            val position = h.lists.getValue(MainTab.Setting).firstVisibleItemIndex
+            val instances = h.instances.toMap()
+            try {
+                ShellBadgeState.updateAvailable = true
+                for (style in FloatingBottomBarStyle.entries) {
+                    for (blur in listOf(true, false)) {
+                        h.floatingStyle = style
+                        h.blur = blur
+                        h.ui.advance()
+                        h.assertSettled(4)
+                        assertEquals(position, h.lists.getValue(MainTab.Setting).firstVisibleItemIndex)
+                        MainTab.entries.forEach { assertSame(instances[it], h.instances[it]) }
+                        assertTrue("Update badge must survive the style switch", h.ui.textNode("1") != null)
+                    }
+                }
+                val input = DirectNavigationEventInput()
+                h.ui.activity.navigationEventDispatcher.addInput(input)
+                input.backCompleted()
+                h.ui.advance()
+                h.assertSettled(2)
+                h.ui.activity.navigationEventDispatcher.removeInput(input)
+            } finally {
+                ShellBadgeState.updateAvailable = false
+            }
+        }
+    }
+
+    @Test
+    @Config(sdk = [30, 32, 35])
+    fun `floating pointer taps and iOS drag selection work across effect support levels`() {
+        for (style in FloatingBottomBarStyle.entries) {
+            PagerHost(UiMode.Miuix, floating = true, floatingStyle = style, blur = true).use { h ->
+                fun center(label: String) = h.ui.nodes().first {
+                    it.config.getOrNull(SemanticsProperties.ContentDescription)?.contains(label) == true &&
+                        it.boundsInRoot.width > 0
+                }.boundsInRoot.center
+                val settings = center("设置")
+                h.ui.drag(settings.x, settings.y, settings.x, settings.y)
+                h.assertSettled(4)
+                if (style == FloatingBottomBarStyle.IosLike) {
+                    val other = center("其他")
+                    h.ui.drag(settings.x, settings.y, other.x, other.y)
+                    h.assertSettled(0)
+                    h.ui.drag(other.x, other.y, settings.x, settings.y, cancel = true)
+                    h.assertSettled(0)
+                }
+            }
+        }
+    }
+
     private class PagerHost(
         mode: UiMode = UiMode.Material,
         floating: Boolean = false,
         saved: Bundle? = null,
         withHeaders: Boolean = false,
-        glass: Boolean = false,
+        floatingStyle: FloatingBottomBarStyle = FloatingBottomBarStyle.Miuix,
+        blur: Boolean = false,
+        width: Int = 822,
+        density: Float = 2f,
+        direction: LayoutDirection = LayoutDirection.Ltr,
+        color: ColorMode = ColorMode.LIGHT,
     ) : AutoCloseable {
-        val ui = ComposeGestureHost(saved)
+        val ui = ComposeGestureHost(saved, width = width)
+        var floatingStyle by mutableStateOf(floatingStyle)
+        var blur by mutableStateOf(blur)
         var mode by mutableStateOf(mode)
         var floating by mutableStateOf(floating)
         var gestureMode by mutableIntStateOf(PagerModeCrossAxis)
@@ -282,13 +395,15 @@ class MainPagerTest {
         init {
             ui.setContent {
                 CompositionLocalProvider(
-                    LocalDensity provides Density(2f),
+                    LocalDensity provides Density(density),
+                    LocalLayoutDirection provides direction,
                     LocalUiMode provides this.mode,
                     LocalEnableFloatingBottomBar provides this.floating,
-                    LocalEnableFloatingBottomBarBlur provides glass,
+                    LocalFloatingBottomBarStyle provides this.floatingStyle,
+                    LocalEnableBlur provides this.blur,
                     LocalPagerInterceptionMode provides gestureMode,
                 ) {
-                    LuckyTheme(AppSettings(colorMode = ColorMode.LIGHT, dynamicColor = false), uiMode = this.mode) {
+                    LuckyTheme(AppSettings(colorMode = color, dynamicColor = false), uiMode = this.mode) {
                         val pager = rememberPagerState(initialPage = 2) { MainTab.entries.size }
                         val mainState = rememberMainPagerState(pager)
                         SideEffect { state = mainState }

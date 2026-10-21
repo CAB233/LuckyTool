@@ -15,12 +15,6 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Assignment
-import androidx.compose.material.icons.rounded.Dashboard
-import androidx.compose.material.icons.rounded.Extension
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -34,14 +28,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -60,13 +59,19 @@ import com.luckyzyx.luckytool.ui.compose.pages.ThemeScreen
 import com.luckyzyx.luckytool.ui.compose.special.AppPermissionContent
 import com.luckyzyx.luckytool.ui.shell.LocalEnableBlur
 import com.luckyzyx.luckytool.ui.shell.LocalEnableFloatingBottomBar
-import com.luckyzyx.luckytool.ui.shell.LocalEnableFloatingBottomBarBlur
+import com.luckyzyx.luckytool.ui.shell.LocalFloatingBottomBarStyle
 import com.luckyzyx.luckytool.ui.shell.LocalEnableNavigationBadge
 import com.luckyzyx.luckytool.ui.shell.ShellBadgeState
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.GridView
+import top.yukonga.miuix.kmp.icon.extended.Home
+import top.yukonga.miuix.kmp.icon.extended.Notes
+import top.yukonga.miuix.kmp.icon.extended.Settings
+import top.yukonga.miuix.kmp.icon.extended.Tune
 import top.yukonga.miuix.kmp.nav.core.rememberNavController
 import top.yukonga.miuix.kmp.shader.isRenderEffectSupported
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -75,16 +80,13 @@ import kotlin.system.exitProcess
 /** 跨标签页打开作用域页时保留来源标签。 */
 data class FunctionRequest(val pageKey: String, val title: String?)
 
-internal enum class MainTab(val labelRes: Int, val iconRes: Int, val mIcon: ImageVector) {
-    Other(R.string.nav_other, R.drawable.ic_baseline_dashboard_24, Icons.Rounded.Dashboard),
-    Function(R.string.nav_function, R.drawable.ic_baseline_extension_24, Icons.Rounded.Extension),
-    Home(R.string.nav_home, R.drawable.ic_baseline_home_24, Icons.Rounded.Home),
-    Log(R.string.nav_log, R.drawable.ic_baseline_assignment_24, Icons.AutoMirrored.Rounded.Assignment),
-    Setting(R.string.nav_setting, R.drawable.ic_baseline_settings_24, Icons.Rounded.Settings),
+internal enum class MainTab(val labelRes: Int, val iconRes: Int, val miuixIcon: ImageVector) {
+    Other(R.string.nav_other, R.drawable.ic_baseline_dashboard_24, MiuixIcons.GridView),
+    Function(R.string.nav_function, R.drawable.ic_baseline_extension_24, MiuixIcons.Tune),
+    Home(R.string.nav_home, R.drawable.ic_baseline_home_24, MiuixIcons.Home),
+    Log(R.string.nav_log, R.drawable.ic_baseline_assignment_24, MiuixIcons.Notes),
+    Setting(R.string.nav_setting, R.drawable.ic_baseline_settings_24, MiuixIcons.Settings),
 }
-
-/** 悬浮胶囊底栏占位高度。 */
-private val FloatingBarInset = 76.dp
 
 @Composable
 fun MainShell(activity: MainActivity) {
@@ -198,7 +200,9 @@ internal fun MainTabs(
 ) {
     val isMiuix = LocalUiMode.current == UiMode.Miuix
     val enableBlur = LocalEnableBlur.current
-    val enableFloatingBottomBarBlur = LocalEnableFloatingBottomBarBlur.current
+    val floatingStyle = LocalFloatingBottomBarStyle.current
+    val density = LocalDensity.current
+    var floatingBarHeight by remember(floatingStyle, density) { mutableStateOf(76.dp) }
     val enableBadge = LocalEnableNavigationBadge.current
     val floatingBar = isMiuix && LocalEnableFloatingBottomBar.current
     val tabs = MainTab.entries
@@ -217,8 +221,7 @@ internal fun MainTabs(
         null
     }
     val barBlurBackdrop = if (isMiuix && enableBlur && isRenderEffectSupported()) backdrop else null
-    val needBackdrop = backdrop != null &&
-        ((barBlurBackdrop != null && !floatingBar) || (floatingBar && enableFloatingBottomBarBlur))
+    val needBackdrop = barBlurBackdrop != null
     val containerColor = if (isMiuix) MiuixTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainer
 
     val rootBottomBar: @Composable () -> Unit = {
@@ -230,7 +233,7 @@ internal fun MainTabs(
                     items = tabs.map { tab ->
                         MiuixBarItem(
                             label = stringResource(tab.labelRes),
-                            icon = tab.mIcon,
+                            icon = tab.miuixIcon,
                             badge = if (enableBadge && tab == MainTab.Home && ShellBadgeState.updateAvailable) {
                                 { Badge { Text("1") } }
                             } else {
@@ -241,9 +244,7 @@ internal fun MainTabs(
                     selectedIndex = selectedIndex,
                     onSelected = onSelect,
                     blurBackdrop = barBlurBackdrop,
-                    backdrop = backdrop ?: rememberLayerBackdrop { },
                     floating = false,
-                    floatingBlur = false,
                 )
             }
 
@@ -254,7 +255,7 @@ internal fun MainTabs(
                 ) {
                     tabs.forEach { tab ->
                         val selected = selectedIndex == tab.ordinal
-                        // 角标数据源：主页发现新版本（对齐 KernelSU 导航角标开关）
+                        // 角标数据源：主页发现新版本。
                         val showBadge = enableBadge &&
                             tab == MainTab.Home &&
                             ShellBadgeState.updateAvailable
@@ -295,7 +296,9 @@ internal fun MainTabs(
     val shellContent: @Composable (PaddingValues) -> Unit = { innerPadding ->
         CompositionLocalProvider(
             LocalBottomBarPresent provides true,
-            LocalShellBottomInset provides if (floatingBar) FloatingBarInset else 0.dp,
+            LocalShellBottomInset provides if (floatingBar) {
+                (floatingBarHeight - innerPadding.calculateBottomPadding()).coerceAtLeast(0.dp)
+            } else 0.dp,
         ) {
             Box(Modifier.fillMaxSize()) {
                 Box(
@@ -319,13 +322,13 @@ internal fun MainTabs(
                     }
                 }
 
-                // 悬浮底栏（Apple 风格胶囊）：覆盖在内容之上，透明底 + 液态玻璃
+                // 悬浮底栏位于背景采样层之外，页面按实际测量高度留出滚动空间。
                 if (floatingBar) {
                     MiuixBottomBar(
                         items = tabs.map { tab ->
                             MiuixBarItem(
                                 label = stringResource(tab.labelRes),
-                                icon = tab.mIcon,
+                                icon = tab.miuixIcon,
                                 badge = if (enableBadge && tab == MainTab.Home && ShellBadgeState.updateAvailable) {
                                     { Badge { Text("1") } }
                                 } else {
@@ -336,10 +339,11 @@ internal fun MainTabs(
                         selectedIndex = selectedIndex,
                         onSelected = onSelect,
                         blurBackdrop = barBlurBackdrop,
-                        backdrop = backdrop ?: rememberLayerBackdrop { },
                         floating = true,
-                        floatingBlur = enableFloatingBottomBarBlur,
-                        modifier = Modifier.align(Alignment.BottomCenter),
+                        floatingStyle = floatingStyle,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .onSizeChanged { floatingBarHeight = with(density) { it.height.toDp() } },
                     )
                 }
             }

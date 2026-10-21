@@ -60,7 +60,6 @@ import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material.icons.rounded.Swipe
 import androidx.compose.material.icons.rounded.ViewCarousel
 import androidx.compose.material.icons.rounded.Wallpaper
-import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -107,6 +106,8 @@ import com.luckyzyx.luckytool.ui.compose.components.material.MaterialTonalCard
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialTopBarBackButton
 import com.luckyzyx.luckytool.ui.compose.components.material.materialTopAppBarColors
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixScaleDialog
+import com.luckyzyx.luckytool.ui.compose.MainTab
+import com.luckyzyx.luckytool.ui.shell.FloatingBottomBarStyle
 import com.luckyzyx.luckytool.ui.shell.ModuleLinesMax
 import com.luckyzyx.luckytool.ui.shell.ModuleLinesMin
 import com.luckyzyx.luckytool.ui.shell.PageScaleMax
@@ -152,17 +153,16 @@ import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
+import top.yukonga.miuix.kmp.shader.isRenderEffectSupported
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 /**
- * 主题与配色页分发（对齐 KernelSU `ColorPaletteScreen`）：按当前界面风格选择实现。
+ * 主题与配色页分发：按当前界面风格选择实现。
  *
- * 原「三文件制」已合并为单文件：两线（Material / Miuix）各自保留完整的
- * KernelSU 参考实现，仅共享本分派入口。两线状态与组件集合差异较大
- * （Material 无 Monet 与模糊/悬浮底栏等 Miuix 外观项），故不强行抽共享状态，
- * 只做「同页单文件」合并以消除冗余分发文件。
+ * Material / Miuix 分别管理状态与组件，仅共享分发入口。
+ * Monet、模糊及悬浮底栏设置只在 Miuix 外观下显示。
  */
 @Composable
 fun ThemeScreen(onBack: () -> Unit) {
@@ -173,19 +173,18 @@ fun ThemeScreen(onBack: () -> Unit) {
     }
 }
 
-/** 偏好键：Miuix 主题预览卡片所用的底栏形态（对齐 KernelSU 同名键，LuckyTool 侧新增） */
+/** 偏好键：Miuix 主题预览卡片所用的底栏形态 */
 private const val KeyEnableBlur = "enable_blur"
 private const val KeyEnableFloatingBottomBar = "enable_floating_bottom_bar"
-private const val KeyEnableFloatingBottomBarBlur = "enable_floating_bottom_bar_blur"
 private const val KeyPaletteStyle = "palette_style"
 private const val KeyColorSpec = "color_spec"
 private const val KeyKeyColor = "key_color"
 private const val KeyDarkTheme = "dark_theme"
 
 /**
- * 主题与配色页（迁移 KernelSU `ui/screen/colorpalette`，Material 实现）。
+ * 主题与配色页的 Material 实现。
  *
- * 组成对齐 KernelSU ColorPaletteScreenMaterial：
+ * 页面组成：
  * 主题预览卡片 → 主题色选择（跟随系统 + 15 预设）→ 主题模式分段按钮
  * → 调色风格 / 色彩规格下拉 → 动态取色开关 → 返回与切页手势。
  *
@@ -243,7 +242,7 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
         )
     }
 
-    // KernelSU 主题页中与配色无关的外壳行为项（键名与默认值对齐 KernelSU）
+    // 主题页中与配色无关的外壳行为设置。
     var navigationBadge by remember {
         mutableStateOf(
             context.getBoolean(
@@ -694,7 +693,7 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
     }
 }
 
-/** 主题预览卡片：以当前选择实时渲染一块迷你界面（对齐 KernelSU ThemePreviewCard） */
+/** 主题预览卡片：以当前选择实时渲染一块迷你界面 */
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 private fun ThemePreviewCard(
@@ -895,21 +894,18 @@ private fun ColorButtonMaterial(
 }
 
 /**
- * 主题与配色页（迁移 KernelSU `ui/screen/colorpalette/ColorPaletteScreenMiuix`，Miuix 实现）。
+ * 主题与配色页的 Miuix 实现。
  *
- * 组成对齐 KernelSU ColorPaletteScreenMiuix：
+ * 页面组成：
  * 主题预览卡片 → 主题模式 TabRow（跟随系统 / 浅色 / 深色）→ Monet 取色卡片（含强调色 /
- * 色彩风格 / 色彩标准）→ Miuix 外观卡片（模糊 / 悬浮底栏 / 液态玻璃 / 导航角标）
+ * 色彩风格 / 色彩标准）→ Miuix 外观卡片（模糊 / 悬浮底栏 / 悬浮样式）
  * → 外壳行为卡片（返回 / 切页手势 + 界面缩放，含输入对话框）→ 模块描述最大行数 → 底部留白。
  *
- * 与 KernelSU 的差异：
- * 1. 不做 UiState / Actions 抽象，直接读写 SettingsPrefs；
- * 2. 一级页保留 LuckyTool 的五个标签，手势模式与 KernelSU 一致；
- * 3. 不调用 MonetColorsProvider.UpdateCss()（本应用无该实现）。
+ * 设置直接读写 SettingsPrefs，并通过主题通知同步到五个一级页面。
  *
  * 偏好键沿用 LuckyTool 既有约定（SettingsPrefs）：
  * dark_theme（0-3 普通 / 4-7 Monet）、miuix_monet、key_color、palette_style、color_spec、
- * enable_blur、enable_floating_bottom_bar、enable_floating_bottom_bar_blur、
+ * enable_blur、enable_floating_bottom_bar、floating_bottom_bar_style、
  * enable_navigation_badge、enable_predictive_back、enable_swipe_dismiss、pager_interception_mode、page_scale、
  * module_description_max_lines。
  * 写入后通过 [ThemePrefs.notifyChanged] 让应用主题即时重算，无需 recreate。
@@ -973,8 +969,8 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
     var enableFloatingBottomBar by remember {
         mutableStateOf(context.getBoolean(SettingsPrefs, KeyEnableFloatingBottomBar, false))
     }
-    var enableFloatingBottomBarBlur by remember {
-        mutableStateOf(context.getBoolean(SettingsPrefs, KeyEnableFloatingBottomBarBlur, false))
+    var floatingBottomBarStyle by remember {
+        mutableStateOf(ShellSettingsController.get(context).floatingBottomBarStyle)
     }
 
     // 外壳行为项
@@ -1009,7 +1005,7 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
     val setMiuixMonet: (Boolean) -> Unit = { enabled ->
         miuixMonet = enabled
         context.putBoolean(SettingsPrefs, ThemeController.KEY_MIUIX_MONET, enabled)
-        // 与 KernelSU 一致：开关 Monet 时同步归一化主题模式（Monet_* 与普通模式互转）
+        // 开关 Monet 时同步归一化主题模式（Monet_* 与普通模式互转）
         val normalized = if (enabled) colorMode.toMonetMode() else colorMode.toNonMonetMode()
         if (normalized != colorMode) {
             setColorMode(normalized)
@@ -1042,9 +1038,9 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
         context.putBoolean(SettingsPrefs, KeyEnableFloatingBottomBar, enabled)
         ThemePrefs.notifyChanged()
     }
-    val setEnableFloatingBottomBarBlur: (Boolean) -> Unit = { enabled ->
-        enableFloatingBottomBarBlur = enabled
-        context.putBoolean(SettingsPrefs, KeyEnableFloatingBottomBarBlur, enabled)
+    val setFloatingBottomBarStyle: (Int) -> Unit = { index ->
+        floatingBottomBarStyle = FloatingBottomBarStyle.entries[index]
+        context.putString(SettingsPrefs, ShellSettingsController.KEY_FLOATING_BOTTOM_BAR_STYLE, floatingBottomBarStyle.value)
         ThemePrefs.notifyChanged()
     }
     val setPageScale: (Float) -> Unit = { scale ->
@@ -1102,8 +1098,7 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
         // 空槽位：OverlayDropdownPreference / OverlayDialog 默认 renderInRootScaffold = true，
         // 弹层冒泡到根部 Miuix Scaffold 的默认 popupHost（各页不得自装 host），本页仅声明不自装。
         popupHost = { },
-        // KernelSU 写法为 systemBars.add(displayCutout)；本仓库 Compose 版本没有 WindowInsets.add，
-        // 合并 insets 只能用 union（库内 basic/Scaffold.kt:90 同样写法）。
+        // 合并系统栏和屏幕开孔的安全边距。
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
             .only(WindowInsetsSides.Horizontal)
     ) { innerPadding ->
@@ -1126,7 +1121,8 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
                         isDark = isDark,
                         miuixMonet = miuixMonet,
                         enableFloatingBottomBar = enableFloatingBottomBar,
-                        enableFloatingBottomBarBlur = enableFloatingBottomBarBlur,
+                        floatingBottomBarStyle = floatingBottomBarStyle,
+                        enableBlur = enableBlur,
                         paletteStyle = paletteStyle,
                         colorSpec = colorSpec,
                     )
@@ -1252,13 +1248,13 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
                         }
                     }
 
-                    // Miuix 外观：模糊 / 悬浮底栏 / 液态玻璃 / 导航角标
+                    // 悬浮底栏的两种样式共用模糊开关。
                     MiuixCard(
                         modifier = Modifier
                             .padding(top = 12.dp)
                             .fillMaxWidth(),
                     ) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        if (isRenderEffectSupported()) {
                             SwitchPreference(
                                 title = stringResource(id = R.string.settings_enable_blur),
                                 summary = stringResource(id = R.string.settings_enable_blur_summary),
@@ -1290,22 +1286,23 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
                             onCheckedChange = { setEnableFloatingBottomBar(it) }
                         )
 
-                        AnimatedVisibility(
-                            visible = enableFloatingBottomBar && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                        ) {
-                            SwitchPreference(
-                                title = stringResource(id = R.string.settings_enable_glass),
-                                summary = stringResource(id = R.string.settings_enable_glass_summary),
+                        AnimatedVisibility(visible = enableFloatingBottomBar) {
+                            OverlayDropdownPreference(
+                                title = stringResource(R.string.settings_floating_bottom_bar_style),
+                                items = listOf(
+                                    stringResource(R.string.settings_floating_style_miuix),
+                                    stringResource(R.string.settings_floating_style_ios),
+                                ),
                                 startAction = {
                                     MiuixIcon(
-                                        Icons.Rounded.WaterDrop,
+                                        Icons.Rounded.ViewCarousel,
                                         modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = stringResource(id = R.string.settings_enable_glass),
-                                        tint = colorScheme.onBackground
+                                        contentDescription = null,
+                                        tint = colorScheme.onBackground,
                                     )
                                 },
-                                checked = enableFloatingBottomBarBlur,
-                                onCheckedChange = { setEnableFloatingBottomBarBlur(it) }
+                                selectedIndex = floatingBottomBarStyle.ordinal,
+                                onSelectedIndexChange = setFloatingBottomBarStyle,
                             )
                         }
                     }
@@ -1474,7 +1471,7 @@ private fun ColorMode.withTabIndex(index: Int): ColorMode = when (index) {
     else -> ColorMode.SYSTEM
 }
 
-/** 主题预览卡片：以当前选择实时渲染一块迷你界面（对齐 KernelSU ThemePreviewCardMiuix） */
+/** 主题预览卡片：以当前选择实时渲染一块迷你界面 */
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 private fun ThemePreviewCardMiuix(
@@ -1482,7 +1479,8 @@ private fun ThemePreviewCardMiuix(
     isDark: Boolean,
     miuixMonet: Boolean,
     enableFloatingBottomBar: Boolean = false,
-    enableFloatingBottomBarBlur: Boolean = false,
+    floatingBottomBarStyle: FloatingBottomBarStyle = FloatingBottomBarStyle.Miuix,
+    enableBlur: Boolean = false,
     paletteStyle: PaletteStyle = PaletteStyle.TonalSpot,
     colorSpec: ColorSpec.SpecVersion = ColorSpec.SpecVersion.SPEC_2025,
 ) {
@@ -1636,21 +1634,33 @@ private fun ThemePreviewCardMiuix(
                             .height(28.dp)
                             .clip(RoundedCornerShape(14.dp))
                             .background(
-                                if (enableFloatingBottomBarBlur) navBarColor.copy(alpha = 0.5f)
+                                if (enableBlur) navBarColor.copy(alpha = 0.5f)
                                 else navBarColor
                             )
                             .border(0.5.dp, textColor.copy(alpha = 0.1f), RoundedCornerShape(14.dp))
                             .padding(horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        repeat(4) {
+                        MainTab.entries.forEach { tab ->
+                            val selected = tab == MainTab.Home
+                            val ios = floatingBottomBarStyle == FloatingBottomBarStyle.IosLike
                             Box(
                                 modifier = Modifier
-                                    .size(13.dp)
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(if (it == 0) iconColor else textColor)
-                            )
+                                    .size(20.dp)
+                                    .background(
+                                        if (selected && ios) iconColor.copy(alpha = 0.15f) else Color.Transparent,
+                                        CircleShape,
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                MiuixIcon(
+                                    imageVector = tab.miuixIcon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp),
+                                    tint = if (selected && ios) iconColor else textColor.copy(alpha = if (selected) 1f else 0.6f),
+                                )
+                            }
                         }
                     }
                 }
@@ -1691,7 +1701,7 @@ private fun ThemePreviewCardMiuix(
 }
 
 /**
- * 是否使用导航栏（宽屏分栏）布局（对齐 KernelSU `ui/component/bottombar/BottomBar.kt` + `ui/util/WindowSize.kt`）。
+ * 是否使用导航栏（宽屏分栏）布局。
  *
  * 宽屏时启用；但 Miuix 外观下开启了悬浮底栏则不启用（悬浮底栏与分栏导航互斥）。
  * LuckyTool 目前只提供 Miuix / Material 两种外观，故此处按「Miuix 外观」判断。
@@ -1700,11 +1710,10 @@ private fun ThemePreviewCardMiuix(
 private fun useNavigationRail(enableFloatingBottomBar: Boolean): Boolean =
     shouldShowSplitPane() && !enableFloatingBottomBar
 
-/** 窗口是否达到分栏阈值（对齐 KernelSU `shouldShowSplitPane`） */
+/** 窗口是否达到分栏阈值 */
 @Composable
 private fun shouldShowSplitPane(): Boolean {
-    // 只使用稳定 API：LocalConfiguration 的 screenWidthDp / screenHeightDp（KernelSU 用的是窗口容器尺寸，
-    // 这里用屏幕配置近似，避免依赖 LocalWindowInfo 的 @ExperimentalComposeUiApi）
+    // 使用屏幕配置估算窗口尺寸，判断是否采用分栏布局。
     val configuration = LocalConfiguration.current
     val widthDp = configuration.screenWidthDp.toFloat()
     val heightDp = configuration.screenHeightDp.toFloat()

@@ -53,9 +53,7 @@
     <string name="settings_enable_blur">模糊</string>
     <string name="settings_enable_blur_summary">启用底栏的模糊效果</string>
     <string name="settings_floating_bottom_bar">悬浮底栏</string>
-    <string name="settings_floating_bottom_bar_summary">使用 Apple 风格的悬浮底栏</string>
-    <string name="settings_enable_glass">液态玻璃</string>
-    <string name="settings_enable_glass_summary">启用悬浮底栏的液态玻璃效果</string>
+    <string name="settings_floating_bottom_bar_summary">使用仅显示图标的悬浮底栏</string>
     <string name="color_red">红色</string>
     <string name="color_pink">粉色</string>
     <string name="color_purple">紫色</string>
@@ -1394,4 +1392,7 @@
     <string name="launcher_backup_tag_auto">自动</string>
     <string name="launcher_backup_tag_manual">手动</string>
     <string name="launcher_backup_tag_pre_restore">恢复前</string>
+    <string name="settings_floating_bottom_bar_style">悬浮底栏样式</string>
+    <string name="settings_floating_style_miuix">Miuix</string>
+    <string name="settings_floating_style_ios">iOS 风格（液态玻璃）</string>
 </resources>

@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
-// Miuix 线骨架用的库件（与 KernelSU SettingsMiuix.kt / 本仓库 ThemeScreenMiuix.kt 同一批）
+// Miuix 页面骨架使用的库组件。
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -135,7 +135,7 @@ fun MaterialPageScaffold(
         }
         pendingHeaderPosition = null
     }
-    // 两条外观线分别使用 KernelSU 对应的原生顶栏组件与滚动行为。
+    // 两条外观线分别使用各自的原生顶栏组件与滚动行为。
     if (uiMode == UiMode.Miuix) {
         MiuixPageScaffold(
             title = title,
@@ -217,8 +217,7 @@ private fun MiuixPageScaffold(
         bottomBar = bottomBar,
         // 空槽位：弹层冒泡到根部 Miuix Scaffold 的默认 popupHost（各页不得自装 host）
         popupHost = {},
-        // KernelSU 写法为 systemBars.add(displayCutout)；本仓库 Compose 版本没有 WindowInsets.add，
-        // 用同一语义的 union（= miuix basic/Scaffold.kt:90 自己的默认值写法）
+        // 合并系统栏和屏幕开孔的安全边距。
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout).only(
             WindowInsetsSides.Horizontal
         ),
@@ -229,7 +228,7 @@ private fun MiuixPageScaffold(
     }
 }
 
-/** Miuix 线返回按钮（KernelSU AboutMiuix.kt:130-144 同款：RTL 时图标水平镜像）。 */
+/** Miuix 返回按钮，RTL 时图标水平镜像。 */
 @Composable
 private fun MiuixTopBarBackButton(onClick: () -> Unit) {
     val layoutDirection = LocalLayoutDirection.current

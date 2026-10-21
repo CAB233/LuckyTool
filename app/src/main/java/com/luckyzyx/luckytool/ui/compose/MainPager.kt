@@ -33,7 +33,7 @@ import top.yukonga.miuix.kmp.utils.springAnimateToPage
 
 /**
  * 底栏目标与实际分页位置的协调器。
- * 移植自 KernelSU 4663610 的 ui/component/bottombar/BottomBar.kt，沿用可打断的切页规则。
+ * 切页任务可被后续点击或拖动打断，选中项随最终落定页面同步。
  */
 @Stable
 internal class MainPagerState(

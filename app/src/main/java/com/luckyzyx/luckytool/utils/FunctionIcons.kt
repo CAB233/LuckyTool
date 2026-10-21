@@ -18,7 +18,7 @@ internal object FunctionIcons {
     fun render(context: Context, drawable: Drawable, size: Int): Bitmap =
         BaseIconFactory(context, context.resources.configuration.densityDpi, size).use { factory ->
             factory.disableColorExtraction()
-            // 与 KSU 的 AppIconLoader(size, false, context) 一致：不缩小旧图标并套白色底板。
+            // 保留旧图标的尺寸，不添加白色底板。
             val icon = factory.createScaledBitmapWithoutShadow(drawable, false)
             roundVisibleCorners(icon)
             Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { output ->

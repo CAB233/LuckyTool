@@ -56,9 +56,7 @@
     <string name="settings_enable_blur">Blur</string>
     <string name="settings_enable_blur_summary">Enable blur effect for the bottom bar.</string>
     <string name="settings_floating_bottom_bar">Floating bottom bar</string>
-    <string name="settings_floating_bottom_bar_summary">Use Apple style floating bottom bar.</string>
-    <string name="settings_enable_glass">Liquid glass</string>
-    <string name="settings_enable_glass_summary">Enable liquid glass effect for floating bottom bar.</string>
+    <string name="settings_floating_bottom_bar_summary">Use a floating bottom bar with icons only.</string>
     <string name="color_red">Red</string>
     <string name="color_pink">Pink</string>
     <string name="color_purple">Purple</string>
@@ -1576,4 +1574,7 @@
     <string name="launcher_backup_tag_auto">Auto</string>
     <string name="launcher_backup_tag_manual">Manual</string>
     <string name="launcher_backup_tag_pre_restore">Before restore</string>
+    <string name="settings_floating_bottom_bar_style">Floating bottom bar style</string>
+    <string name="settings_floating_style_miuix">Miuix</string>
+    <string name="settings_floating_style_ios">iOS style (Liquid Glass)</string>
 </resources>

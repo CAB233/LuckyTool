@@ -26,7 +26,11 @@ import java.time.Duration
 import java.util.concurrent.TimeUnit
 
 /** Real pointer dispatch with bounded frames; no device or emulator is required. */
-internal class ComposeGestureHost(savedState: Bundle? = null) : AutoCloseable {
+internal class ComposeGestureHost(
+    savedState: Bundle? = null,
+    val width: Int = 822,
+    val height: Int = 1760,
+) : AutoCloseable {
     val controller = Robolectric.buildActivity(ComponentActivity::class.java)
         .create(savedState).start().resume().visible()
     val activity: ComponentActivity = controller.get()
@@ -54,10 +58,10 @@ internal class ComposeGestureHost(savedState: Bundle? = null) : AutoCloseable {
             view.getChildAt(0)?.forceLayout()
             view.forceLayout()
             view.measure(
-                View.MeasureSpec.makeMeasureSpec(822, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(1760, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY),
             )
-            view.layout(0, 0, 822, 1760)
+            view.layout(0, 0, width, height)
         }
     }
 
@@ -91,7 +95,7 @@ internal class ComposeGestureHost(savedState: Bundle? = null) : AutoCloseable {
         val result = mutableListOf<SemanticsNode>()
         fun collect(node: SemanticsNode) {
             result += node
-            node.children.forEach(::collect)
+            if (!node.config.isClearingSemantics) node.children.forEach(::collect)
         }
         fun visit(target: View) {
             val getter = target.javaClass.methods.firstOrNull { it.name == "getSemanticsOwner" && it.parameterCount == 0 }
@@ -107,17 +111,27 @@ internal class ComposeGestureHost(savedState: Bundle? = null) : AutoCloseable {
             node.config.getOrNull(SemanticsProperties.Text)?.any { it.text == text } == true
     }
 
-    fun clickText(text: String) {
-        var node = requireNotNull(textNode(text)) { "Missing text: $text" }
+    fun clickText(text: String) = clickNode(requireNotNull(textNode(text)) { "Missing text: $text" })
+
+    fun clickLabel(label: String) {
+        val node = textNode(label) ?: nodes().firstOrNull {
+            it.boundsInRoot.width > 0 && it.boundsInRoot.height > 0 &&
+                it.config.getOrNull(SemanticsProperties.ContentDescription)?.contains(label) == true
+        }
+        clickNode(requireNotNull(node) { "Missing label: $label" })
+    }
+
+    private fun clickNode(target: SemanticsNode) {
+        var node = target
         while (node.config.getOrNull(SemanticsActions.OnClick)?.action == null) {
-            node = requireNotNull(node.parent) { "No click action for $text" }
+            node = requireNotNull(node.parent) { "No click action for $target" }
         }
         check(node.config.getOrNull(SemanticsActions.OnClick)!!.action!!.invoke())
     }
 
     fun snapshot(name: String) {
         val folder = System.getProperty("pager.preview.output") ?: return
-        val bitmap = Bitmap.createBitmap(822, 1760, Bitmap.Config.ARGB_8888)
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         view.draw(canvas)
         val origin = IntArray(2).also(view::getLocationOnScreen)
@@ -128,7 +142,7 @@ internal class ComposeGestureHost(savedState: Bundle? = null) : AutoCloseable {
             popup.draw(canvas)
             canvas.restoreToCount(checkpoint)
         }
-        File(folder, "$name.png").apply { parentFile.mkdirs() }.outputStream().use {
+        File(folder, "$name.png").apply { parentFile?.mkdirs() }.outputStream().use {
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
         }
         bitmap.recycle()

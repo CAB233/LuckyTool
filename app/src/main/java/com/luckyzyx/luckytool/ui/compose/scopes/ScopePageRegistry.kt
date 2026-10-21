@@ -142,7 +142,7 @@ class ScopePageAction(
  * @param contentMiuix   页面自带的 Miuix 呈现（null = 走共享渲染层 [ScopeScreen]）
  * @param contentMaterial 页面自带的 material 呈现（null = 走共享渲染层 [ScopeScreen]）
  *
- * 页面需要像 KernelSU 一样自带主题布局时，提供一个或两个**槽位**（[contentMiuix] / [contentMaterial]）：
+ * 页面需要自带主题布局时，提供一个或两个**槽位**（[contentMiuix] / [contentMaterial]）：
  * 槽位非空时由页面自有布局渲染整页内容（见 [ScopePageContent]），共享层只负责状态、动作与搜索跳转。
  * 行清单仍只写一份 —— 放在 [content] 里；槽位布局遍历已构建好的 `builder.entries` 渲染
  * （共享层已跑过 [content]，**不要**在槽位里再 `apply` 一次，否则条目翻倍）。
@@ -259,7 +259,7 @@ internal class MiuixScopeContentScope(delegate: ScopeContentScope) : ScopeConten
  * - 页面为当前主题线提供了槽位（Miuix → [ScopePageSpec.contentMiuix]，Material → [ScopePageSpec.contentMaterial]）
  *   时，整页内容由页面自有布局渲染；共享层只做与 [ScopeScreen] 同语义的三件事：订阅 revision、构建
  *   [PrefScopeBuilder]（行声明与条件可见性只写一份）、执行搜索跳转/高亮，并沿用下拉刷新包装。
- *   页面布局若要复刻 KernelSU 的「内容在模糊顶栏下滚动」，把 Miuix 线的 `LocalScopeTopInset` 用作自己
+ *   页面布局若要让内容在模糊顶栏下滚动，把 Miuix 线的 `LocalScopeTopInset` 用作自己
  *   LazyColumn 的 `contentPadding.top`，并把 [ScopeContentScope.listState] 交给该 LazyColumn。
  * - 未提供槽位时（72 个既有页面），逐字回落到今天的 [ScopeScreen] 路径。
  *
