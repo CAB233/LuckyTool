@@ -206,7 +206,7 @@ private fun HomeStatusCard(state: HomeDashboardState, colors: HomeColors, onLong
         MiuixActiveStatusCard(state, onLongClick)
         return
     }
-    val tonal = state.moduleActive && !miuix
+    val tonal = state.moduleActive
     val foreground = if (tonal) MaterialTheme.colorScheme.onPrimaryContainer else colors.foreground
     val secondary = if (tonal) foreground else colors.secondary
     HomeCard(
