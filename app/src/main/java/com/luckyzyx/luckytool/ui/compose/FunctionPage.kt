@@ -1,6 +1,6 @@
 package com.luckyzyx.luckytool.ui.compose
 
-import android.content.Context
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -47,9 +47,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.activity.MainActivity
-import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
 import com.luckyzyx.luckytool.ui.compose.components.FunctionTopBarActions
-import com.luckyzyx.luckytool.ui.compose.components.PrefIndexItem
+import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.ScrollTarget
 import com.luckyzyx.luckytool.ui.compose.components.TopBarActionButton
@@ -75,7 +74,6 @@ import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Close2
-import top.yukonga.miuix.kmp.nav.core.NavController
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import java.util.Arrays
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
@@ -446,6 +444,7 @@ internal fun ScopePageHost(
 }
 
 /** 版本信息对话框：xposed_scope 各包版本表（对齐旧 showBottomDialog，Markwon 渲染） */
+@SuppressLint("LocalContextResourcesRead")
 @Composable
 private fun VersionInfoDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
