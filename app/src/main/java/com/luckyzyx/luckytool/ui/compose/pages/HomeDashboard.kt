@@ -1,8 +1,8 @@
 package com.luckyzyx.luckytool.ui.compose.pages
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,8 +57,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,10 +70,6 @@ import com.luckyzyx.luckytool.ui.compose.components.material.materialBottomInset
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.DeviceInfoEntry
-import top.yukonga.miuix.kmp.basic.Card as MiuixCard
-import top.yukonga.miuix.kmp.basic.CardDefaults as MiuixCardDefaults
-import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
-import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronBackward
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
@@ -88,6 +84,10 @@ import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import top.yukonga.miuix.kmp.basic.Card as MiuixCard
+import top.yukonga.miuix.kmp.basic.CardDefaults as MiuixCardDefaults
+import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
 
 @Immutable
 internal data class HomeDashboardState(
@@ -292,7 +292,7 @@ private fun MiuixActiveStatusCard(state: HomeDashboardState, onLongClick: (() ->
                     fontWeight = FontWeight.SemiBold,
                     color = foreground,
                 )
-                Spacer(Modifier.height(1.dp))
+                Spacer(Modifier.height(2.dp))
                 MiuixText(
                     text = "${stringResource(R.string.version)}: ${state.moduleVersion}",
                     modifier = Modifier.fillMaxWidth().padding(end = 80.dp),
@@ -300,7 +300,7 @@ private fun MiuixActiveStatusCard(state: HomeDashboardState, onLongClick: (() ->
                     fontSize = 15.sp,
                     color = foreground,
                 )
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(2.dp))
                 MiuixText(
                     text = "${stringResource(R.string.root_source)} $root",
                     modifier = Modifier.fillMaxWidth().padding(end = 80.dp),
