@@ -14,7 +14,7 @@ import top.yukonga.miuix.kmp.icon.extended.Info
 import top.yukonga.miuix.kmp.icon.extended.Search
 import top.yukonga.miuix.kmp.icon.extended.Tune
 
-/** 一级功能页只突出搜索，维护与查询操作收进更多菜单。 */
+/** 一级功能页顶栏：搜索、重启、版本信息各自成键，不再收进同一个溢出菜单。 */
 @Composable
 internal fun FunctionTopBarActions(
     onSearch: () -> Unit,
@@ -27,12 +27,17 @@ internal fun FunctionTopBarActions(
         materialIcon = Icons.Outlined.Search,
         miuixIcon = MiuixIcons.Search,
     )
-    TopBarOverflowMenu(
-        items = listOf(
-            TopBarOverflowItem(stringResource(R.string.menu_reboot), onRestart),
-            TopBarOverflowItem(stringResource(R.string.menu_versioninfo), onVersionInfo),
-        ),
-        contentDescription = stringResource(R.string.menu_more),
+    TopBarActionButton(
+        onClick = onRestart,
+        contentDescription = stringResource(R.string.menu_reboot),
+        materialIcon = Icons.Filled.PowerSettingsNew,
+        miuixIcon = MiuixIcons.Close2,
+    )
+    TopBarActionButton(
+        onClick = onVersionInfo,
+        contentDescription = stringResource(R.string.menu_versioninfo),
+        materialIcon = Icons.Outlined.Info,
+        miuixIcon = MiuixIcons.Info,
     )
 }
 
