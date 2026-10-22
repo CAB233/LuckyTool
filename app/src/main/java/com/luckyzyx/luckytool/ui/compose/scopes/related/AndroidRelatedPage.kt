@@ -17,6 +17,7 @@ object AndroidRelatedPage {
         pageKey = "android_related",
         prefsName = ModulePrefs,
         packName = "system",
+        displayPackName = "android",
         scopes = arrayOf("system"),
         restartEnabled = true,
     ) {

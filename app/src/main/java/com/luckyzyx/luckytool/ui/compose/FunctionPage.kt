@@ -1,8 +1,6 @@
 package com.luckyzyx.luckytool.ui.compose
 
 import android.content.Context
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -11,14 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -37,9 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -52,9 +46,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
+import com.luckyzyx.luckytool.ui.compose.components.FunctionTopBarActions
+import com.luckyzyx.luckytool.ui.compose.components.PrefIndexItem
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.ScrollTarget
-import com.luckyzyx.luckytool.ui.compose.components.PrefIconBadge
 import com.luckyzyx.luckytool.ui.compose.components.TopBarActionButton
 import com.luckyzyx.luckytool.ui.compose.components.TopBarOverflowItem
 import com.luckyzyx.luckytool.ui.compose.components.TopBarOverflowMenu
@@ -64,7 +59,6 @@ import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageContent
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageRegistry
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
-import com.luckyzyx.luckytool.utils.AppIconCache
 import com.luckyzyx.luckytool.utils.AppUtils
 import com.luckyzyx.luckytool.utils.PrefState
 import com.luckyzyx.luckytool.utils.RestartMenuUtils
@@ -74,6 +68,8 @@ import com.luckyzyx.luckytool.utils.sendPrefsValue
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TablePlugin
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Close2
 import top.yukonga.miuix.kmp.nav.core.NavController
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import java.util.Arrays
@@ -105,49 +101,11 @@ fun FunctionPage(
     )
 }
 
-/** 功能树条目左侧图标：分类页用彩色圆角徽标 + 白色矢量图标，应用页用 App 图标（圆角裁剪），无图标回退通用应用图标 */
-@Composable
-private fun TreeRowLeading(pageKey: String, title: String, packName: String?) {
-    val badgeShape = RoundedCornerShape(10.dp)
-    val badge = categoryBadges[pageKey]
-    if (badge != null) {
-        PrefIconBadge(badge.icon, badge.color, contentDescription = title)
-        return
-    }
-    // 图标走进程级缓存（AppIconCache）：取图标与光栅化都在后台线程，且按包名缓存复用。
-    // 旧实现每行在组合期同步 getAppIcon（binder IPC）并在主线程光栅化，行每次滑入视口都要重做一遍，
-    // 滑动越快单位时间新进视口的行越多 → 卡顿越明显。
-    val context = LocalContext.current
-    val iconState = remember(packName) {
-        packName?.takeIf { it.isNotEmpty() }
-            ?.let { AppIconCache.state(context.applicationContext, it) }
-    }
-    val appIcon = iconState?.value
-    if (appIcon != null) {
-        val painter = remember(appIcon) { BitmapPainter(appIcon) }
-        Image(
-            painter = painter,
-            contentDescription = title,
-            modifier = Modifier
-                .size(40.dp)
-                .clip(badgeShape),
-        )
-    } else {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(badgeShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Apps,
-                contentDescription = title,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp),
-            )
-        }
-    }
+/** 页标题：对齐旧功能树 root 标题（apps/others = App 标签；related/statusbar = 覆盖表） */
+private fun pageTitle(context: Context, spec: ScopePageSpec): String {
+    ScopePageRegistry.treeTitleRes[spec.pageKey]?.let { return context.getString(it) }
+    val pack = spec.displayPackName ?: spec.packName
+    return AppUtils(context).getAppLabel(pack).toString()
 }
 
 /** 功能树：50 页固定顺序（ScopePageRegistry.treeOrder），spec 手动不可见、单 App 作用域未安装或空索引页隐藏（selfRendered 特殊页除外） */
@@ -160,75 +118,49 @@ private fun FunctionTreeScreen(
     onShowRestartMenu: () -> Unit,
 ) {
     val context = LocalContext.current
-    val settings = remember { PrefState.of(context, SettingsPrefs) }
-    // 数据在 App 打开时就由 FunctionPageData 后台构建好（见 MainShell 的 preload）；
-    // 这里只读快照，进入本页时先渲染旧快照、后台重算完再替换 —— 首帧不再现场跑 50 页偏好 DSL
-    val snapshot by FunctionPageData.snapshot.collectAsStateWithLifecycle()
-    val rows = snapshot?.rows.orEmpty()
-    LaunchedEffect(context) { FunctionPageData.revalidate(context) }
+    val rows by produceState(initialValue = emptyList<FunctionRow>(), key1 = Unit) {
+        value = try {
+            withContext(Dispatchers.IO) {
+                ScopePageRegistry.treeOrder.mapNotNull { key ->
+                    val spec = ScopePageRegistry[key] ?: return@mapNotNull null
+                    if (!spec.isVisible(context)) return@mapNotNull null
+                    if (!ScopePageRegistry.isScopeAppPresent(context, spec)) return@mapNotNull null
+                    val index = ScopePageRegistry.buildIndex(context, spec)
+                    // 自带整页渲染的特殊页（暗色模式列表/意图/自定义浮窗等）不声明共享行、索引恒空，
+                    // 空索引不代表不可见；判据与 ScopePageRegistry.hasVisibleContent 一致
+                    if (index.isEmpty() && !spec.selfRendered) return@mapNotNull null
+                    val packName = spec.displayPackName ?: spec.packName
+                    val summary = if (key == "android_related" || key in ScopePageRegistry.treeTitleRes) {
+                        index.mapNotNull { it.title }.take(3).joinToString(" · ").ifEmpty { null }
+                    } else {
+                        packName
+                    }
+                    FunctionRow(key, pageTitle(context, spec), summary, packName)
+                }
+            }
+        } catch (t: Throwable) {
+            // buildIndex 内部已逐页兜底，此处再兜底 isVisible/图标/标题等外层自定义逻辑，
+            // 避免任一页面构建异常导致整棵功能树为空（白屏）
+            LogUtils.e("FunctionPage", "buildTree", t.toString(), true)
+            emptyList()
+        }
+    }
 
     MaterialPageScaffold(
         title = stringResource(R.string.nav_function),
         actions = {
-            TopBarActionButton(
-                onClick = onOpenSearch,
-                contentDescription = stringResource(R.string.menu_search),
-                painter = painterResource(R.drawable.ic_baseline_search_24),
-            )
-            TopBarActionButton(
-                onClick = onShowRestartMenu,
-                contentDescription = stringResource(R.string.menu_reboot),
-                painter = painterResource(R.drawable.ic_baseline_refresh_24),
-            )
-            TopBarActionButton(
-                onClick = onShowVersionInfo,
-                contentDescription = stringResource(R.string.menu_versioninfo),
-                painter = painterResource(R.drawable.ic_baseline_extension_24),
+            FunctionTopBarActions(
+                onSearch = onOpenSearch,
+                onRestart = onShowRestartMenu,
+                onVersionInfo = onShowVersionInfo,
             )
         },
     ) { padding ->
-        val layoutDirection = LocalLayoutDirection.current
-        val uiMode = LocalUiMode.current
-        val scopeModifier = if (uiMode == UiMode.Miuix) {
-            Modifier
-                .fillMaxSize()
-                .padding(
-                    start = padding.calculateStartPadding(layoutDirection),
-                    end = padding.calculateEndPadding(layoutDirection),
-                    bottom = padding.calculateBottomPadding(),
-                )
-        } else {
-            Modifier.fillMaxSize().padding(padding)
-        }
-        val scopeContent: @Composable () -> Unit = {
-            // 页面级状态在 @Composable 作用域内先读取：只在 ScopeScreen 的 content lambda 内
-            // 读取不会被列表追踪（旧症状：功能树一直白屏）
-            val rowsNow = rows
-            ScopeScreen(state = settings, modifier = scopeModifier) {
-                // 整树合并为一张分段卡片（对齐主题页分组卡片），条目顺序与原 ListItem 完全一致
-                rowsNow.forEach { row ->
-                    click(
-                        title = row.title,
-                        summary = row.summary,
-                        leading = { TreeRowLeading(row.pageKey, row.title, row.packName) },
-                        trailing = {
-                            Icon(
-                                Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                                contentDescription = null,
-                            )
-                        },
-                        onClick = { onOpenPage(row.pageKey, row.title) },
-                    )
-                }
-            }
-        }
-        if (uiMode == UiMode.Miuix) {
-            CompositionLocalProvider(LocalScopeTopInset provides padding.calculateTopPadding()) {
-                scopeContent()
-            }
-        } else {
-            scopeContent()
-        }
+        FunctionList(
+            rows = rows,
+            padding = padding,
+            onOpenPage = onOpenPage,
+        )
     }
 }
 
@@ -408,7 +340,8 @@ internal fun ScopePageHost(
                 TopBarActionButton(
                     onClick = { showRestartScope = true },
                     contentDescription = stringResource(R.string.menu_reboot),
-                    painter = painterResource(R.drawable.ic_baseline_refresh_24),
+                    materialIcon = Icons.Filled.PowerSettingsNew,
+                    miuixIcon = MiuixIcons.Close2,
                 )
             }
             topActions.forEach { action ->
@@ -466,12 +399,11 @@ internal fun ScopePageHost(
             // 水平内边距此处不叠加（material 线由作用域内容自带，Miuix 线由列表级 12dp contentPadding 提供）。
             //
             // 骨架内边距传递：
-            // - material 线：innerPadding 整块交给内容（与今天逐字一致，m3 顶栏 64dp 由 innerPadding 承担）。
+            // - Material 线：innerPadding 整块交给内容，包含大标题折叠后的实际顶栏高度。
             // - Miuix 线：骨架给的是真实 innerPadding，其中 top = 顶栏高度；top 经 LocalScopeTopInset 交给
-            //   列表充当 contentPadding.top（内容滚动到模糊顶栏之下，KernelSU 式 scroll-under），这里只保留
+            //   列表充当 contentPadding.top（内容滚动到模糊顶栏之下），这里只保留
             //   start/end/bottom 外置 padding（横屏 displayCutout 水平内缩与底部 inset 不能丢）。
-            // 顶栏不再折叠（标题恒定展开、不随上滑吸顶），两条线都不再把列表滚动联动到顶栏，
-            // 因此这里不接任何 nestedScrollConnection。
+            // 两条外观线的默认折叠行为均由页面骨架统一连接，内容不重复接入同一条滚动连接。
             val pageContentModifier = if (uiMode == UiMode.Miuix) {
                 val layoutDirection = LocalLayoutDirection.current
                 Modifier

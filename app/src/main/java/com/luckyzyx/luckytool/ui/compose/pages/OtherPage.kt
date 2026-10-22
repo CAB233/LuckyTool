@@ -26,16 +26,17 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.AddToHomeScreen
-import androidx.compose.material.icons.filled.AutoFixHigh
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.automirrored.rounded.AddToHomeScreen
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.Adb
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
@@ -43,7 +44,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,8 +52,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -62,8 +60,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import com.luckyzyx.luckytool.IAdbDebugController
 import com.luckyzyx.luckytool.ITileServiceController
 import com.luckyzyx.luckytool.R
@@ -72,9 +68,10 @@ import com.luckyzyx.luckytool.service.TilesService
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.AppPickerDialog
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
-import com.luckyzyx.luckytool.ui.compose.components.PrefIconBadge
+import com.luckyzyx.luckytool.ui.compose.components.PrefIcon
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
-import com.luckyzyx.luckytool.ui.compose.components.TopBarActionButton
+import com.luckyzyx.luckytool.ui.compose.components.OtherTopBarActions
+import com.luckyzyx.luckytool.ui.compose.components.MainPageActivationEffect
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialPageScaffold
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
@@ -110,13 +107,12 @@ import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OtherPage(activity: MainActivity) {
+fun OtherPage(activity: MainActivity, isCurrentPage: Boolean = true) {
     val context = LocalContext.current
     val settings = remember { PrefState.of(context, SettingsPrefs) }
     val otherPrefs = remember { PrefState.of(context, OtherPrefs) }
     val scope = rememberCoroutineScope()
-    // 初始值从进程级缓存取：tab 切换销毁本页组合、remember 会重置，若从 null 起步
-    // 每次切回都会重新加载并重放显隐动画；用服务端已缓存的存活控制器做种子即可瞬时还原
+    // 使用存活控制器作为恢复种子；分页保留本页状态，切换标签不重新加载。
     var tileController by remember { mutableStateOf(TilesService.getCachedController()) }
     var adbController by remember { mutableStateOf(AdbService.getCachedController()) }
     var showOptimizePicker by remember { mutableStateOf(false) }
@@ -126,23 +122,17 @@ fun OtherPage(activity: MainActivity) {
     var showTouchDialog by remember { mutableStateOf(false) }
     var showAdbDialog by remember { mutableStateOf(false) }
 
-    // tiles / adb 控制器：首次组合与每次恢复都触发（RootService 冷启动 daemon 未就绪时
-    // 首次 bind 回调未必触发，双触发确保首载）。
+    // 预组合不绑定服务，首次进入及当前页恢复前台时刷新控制器。
     fun loadControllers() {
         TilesService.get(activity) { tileController = it }
         AdbService.get(activity) { adbController = it }
     }
-    LaunchedEffect(Unit) { loadControllers() }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { loadControllers() }
+    MainPageActivationEffect(isCurrentPage, ::loadControllers, ::loadControllers)
 
     MaterialPageScaffold(
         title = stringResource(R.string.nav_other),
         actions = {
-            TopBarActionButton(
-                onClick = { showOptimizePicker = true },
-                contentDescription = "优化App",
-                painter = rememberVectorPainter(Icons.Filled.AutoFixHigh),
-            )
+            OtherTopBarActions(onOptimize = { showOptimizePicker = true })
         },
     ) { padding ->
         val layoutDirection = LocalLayoutDirection.current
@@ -186,11 +176,14 @@ fun OtherPage(activity: MainActivity) {
                 state = settings,
                 modifier = scopeModifier,
             ) {
-                // 全部入口合并为一张分段卡片（KernelSU 主题页外观）
+                // 快捷入口、显示与触控、调试各自成组。
+                group()
                 click(
                     title = quickEntryTitle,
                     summary = quickEntrySummary,
-                    leading = { PrefIconBadge(Icons.Filled.Bolt, Color(0xFFFF9800)) },
+                    leading = { PrefIcon(Icons.AutoMirrored.Rounded.OpenInNew) },
+                    value = "",
+                    trailing = { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null) },
                     onClick = {
                         activity.requestFunctionNavigation("quick_entry", quickEntryTitle)
                     },
@@ -199,7 +192,7 @@ fun OtherPage(activity: MainActivity) {
                     click(
                         title = tileListTitle,
                         summary = tileListSummary,
-                        leading = { PrefIconBadge(Icons.Filled.GridView, Color(0xFF4CAF50)) },
+                        leading = { PrefIcon(Icons.Rounded.GridView) },
                         onClick = {
                             context.showToast(tileListClickTips)
                             showTileDialog = true
@@ -210,17 +203,17 @@ fun OtherPage(activity: MainActivity) {
                     title = setModuleShortcutsTitle,
                     summary = setModuleShortcutsSummary,
                     leading = {
-                        PrefIconBadge(
-                            Icons.AutoMirrored.Filled.AddToHomeScreen,
-                            Color(0xFF3F51B5)
-                        )
+                        PrefIcon(Icons.AutoMirrored.Rounded.AddToHomeScreen)
                     },
                     onClick = { showShortcutDialog = true },
                 )
+                group()
                 click(
                     title = fpsTitle,
                     summary = fpsSummary,
-                    leading = { PrefIconBadge(Icons.Filled.Speed, Color(0xFFE91E63)) },
+                    leading = { PrefIcon(Icons.Rounded.Speed) },
+                    value = "",
+                    trailing = { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null) },
                     onClick = {
                         activity.requestFunctionNavigation("force_fps", fpsTitle)
                     },
@@ -229,15 +222,16 @@ fun OtherPage(activity: MainActivity) {
                     click(
                         title = touchSamplingTitle,
                         summary = touchSamplingSummary,
-                        leading = { PrefIconBadge(Icons.Filled.TouchApp, Color(0xFF009688)) },
+                        leading = { PrefIcon(Icons.Rounded.TouchApp) },
                         onClick = { showTouchDialog = true },
                     )
                 }
                 if (hasAdbNow) {
+                    group()
                     click(
                         title = remoteAdbTitle,
                         summary = remoteAdbSummary,
-                        leading = { PrefIconBadge(Icons.Filled.Terminal, Color(0xFF607D8B)) },
+                        leading = { PrefIcon(Icons.Rounded.Adb) },
                         onClick = { showAdbDialog = true },
                     )
                 }
@@ -251,6 +245,8 @@ fun OtherPage(activity: MainActivity) {
             scopeContent()
         }
     }
+
+    if (!isCurrentPage) return
 
     if (showOptimizePicker) {
         AppPickerDialog(

@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.Density
 import androidx.core.view.WindowCompat
 import com.luckyzyx.luckytool.ui.shell.LocalEnableBlur
 import com.luckyzyx.luckytool.ui.shell.LocalEnableFloatingBottomBar
-import com.luckyzyx.luckytool.ui.shell.LocalEnableFloatingBottomBarBlur
+import com.luckyzyx.luckytool.ui.shell.LocalFloatingBottomBarStyle
 import com.luckyzyx.luckytool.ui.shell.LocalEnableNavigationBadge
 import com.luckyzyx.luckytool.ui.shell.LocalEnableSwipeDismiss
 import com.luckyzyx.luckytool.ui.shell.LocalModuleDescriptionMaxLines
@@ -34,7 +34,7 @@ import com.luckyzyx.luckytool.ui.shell.ShellSettingsController
 private val DefaultSeedColor = Color(0xFF6750A4)
 
 /**
- * 给定模式解析本次组合应使用的种子色（对齐 KernelSU MaterialKernelSUTheme）：
+ * 给定模式解析本次组合应使用的种子色：
  * `Color.Unspecified` 表示跟随系统动态取色（需 Android 12+）；否则用自定义主题色或默认种子色。
  */
 @Composable
@@ -65,12 +65,12 @@ fun ColorMode.resolveDarkTheme(): Boolean = when {
  * LuckyTool 统一 Compose 主题：Material 3 Expressive（material3 1.5.0-alpha29，
  * Google 官方 Expressive 线；1.4.0 稳定版不含公开 Expressive API，故按用户确认选 alpha29）。
  *
- * 取色管线对齐 KernelSU（material-kolor 5.0.1）：
+ * 取色管线（material-kolor 5.0.1）：
  * - dynamicColor 开启且 Android 12+ 时以系统 primary 为种子动态取色；
  * - 否则使用自定义主题色（key_color）或默认种子色（0xFF6750A4）；
  * - palette_style / color_spec 偏好控制取色风格与色彩规格，SPEC_2025 在不支持的风格上回退 SPEC_2021；
  * - AMOLED 模式（ColorMode.DARK_AMOLED）下所有背景槽位纯黑；
- * - 主题切换时全色板弹性动画过渡，并同步系统栏前景色（对齐 KernelSU MaterialKernelSUTheme）。
+ * - 主题切换时全色板弹性动画过渡，并同步系统栏前景色。
  */
 @Composable
 fun MaterialLuckyTheme(
@@ -92,7 +92,7 @@ fun MaterialLuckyTheme(
 
     themeWindowAppearance(darkTheme)
 
-    // 模式与色板下发到组合树（对齐 KernelSU LocalColorMode / 色板本地化读取）
+    // 模式与色板下发到组合树，供子组件读取。
     CompositionLocalProvider(
         LocalColorMode provides colorMode,
         LocalLuckyColorScheme provides animatedColorScheme,
@@ -114,7 +114,7 @@ fun MaterialLuckyTheme(
 }
 
 /**
- * 主题分发（对齐 KernelSU `KernelSUTheme`）：按 [uiMode] 选择 Miuix 或 Material 外观线。
+ * 主题分发：按 [uiMode] 选择 Miuix 或 Material 外观线。
  */
 @Composable
 fun LuckyTheme(
@@ -134,7 +134,7 @@ fun LuckyTheme(
     }
 }
 
-/** 深色切换时同步状态栏 / 导航栏前景色（对齐 KernelSU） */
+/** 深色切换时同步状态栏 / 导航栏前景色 */
 @Composable
 internal fun themeWindowAppearance(darkTheme: Boolean) {
     val view = LocalView.current
@@ -158,7 +158,7 @@ internal fun themeWindowAppearance(darkTheme: Boolean) {
  * `ThemeUtils.initTheme(context)` 同步平台 DayNight 主题（AppCompat 在明暗实际变化时
  * 会重建 Activity），否则矢量图的 `?attr/colorControlNormal` 仍按旧明暗解析而不可见。
  *
- * 界面缩放（page_scale）对齐 KernelSU：覆盖 [LocalDensity]，只缩放 density，fontScale 原样透传。
+ * 界面缩放（page_scale）：覆盖 [LocalDensity]，只缩放 density，fontScale 原样透传。
  */
 @Composable
 fun LuckyAppTheme(content: @Composable () -> Unit) {
@@ -180,7 +180,7 @@ fun LuckyAppTheme(content: @Composable () -> Unit) {
         LocalEnableNavigationBadge provides shellSettings.navigationBadge,
         LocalEnableBlur provides shellSettings.enableBlur,
         LocalEnableFloatingBottomBar provides shellSettings.enableFloatingBottomBar,
-        LocalEnableFloatingBottomBarBlur provides shellSettings.enableFloatingBottomBarBlur,
+        LocalFloatingBottomBarStyle provides shellSettings.floatingBottomBarStyle,
         LocalEnableSwipeDismiss provides shellSettings.swipeDismiss,
         LocalPagerInterceptionMode provides shellSettings.pagerInterceptionMode,
         LocalModuleDescriptionMaxLines provides shellSettings.moduleDescriptionMaxLines,

@@ -12,7 +12,7 @@ import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.rememberDynamicColorScheme
 
-/** 深色 OLED 纯黑背景（对齐 KernelSU；LuckyTool 暂无 AMOLED 偏好，默认关闭） */
+/** 深色 OLED 纯黑背景。 */
 fun ColorScheme.amoledBackground(amoled: Boolean): ColorScheme =
     if (!amoled) this
     else copy(
@@ -26,7 +26,7 @@ fun ColorScheme.amoledBackground(amoled: Boolean): ColorScheme =
         surfaceContainerHighest = Color.Black,
     )
 
-/** 对齐 KernelSU Colors.kt：15 个预设主题色（ARGB Int，供主题配色选择） */
+/** 15 个预设主题色（ARGB Int，供主题配色选择）。 */
 val keyColorOptions = listOf(
     0xFFF44336.toInt(), 0xFFE91E63.toInt(), 0xFF9C27B0.toInt(), 0xFF673AB7.toInt(),
     0xFF3F51B5.toInt(), 0xFF2196F3.toInt(), 0xFF00BCD4.toInt(), 0xFF009688.toInt(),
@@ -35,7 +35,7 @@ val keyColorOptions = listOf(
 )
 
 /**
- * 与 KernelSU 相同的 material-kolor 取色管线（默认 TonalSpot + SPEC_2025）：
+ * material-kolor 取色管线（默认 TonalSpot + SPEC_2025）：
  * seedColor 为 Color.Unspecified 时用系统 primary 作种子（动态取色），
  * 否则直接用给定种子生成完整色板；isAmoled 开启时背景全黑。
  * 注意：material-kolor 5.0.1 的 SpecVersion 只有 SPEC_2021 / SPEC_2025 两个值。
@@ -59,12 +59,12 @@ fun rememberLuckyColorScheme(
         isDark = isDark,
         isAmoled = isAmoled,
         style = style,
-        // SPEC_2025 未覆盖全部调色风格，未覆盖时回退 SPEC_2021（对齐 KernelSU effectiveFor）
+        // SPEC_2025 未覆盖全部调色风格，未覆盖时回退 SPEC_2021
         specVersion = specVersion.effectiveFor(style),
     ).amoledBackground(isAmoled)
 }
 
-/** 主题切换时全色板弹性动画过渡（对齐 KernelSU） */
+/** 主题切换时全色板弹性动画过渡 */
 @Composable
 fun ColorScheme.animateAsState(): ColorScheme {
     @Composable

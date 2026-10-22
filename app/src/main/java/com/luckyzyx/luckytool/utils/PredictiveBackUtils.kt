@@ -12,7 +12,7 @@ import org.lsposed.hiddenapibypass.HiddenApiBypass
 import org.lsposed.lsparanoid.Obfuscate
 
 /**
- * 预测性返回手势开关（迁移 KernelSU `KernelSUApplication.setEnableOnBackInvokedCallback`）。
+ * 预测性返回手势开关。
  *
  * `ApplicationInfo.setEnableOnBackInvokedCallback` 不是公开 API，反射调用前需要经 HiddenApiBypass
  * 添加豁免；豁免申请失败时退回 best-effort（失败即静默忽略）。

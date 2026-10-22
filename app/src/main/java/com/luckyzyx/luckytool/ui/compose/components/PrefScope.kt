@@ -125,6 +125,7 @@ data class PrefIndexItem(
  * 组内条目不设内圆角与间距，见 [com.luckyzyx.luckytool.ui.theme.DesignTokens]）；
  * [groupable] = false 的条目独占一张卡片（分类标题，以及 [PrefScopeBuilder.custom] 显式声明 standalone 的逃生舱）。
  * [bare] = true 的条目（仅分类标题）完全裸渲染，不套任何卡片容器，对齐旧 PreferenceCategory 观感。
+ * [groupBreak] 只分隔卡片组，保留零高度槽位以维持索引位置。
  */
 internal class PrefEntry(
     val slot: Int,
@@ -135,6 +136,7 @@ internal class PrefEntry(
     val pageTarget: String?,
     val groupable: Boolean,
     val bare: Boolean,
+    val groupBreak: Boolean = false,
     /** 该行参与列表增删动画（需要 [itemKey] 稳定，默认关闭） */
     val animate: Boolean,
     val render: @Composable (slot: Int) -> Unit,
@@ -260,6 +262,7 @@ class PrefScopeBuilder internal constructor(
         pageTarget: String? = null,
         groupable: Boolean = true,
         bare: Boolean = false,
+        groupBreak: Boolean = false,
         animate: Boolean = false,
         render: @Composable (slot: Int) -> Unit,
     ) {
@@ -273,6 +276,7 @@ class PrefScopeBuilder internal constructor(
             pageTarget = pageTarget,
             groupable = groupable,
             bare = bare,
+            groupBreak = groupBreak,
             animate = animate,
             render = render,
         )
@@ -305,6 +309,14 @@ class PrefScopeBuilder internal constructor(
     }
 
     // ---------------- DSL 项 ----------------
+
+    /** 开始一张无标题分组卡片；沿用列表的组间距，不额外绘制分类标题。 */
+    fun group() = emit(
+        null, null, null, null,
+        groupable = false,
+        bare = true,
+        groupBreak = true,
+    ) { }
 
     /**
      * 分类标题（对应旧 addCategory / categoryPreference）：不套卡片，裸渲染在分组卡片之上。
@@ -862,6 +874,10 @@ fun ScopeScreen(
         } else {
             builder.entries.forEach { entry ->
                 item(key = entry.itemKey) {
+                    if (entry.groupBreak) {
+                        // 保留零高度槽位，让搜索索引和滚动定位仍与 entry.slot 一致。
+                        return@item
+                    }
                     // 逐行增删动画：只挂到 DSL 显式声明 animate 的行，其余页面行为完全不变。
                     // 淡出/淡入按 key 认身份，所以这类行必须同时传稳定的 itemKey（默认槽位 key 会漂移）。
                     val animModifier = if (entry.animate) Modifier.animateItem() else Modifier

@@ -81,6 +81,7 @@ miuix-preference = { module = "top.yukonga.miuix.kmp:miuix-preference-android", 
 miuix-blur = { module = "top.yukonga.miuix.kmp:miuix-blur-android", version.ref = "miuix" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+appiconloader-iconloaderlib = { module = "me.zhanghai.android.appiconloader:appiconloader-iconloaderlib", version = "1.5.0" }
 
 deviceCompat = { group = "com.github.getActivity", name = "DeviceCompat", version = "2.6" }
 xxpermissions = { group = "com.github.getActivity", name = "XXPermissions", version = "28.3" }

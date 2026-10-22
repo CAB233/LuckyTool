@@ -1,20 +1,15 @@
 package com.luckyzyx.luckytool.ui.compose.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialItem
@@ -27,15 +22,17 @@ import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefItem
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixSwitchItem
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 
 /**
- * 卡片行 / 卡原语（KernelSU 风格分段卡片 / 独立卡片）。
+ * 卡片行 / 卡原语，支持分段卡片与独立卡片。
  *
- * **「设置区块」的唯一 API 是 `PrefScope` DSL**（`category()` / `switch()` / `click()` / `list()` /
+ * **「设置区块」的唯一 API 是 `PrefScope` DSL**（`group()` / `category()` / `switch()` / `click()` / `list()` /
  * `custom()`，见 `ui/compose/components/PrefScope.kt`）—— 所有标准设置页与作用域页都走它。
  * 本文件只保留 `custom()` 逃生舱（无法走 DSL 的自定义控件里的单行 / 单卡）所需的原始行 / 卡原语：
  * [PrefGroup] + [PrefRow] + [PrefSwitchRow]（组内行，形状由所属 [PrefGroup] 决定）、
- * [PrefCard] + [PrefSwitchCard]（不属于任何分段组的独立卡片）、[PrefIconBadge]（左侧彩色徽标）。
+ * [PrefCard] + [PrefSwitchCard]（不属于任何分段组的独立卡片）、[PrefIcon]（行首图标）。
  *
  * UI 线分派：material 线用 `Segmented*` 原语 + `MaterialTheme`；Miuix 线用 `miuix/MiuixPref*`
  * 原语 + `MiuixTheme`；分派开关统一读 [LocalUiMode]。
@@ -108,26 +105,21 @@ fun PrefRow(
     }
 }
 
-/** 左侧彩色徽标图标：固定色圆角底 + 白色矢量图标（功能树分类页 / 其他页 / 设置页通用） */
+/** 设置入口的单色图标，使用当前外观的中性前景色和默认图标尺寸。 */
 @Composable
-fun PrefIconBadge(
-    icon: ImageVector,
-    color: Color,
-    modifier: Modifier = Modifier,
-    contentDescription: String? = null,
-) {
-    Box(
-        modifier = modifier
-            .size(40.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(color),
-        contentAlignment = Alignment.Center,
-    ) {
+fun PrefIcon(icon: ImageVector) {
+    if (LocalUiMode.current == UiMode.Miuix) {
+        MiuixIcon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.padding(end = 6.dp),
+            tint = MiuixTheme.colorScheme.onBackground,
+        )
+    } else {
         Icon(
             imageVector = icon,
-            contentDescription = contentDescription,
-            tint = Color.White,
-            modifier = Modifier.size(22.dp),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
@@ -189,7 +181,7 @@ fun PrefRowInset(
 
 /**
  * 独立卡片（不属于任何分段组时使用）。
- * 外观与主题页一致：KernelSU MaterialListItem（surfaceBright 容器 + 16dp 外圆角）/
+ * 外观与主题页一致：Material（surfaceBright 容器 + 16dp 外圆角）/
  * Miuix `MiuixPrefItem`（16dp 外圆角 + 12dp 水平内缩）。
  */
 @Composable

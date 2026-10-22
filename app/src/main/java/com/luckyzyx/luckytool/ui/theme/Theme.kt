@@ -15,7 +15,7 @@ import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 
 /**
- * 主题模式（迁移自 KernelSU `ui/theme/Theme.kt` 的 ColorMode）。
+ * 主题模式。
  *
  * 注意 [value] 不是枚举声明顺序，而是偏好键 `SettingsPrefs["dark_theme"]` 的存量取值：
  * 0 跟随系统 / 1 深色 / 2 浅色 / 3 深色(AMOLED) 沿用旧版 `res/values/arrays.xml` 的
@@ -79,7 +79,6 @@ enum class ColorMode(val value: Int) {
 
 /**
  * SPEC_2025 只对部分调色风格实现了算法，其余风格需回退到 SPEC_2021。
- * 迁移自 KernelSU `PaletteStyle.supportsSpec2025` / `ColorSpec.SpecVersion.effectiveFor`。
  */
 val PaletteStyle.supportsSpec2025: Boolean
     get() = this == PaletteStyle.TonalSpot ||
@@ -87,7 +86,7 @@ val PaletteStyle.supportsSpec2025: Boolean
             this == PaletteStyle.Vibrant ||
             this == PaletteStyle.Expressive
 
-/** 取色规格按调色风格做有效值回退（对齐 KernelSU） */
+/** 取色规格按调色风格做有效值回退 */
 fun ColorSpec.SpecVersion.effectiveFor(style: PaletteStyle): ColorSpec.SpecVersion =
     if (this == ColorSpec.SpecVersion.SPEC_2025 && !style.supportsSpec2025) {
         ColorSpec.SpecVersion.SPEC_2021
@@ -95,7 +94,7 @@ fun ColorSpec.SpecVersion.effectiveFor(style: PaletteStyle): ColorSpec.SpecVersi
         this
     }
 
-/** 主题相关的应用设置快照（迁移自 KernelSU `AppSettings`） */
+/** 主题相关的应用设置快照 */
 data class AppSettings(
     val colorMode: ColorMode = ColorMode.SYSTEM,
     /** 0 表示跟随系统取色 */
@@ -105,13 +104,13 @@ data class AppSettings(
     val dynamicColor: Boolean = true,
 )
 
-/** 主题偏好读取（对应 KernelSU `ThemeController` 的 SettingsRepository 读取） */
+/** 主题偏好读取。 */
 object ThemeController {
 
-    /** 界面风格偏好键（与 KernelSU 一致：ui_mode，取值 "miuix" / "material"） */
+    /** 界面风格偏好键：ui_mode，取值 "miuix" / "material"。 */
     const val KEY_UI_MODE = "ui_mode"
 
-    /** Miuix 外观线的 Monet 开关（与 KernelSU 一致：miuix_monet，默认关闭） */
+    /** Miuix 外观线的 Monet 开关，默认关闭。 */
     const val KEY_MIUIX_MONET = "miuix_monet"
 
     fun getUiMode(context: Context): UiMode = UiMode.fromValue(
@@ -121,7 +120,7 @@ object ThemeController {
     /**
      * 读取主题设置。
      *
-     * 对齐 KernelSU `ThemeController.getAppSettings`：在 Miuix 外观线下，
+     * 在 Miuix 外观线下，
      * 「启用 Monet」开关会把当前明暗模式在 MONET_* 与普通模式之间双向改写
      * （Miuix 的取色由 Monet 决定，Material 由 key_color / use_dynamic_color 决定）。
      */
@@ -179,10 +178,10 @@ object ThemePrefs {
     }
 }
 
-/** 当前颜色模式（对齐 KernelSU `LocalColorMode`） */
+/** 当前颜色模式 */
 val LocalColorMode = staticCompositionLocalOf { ColorMode.SYSTEM }
 
-/** 组合期内读取当前颜色模式（对齐 KernelSU `isInDarkTheme`） */
+/** 组合期内读取当前颜色模式 */
 val isInDarkTheme: Boolean
     @Composable @ReadOnlyComposable
     get() = LocalColorMode.current.isDark
