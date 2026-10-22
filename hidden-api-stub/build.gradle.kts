@@ -11,10 +11,6 @@ android {
     }
 }
 
-kotlin {
-    jvmToolchain(gropify.project.jdk.version)
-}
-
 dependencies {
     implementation(libs.androidx.annotation)
 }

@@ -33,6 +33,7 @@ import com.luckyzyx.luckytool.utils.LauncherBackupPrefs
 import com.luckyzyx.luckytool.utils.LauncherBackupUtils
 import com.luckyzyx.luckytool.utils.LauncherCommand
 import com.luckyzyx.luckytool.utils.LauncherSnapshotTag
+import com.luckyzyx.luckytool.utils.LogUtils
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SnapshotCandidate
 import org.json.JSONArray
@@ -142,7 +143,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
     /** 拿不到 Application 时短间隔重试；超过上限就停手，交给挂载点或下次进程启动 */
     private fun scheduleInitRetry() {
         if (initRetryCount >= INIT_RETRY_TIMES) {
-            YLog.debug("$TAG 等不到 Application，暂不初始化（等 LauncherApplication#onCreate）")
+            LogUtils.d(TAG, "scheduleInitRetry", "等不到 Application，暂不初始化（等 LauncherApplication#onCreate）")
             return
         }
         initRetryCount++
@@ -169,7 +170,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         val root = resolveDataRoot(context, appInfo.packageName) ?: run {
             //数据目录不存在是确定性的（包名不对或 ROM 路径不同），别再用重试刷日志
             initRetryCount = INIT_RETRY_TIMES
-            YLog.debug("$TAG 取不到 launcher 数据目录，功能不可用")
+            LogUtils.d(TAG, "initHost", "取不到 launcher 数据目录，功能不可用")
             return
         }
         hostContext = context
@@ -177,7 +178,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         lastToken = LauncherBackupUtils.parseCommand(
             preferences(ModulePrefs).getString(LauncherBackupUtils.KEY_COMMAND, "")
         )?.token
-        YLog.debug(TAG + " 初始化: pkg=" + appInfo.packageName + " dataRoot=" + root.absolutePath)
+        LogUtils.d(TAG, "initHost", "初始化: pkg=" + appInfo.packageName + " dataRoot=" + root.absolutePath)
         dataChannel.wait<String>(LauncherBackupUtils.KEY_COMMAND) { raw ->
             handleCommand(raw)
         }
@@ -196,11 +197,11 @@ object LauncherBackupHooker : YukiBaseHooker() {
     private fun handleCommand(raw: String?) {
         val command = LauncherBackupUtils.parseCommand(raw)
         if (command == null) {
-            YLog.debug("$TAG 忽略非法指令: $raw")
+            LogUtils.d(TAG, "handleCommand", "忽略非法指令: $raw")
             return
         }
         if (LauncherBackupUtils.isDuplicateToken(lastToken, command.token)) {
-            YLog.debug(TAG + " 重复指令，跳过: " + command.action)
+            LogUtils.d(TAG, "handleCommand", "重复指令，跳过: " + command.action)
             return
         }
         lastToken = command.token
@@ -237,7 +238,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
 
     private fun toast(text: String) {
         val context = hostContext ?: return
-        YLog.debug("$TAG $text")
+        LogUtils.d(TAG, "toast", "$text")
         runCatching {
             Handler(Looper.getMainLooper()).post {
                 runCatching { context.toast(text) }
@@ -280,7 +281,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                         }
                     }
                 }
-                YLog.debug("$TAG 挂载点命中: LauncherApplication#onCreate")
+                LogUtils.d(TAG, "installProcessStartMountPoint", "挂载点命中: LauncherApplication#onCreate")
             }.onFailure { throwable ->
                 YLog.debug("$TAG 挂载 LauncherApplication#onCreate 失败", throwable)
             }
@@ -299,7 +300,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             return
         }
         Handler(Looper.getMainLooper()).post {
-            YLog.debug("$TAG 挂载点触发自查: $reason")
+            LogUtils.d(TAG, "requestSelfCheck", "挂载点触发自查: $reason")
             runCatching { enqueueAutoBackupSelfCheck() }.onFailure {
                 YLog.debug(
                     "$TAG 挂载点自查入队失败",
@@ -340,7 +341,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 }
                 return
             }
-            if (!loaded) YLog.debug("$TAG 等待布局加载超时，仍做一次到期自查")
+            if (!loaded) LogUtils.d(TAG, "installAutoBackupSelfCheck", "等待布局加载超时，仍做一次到期自查")
             enqueueAutoBackupSelfCheck()
             hostContext?.lifecycleOwner?.runDelayed(selfCheckIntervalMs()) {
                 selfCheckTick.run()
@@ -397,7 +398,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             val context = hostContext ?: return
             val now = System.currentTimeMillis()
             if (!autoBackupDue(now)) {
-                YLog.debug("$TAG 自动备份未到期或仍在节流窗口内，跳过本次")
+                LogUtils.d(TAG, "runAutoBackupSelfCheck", "自动备份未到期或仍在节流窗口内，跳过本次")
                 return
             }
             LauncherBackupGate.markAttempt(context, now)
@@ -421,7 +422,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         model.asResolver().optional(true).firstMethodOrNull { name = "isModelLoaded"; superclass() }
             ?.invoke() as? Boolean ?: false
     }.getOrElse {
-        YLog.debug(TAG + " 读取布局加载状态失败: " + it.message)
+        LogUtils.d(TAG, "isModelLoaded", "读取布局加载状态失败: " + it.message)
         false
     }
 
@@ -472,7 +473,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         if (tag == LauncherSnapshotTag.MANUAL) {
             hostContext?.let { LauncherBackupGate.markSuccess(it) }
         }
-        YLog.debug(TAG + " 备份完成 " + snapshot.summary)
+        LogUtils.d(TAG, "backup", "备份完成 " + snapshot.summary)
         return Outcome(true, snapshot.summary)
     }
 
@@ -524,11 +525,11 @@ object LauncherBackupHooker : YukiBaseHooker() {
             )
         }
         if (!written) {
-            YLog.debug("$TAG 自动备份投稿后大小为 0: $target")
+            LogUtils.d(TAG, "autoBackup", "自动备份投稿后大小为 0: $target")
             deleteMedia(resolver, target)
             return Outcome(false, "投稿后大小为 0: $displayName")
         }
-        YLog.debug(TAG + " 自动备份完成 " + displayName + " " + snapshot.summary)
+        LogUtils.d(TAG, "autoBackup", "自动备份完成 " + displayName + " " + snapshot.summary)
         evictSnapshots(resolver, collection, displayName)
         return Outcome(true, snapshot.summary)
     }
@@ -662,7 +663,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             return
         }
         if (skippedForeign > 0) {
-            YLog.debug("$TAG 跳过 $skippedForeign 份非本进程投稿的旧快照（owner 不是 $hostPackage，删不掉）")
+            LogUtils.d(TAG, "evictSnapshots", "跳过 $skippedForeign 份非本进程投稿的旧快照（owner 不是 $hostPackage，删不掉）")
         }
         val idByName = rows.associate { it.name to it.id }
         val excluded =
@@ -673,7 +674,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 val removed = runCatching {
                     resolver.delete(ContentUris.withAppendedId(collection, id), null, null)
                 }.getOrDefault(0) > 0
-                if (!removed) YLog.debug(TAG + " 删除旧投稿失败: " + candidate.fileName)
+                if (!removed) LogUtils.d(TAG, "evictSnapshots", "删除旧投稿失败: " + candidate.fileName)
             }
     }
 
@@ -724,7 +725,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                     LauncherBackupUtils.LAYOUT_TABLES.forEach { table ->
                         val rows = payload.tables.optJSONArray(table) ?: return@forEach
                         if (table !in existing) {
-                            YLog.debug("$TAG 当前库没有表，跳过: $table")
+                            LogUtils.d(TAG, "restore", "当前库没有表，跳过: $table")
                             return@forEach
                         }
                         restoreTable(database, table, rows)
@@ -796,7 +797,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             superclass()
         }
         if (manager == null || method == null) {
-            YLog.debug("$TAG 取不到 DeepProtectedAppsManager.I，隐藏应用状态未同步")
+            LogUtils.d(TAG, "syncHiddenApps", "取不到 DeepProtectedAppsManager.I，隐藏应用状态未同步")
             return "hidden=skip(no entry)"
         }
 
@@ -821,7 +822,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         if (remaining.toHide.isNotEmpty() || remaining.toUnhide.isNotEmpty()) {
             val fallback =
                 remaining.toHide.map { it to true } + remaining.toUnhide.map { it to false }
-            YLog.debug(TAG + " I() 未生效 " + fallback.size + " 条，回退存储层 HiddenDataCollection")
+            LogUtils.d(TAG, "syncHiddenApps", "I() 未生效 " + fallback.size + " 条，回退存储层 HiddenDataCollection")
             fallback.forEach { (app, hidden) ->
                 if (!applyStorageFallback(manager, app, hidden)) failed++
             }
@@ -944,7 +945,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             )
         val columns = snapshotColumns.filter { it in currentColumns }
         if (columns.isEmpty()) {
-            YLog.debug("$TAG 备份与当前库没有共同列，跳过: $table")
+            LogUtils.d(TAG, "restoreTable", "备份与当前库没有共同列，跳过: $table")
             return
         }
         val quotedColumns = columns.joinToString(", ") { quote(it) }
@@ -956,7 +957,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             val args = columns.map { column -> toBindArg(row.opt(column)) }.toTypedArray()
             database.execSQL(sql, args)
         }
-        YLog.debug(TAG + " 写回表 " + table + " 行数 " + rows.length())
+        LogUtils.d(TAG, "restoreTable", "写回表 " + table + " 行数 " + rows.length())
     }
 
     private fun quote(name: String): String = "\"" + name + "\""
@@ -998,7 +999,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 val retryable = message.contains("locked", true) || message.contains("busy", true)
                 if (!retryable) throw throwable
                 last = throwable
-                YLog.debug(TAG + " 数据库忙，重试 " + (index + 1) + ": " + message)
+                LogUtils.d(TAG, "openDatabase", "数据库忙，重试 " + (index + 1) + ": " + message)
                 runCatching { Thread.sleep(300L * (index + 1)) }
             }
         }

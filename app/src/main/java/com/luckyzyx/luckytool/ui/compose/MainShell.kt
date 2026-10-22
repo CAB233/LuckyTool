@@ -111,6 +111,10 @@ fun MainShell(activity: MainActivity) {
         }
     }
 
+    // 功能页数据（功能树行 + 全屏搜索索引）在 App 打开时就后台预取：切到「功能」标签页时
+    // 不再现算 50 页偏好 DSL + PackageManager IPC，避免首帧空白再 pop-in 的割裂感（见 FunctionPageData）
+    LaunchedEffect(activity) { FunctionPageData.preload(activity) }
+
     // 启动门优先；权限未齐全时不挂载导航内容。
     if (activity.isPermissionGateActive && activity.gateDialog == null) {
         PermissionGateScreen(activity)

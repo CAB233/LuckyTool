@@ -1,3 +1,4 @@
+
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -82,10 +83,6 @@ android {
             useLegacyPackaging = false
         }
     }
-}
-
-kotlin {
-    jvmToolchain(gropify.project.jdk.version)
 }
 
 @Suppress("UnstableApiUsage")

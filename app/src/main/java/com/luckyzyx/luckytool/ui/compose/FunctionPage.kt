@@ -27,7 +27,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -43,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
@@ -57,11 +57,9 @@ import com.luckyzyx.luckytool.ui.compose.components.material.MaterialPageScaffol
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialTextField
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageContent
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageRegistry
-import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.AppUtils
-import com.luckyzyx.luckytool.utils.LogUtils
 import com.luckyzyx.luckytool.utils.PrefState
 import com.luckyzyx.luckytool.utils.RestartMenuUtils
 import com.luckyzyx.luckytool.utils.SettingsPrefs
@@ -69,8 +67,6 @@ import com.luckyzyx.luckytool.utils.formatStringAuto
 import com.luckyzyx.luckytool.utils.sendPrefsValue
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TablePlugin
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Close2
@@ -168,8 +164,6 @@ private fun FunctionTreeScreen(
     }
 }
 
-private data class SearchEntry(val pageKey: String, val pageTitle: String, val item: PrefIndexItem)
-
 /** 全屏搜索：索引 = 全部已注册页 headless 构建，spec 手动不可见与单 App 作用域未安装页不入索引；过滤平移旧 SearchResultAdapter 规则 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -189,18 +183,10 @@ internal fun FunctionSearchScreen(onBack: () -> Unit, onOpen: (ScopeRoute) -> Un
         keyboardController?.show()
     }
 
-    val entries by produceState(initialValue = emptyList<SearchEntry>(), key1 = Unit) {
-        value = try {
-            withContext(Dispatchers.IO) {
-                ScopePageRegistry.all().filter { it.isVisible(context) && ScopePageRegistry.isScopeAppPresent(context, it) }.flatMap { spec ->
-                    ScopePageRegistry.buildIndex(context, spec).map { item -> SearchEntry(spec.pageKey, pageTitle(context, spec), item) }
-                }
-            }
-        } catch (t: Throwable) {
-            LogUtils.e("FunctionPage", "buildSearchEntries", t.toString(), true)
-            emptyList()
-        }
-    }
+    // 索引与功能树同一份预取快照（FunctionPageData），进搜索页即有结果，不再现场构建
+    val snapshot by FunctionPageData.snapshot.collectAsStateWithLifecycle()
+    val entries = snapshot?.searchEntries.orEmpty()
+    LaunchedEffect(context) { FunctionPageData.revalidate(context) }
 
     // 过滤规则对齐 SearchResultAdapter.getFilter：key/title/summary contains(ignoreCase)，并补充页标题匹配
     val filtered = remember(entries, query) {
