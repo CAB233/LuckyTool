@@ -94,16 +94,16 @@ internal object FunctionPageData {
     private val building = AtomicBoolean(false)
 
     /** App 启动时调用：提前把功能页数据准备好（重复调用等价于一次 [revalidate]） */
-    fun preload(context: Context) {
-        refresh(context.applicationContext)
+    fun preload(context: Context, iconSizePx: Int) {
+        refresh(context.applicationContext, iconSizePx)
     }
 
     /** 进入功能页 / 全屏搜索时调用：旧快照先渲染，后台重算后替换 */
-    fun revalidate(context: Context) {
-        refresh(context.applicationContext)
+    fun revalidate(context: Context, iconSizePx: Int) {
+        refresh(context.applicationContext, iconSizePx)
     }
 
-    private fun refresh(context: Context) {
+    private fun refresh(context: Context, iconSizePx: Int) {
         if (!building.compareAndSet(false, true)) return
         scope.launch {
             try {
@@ -111,7 +111,7 @@ internal object FunctionPageData {
                 // 内容没变就不发布：结构相等的新对象会让整棵树重新组合一次
                 if (_snapshot.value != built) _snapshot.value = built
                 // 图标预热必须在主线程调用（AppIconCache.state 的线程约定），这里只登记不加载
-                withContext(Dispatchers.Main.immediate) { warmIcons(context, built.rows) }
+                withContext(Dispatchers.Main.immediate) { warmIcons(context, built.rows, iconSizePx) }
             } catch (t: Throwable) {
                 // buildIndex 内部逐页兜底，这里兜住 isVisible / 标题 / 图标包名等外层逻辑，
                 // 失败时保留上一份快照（旧实现是整棵树变空）
@@ -152,9 +152,9 @@ internal object FunctionPageData {
         return FunctionPageSnapshot(rows, searchEntries)
     }
 
-    private fun warmIcons(context: Context, rows: List<TreeRow>) {
+    private fun warmIcons(context: Context, rows: List<TreeRow>, iconSizePx: Int) {
         rows.forEach { row ->
-            row.packName?.takeIf { it.isNotEmpty() }?.let { AppIconCache.state(context, it) }
+            row.packName?.takeIf { it.isNotEmpty() }?.let { AppIconCache.state(context, it, iconSizePx) }
         }
     }
 

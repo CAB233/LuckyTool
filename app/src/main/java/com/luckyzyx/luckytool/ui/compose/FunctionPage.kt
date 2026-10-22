@@ -27,6 +27,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -35,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -60,6 +62,7 @@ import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageRegistry
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.AppUtils
+import com.luckyzyx.luckytool.utils.LogUtils
 import com.luckyzyx.luckytool.utils.PrefState
 import com.luckyzyx.luckytool.utils.RestartMenuUtils
 import com.luckyzyx.luckytool.utils.SettingsPrefs
@@ -67,6 +70,8 @@ import com.luckyzyx.luckytool.utils.formatStringAuto
 import com.luckyzyx.luckytool.utils.sendPrefsValue
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TablePlugin
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Close2
@@ -99,13 +104,6 @@ fun FunctionPage(
         onShowVersionInfo = { showVersionInfo = true },
         onShowRestartMenu = { showRestartMenu = true },
     )
-}
-
-/** 页标题：对齐旧功能树 root 标题（apps/others = App 标签；related/statusbar = 覆盖表） */
-private fun pageTitle(context: Context, spec: ScopePageSpec): String {
-    ScopePageRegistry.treeTitleRes[spec.pageKey]?.let { return context.getString(it) }
-    val pack = spec.displayPackName ?: spec.packName
-    return AppUtils(context).getAppLabel(pack).toString()
 }
 
 /** 功能树：50 页固定顺序（ScopePageRegistry.treeOrder），spec 手动不可见、单 App 作用域未安装或空索引页隐藏（selfRendered 特殊页除外） */
@@ -186,7 +184,9 @@ internal fun FunctionSearchScreen(onBack: () -> Unit, onOpen: (ScopeRoute) -> Un
     // 索引与功能树同一份预取快照（FunctionPageData），进搜索页即有结果，不再现场构建
     val snapshot by FunctionPageData.snapshot.collectAsStateWithLifecycle()
     val entries = snapshot?.searchEntries.orEmpty()
-    LaunchedEffect(context) { FunctionPageData.revalidate(context) }
+    // 图标预热尺寸必须与功能树读取时一致（AppIconCache 的键含 size，不一致会白热一份）
+    val iconSize = with(LocalDensity.current) { 48.dp.roundToPx() }
+    LaunchedEffect(context, iconSize) { FunctionPageData.revalidate(context, iconSize) }
 
     // 过滤规则对齐 SearchResultAdapter.getFilter：key/title/summary contains(ignoreCase)，并补充页标题匹配
     val filtered = remember(entries, query) {
