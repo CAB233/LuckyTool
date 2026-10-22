@@ -85,8 +85,8 @@ class HomeDashboardTest {
             h.scrollTo("更多设备信息")
             h.ui.clickText("更多设备信息")
             h.ui.advance()
-            h.scrollTo("LSPosed v2.2.1 (7912)")
-            assertNotNull(h.ui.textNode("3.3.1 (32680)"))
+            h.scrollTo(frameworkLine)
+            assertNotNull(h.ui.textNode(rootLine))
             h.mode = UiMode.Material
             h.ui.advance()
             h.scrollTo("收起详细信息")
@@ -138,8 +138,10 @@ class HomeDashboardTest {
         for (color in listOf(ColorMode.LIGHT, ColorMode.DARK, ColorMode.MONET_LIGHT, ColorMode.MONET_DARK)) {
             HomeHost(UiMode.Miuix, color, width = 720, fontScale = 1.4f, rtl = true).use { h ->
                 val version = "${h.ui.activity.getString(R.string.version)}: 1.3.5_beta (22848)"
+                val framework = "${h.ui.activity.getString(R.string.framework_version)} LSPosed v2.2.1 (7912)"
                 assertFalse(h.layout(version).hasVisualOverflow)
-                assertTrue(h.ui.textNode(version)!!.boundsInRoot.bottom <= h.ui.textNode("LSPosed")!!.boundsInRoot.top)
+                assertFalse(h.layout(framework).hasVisualOverflow)
+                assertTrue(h.ui.textNode(version)!!.boundsInRoot.bottom <= h.ui.textNode(framework)!!.boundsInRoot.top)
                 h.longClick("模块已激活")
                 assertEquals(1, h.status)
                 h.ui.snapshot("home-status-${color.name.lowercase()}-large-rtl")
@@ -223,6 +225,8 @@ class HomeDashboardTest {
 
     companion object {
         private const val model = "realme RMX5200 真我 GT8 Pro"
+        private const val rootLine = "Root来源: 3.3.1 (32680)"
+        private const val frameworkLine = "框架版本: LSPosed v2.2.1 (7912)"
         private val sample = HomeDashboardState(
             moduleActive = true, moduleVersion = "1.3.5_beta (22848)",
             rootVersion = "Root 来源：3.3.1 (32680)", frameworkVersion = "框架版本：LSPosed v2.2.1 (7912)",

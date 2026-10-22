@@ -57,7 +57,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
@@ -87,7 +86,6 @@ import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.icon.extended.Update
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
@@ -119,12 +117,6 @@ internal fun HomeDashboard(
     val listState = rememberLazyListState()
     var detailsExpanded by rememberSaveable { mutableStateOf(false) }
     val colors = homeColors()
-    val deviceInfo = if (miuix && state.moduleActive) state.deviceInfo?.plus(
-        listOfNotNull(
-            state.rootVersion?.let { DeviceInfoEntry(R.string.root_source, runtimeInfoValue(it)) },
-            state.frameworkVersion?.let { DeviceInfoEntry(R.string.framework_version, runtimeInfoValue(it)) },
-        ),
-    ) else state.deviceInfo
     val bottomPadding = materialBottomInset(24.dp)
     MaterialPageScaffold(
         title = stringResource(R.string.app_name),
@@ -172,7 +164,7 @@ internal fun HomeDashboard(
                 }
                 item(key = "device") {
                     HomeDeviceCard(
-                        entries = deviceInfo,
+                        entries = state.deviceInfo,
                         expanded = detailsExpanded,
                         onExpandedChange = { detailsExpanded = !detailsExpanded },
                         colors = colors,
@@ -252,7 +244,7 @@ private fun HomeStatusCard(state: HomeDashboardState, colors: HomeColors, onLong
     }
 }
 
-/** 已激活状态以独立背景和装饰图标呈现，版本详情在设备信息中保留。 */
+/** 已激活状态以独立背景和装饰图标呈现，Root 来源与框架版本在卡片内展示。 */
 @Composable
 private fun MiuixActiveStatusCard(state: HomeDashboardState, onLongClick: (() -> Unit)?) {
     val dynamicColor = MiuixTheme.isDynamicColor
@@ -267,8 +259,8 @@ private fun MiuixActiveStatusCard(state: HomeDashboardState, onLongClick: (() ->
         else -> Color(0xFFDFFAE4)
     }
     val foreground = MiuixTheme.colorScheme.onSurfaceContainer
+    val root = state.rootVersion?.let(::runtimeInfoValue)?.takeUnless { it.isBlank() || it == "—" } ?: "—"
     val framework = state.frameworkVersion?.let(::runtimeInfoValue)
-        ?.substringBefore(' ')
         ?.takeUnless { it.isBlank() || it == "—" }
         ?: "Xposed"
     val textStyle = MiuixTheme.textStyles.main.copy(textDirection = TextDirection.ContentOrLtr)
@@ -277,7 +269,6 @@ private fun MiuixActiveStatusCard(state: HomeDashboardState, onLongClick: (() ->
         colors = MiuixCardDefaults.defaultColors(color = background, contentColor = foreground),
         onLongPress = onLongClick,
         showIndication = onLongClick != null,
-        pressFeedbackType = PressFeedbackType.Tilt,
     ) {
         Box(Modifier.fillMaxWidth()) {
             Box(
@@ -309,16 +300,23 @@ private fun MiuixActiveStatusCard(state: HomeDashboardState, onLongClick: (() ->
                     fontSize = 15.sp,
                     color = foreground,
                 )
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(10.dp))
                 MiuixText(
-                    text = framework,
+                    text = "${stringResource(R.string.root_source)} $root",
                     modifier = Modifier.fillMaxWidth().padding(end = 80.dp),
                     style = textStyle,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Medium,
                     color = foreground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(2.dp))
+                MiuixText(
+                    text = "${stringResource(R.string.framework_version)} $framework",
+                    modifier = Modifier.fillMaxWidth().padding(end = 80.dp),
+                    style = textStyle,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = foreground,
                 )
             }
         }
