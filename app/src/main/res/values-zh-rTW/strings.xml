@@ -1280,6 +1280,8 @@
     <string name="oplus_keyboard_blur_radius">模糊強度</string>
     <string name="oplus_keyboard_blur_radius_summary">鍵盤向系統請求的模糊半徑，宿主內建值為 150，數值越大越模糊</string>
     <string name="settings_floating_bottom_bar_summary">使用僅顯示圖示的懸浮底欄</string>
+    <string name="settings_category_badge_colors">多彩分類圖示</string>
+    <string name="settings_category_badge_colors_summary">功能頁分類列（應用相關、狀態列相關等）使用彩色徽章；關閉後改用跟隨主題的單色圖示</string>
     <string name="settings_floating_bottom_bar_style">懸浮底欄樣式</string>
     <string name="settings_floating_style_miuix">Miuix</string>
     <string name="settings_floating_style_ios">iOS 風格（液態玻璃）</string>

@@ -41,6 +41,14 @@ internal data class SearchEntry(val pageKey: String, val pageTitle: String, val 
 /** 分类页彩色徽标配色：固定色（不随深浅色模式变化，与应用图标一致）+ 白色矢量图标 */
 internal data class CategoryBadge(val icon: ImageVector, val color: Color)
 
+/**
+ * 功能树行图标来源：分类页走 [categoryBadges] 彩色徽标（无包名），应用页用
+ * `displayPackName ?: packName` 的应用原图。功能树列表与启动预取共用这一个判据，
+ * 避免两边各写一份（拆开写过一次，结果「应用相关」拿到了电池 App 的图标）。
+ */
+internal fun rowIconPackName(pageKey: String, spec: ScopePageSpec): String? =
+    if (pageKey in categoryBadges) null else (spec.displayPackName ?: spec.packName)
+
 internal val categoryBadges: Map<String, CategoryBadge> = mapOf(
     "android_related" to CategoryBadge(Icons.Filled.Android, Color(0xFF3DDC84)),
     "statusbar" to CategoryBadge(Icons.Filled.SignalCellularAlt, Color(0xFF4285F4)),
@@ -142,7 +150,7 @@ internal object FunctionPageData {
             // 空索引不代表不可见；判据与 ScopePageRegistry.hasVisibleContent 一致
             if (page.index.isEmpty() && !spec.selfRendered) return@mapNotNull null
             val summary = page.index.mapNotNull { it.title }.take(3).joinToString(" · ").ifEmpty { null }
-            val packName = if (key in categoryBadges) null else (spec.displayPackName ?: spec.packName)
+            val packName = rowIconPackName(key, spec)
             TreeRow(key, page.title, summary, packName)
         }
         val searchEntries = specs.flatMap { spec ->

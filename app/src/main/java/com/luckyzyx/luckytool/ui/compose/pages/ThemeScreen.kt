@@ -56,6 +56,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Colorize
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.DesignServices
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material.icons.rounded.Swipe
 import androidx.compose.material.icons.rounded.ViewCarousel
@@ -280,6 +281,15 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
                 .coerceIn(ModuleLinesMin, ModuleLinesMax)
         )
     }
+    var categoryBadgeColors by remember {
+        mutableStateOf(
+            context.getBoolean(
+                SettingsPrefs,
+                ShellSettingsController.KEY_CATEGORY_BADGE_COLORS,
+                true
+            )
+        )
+    }
     var uiMode by remember { mutableStateOf(ThemeController.getUiMode(context)) }
 
     val appSettings = AppSettings(
@@ -501,11 +511,28 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
                 }
             }
 
-            // 系统不支持预测性返回时，另外两项应用内手势仍可配置。
+            // 分类页图标配色 + 应用内手势；系统不支持预测性返回时，另外两项仍可配置。
             item {
                 MaterialGroup(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     content = buildList<@Composable () -> Unit> {
+                        add {
+                            MaterialSwitchItem(
+                                icon = Icons.Rounded.Palette,
+                                title = stringResource(R.string.settings_category_badge_colors),
+                                summary = stringResource(R.string.settings_category_badge_colors_summary),
+                                checked = categoryBadgeColors,
+                                onCheckedChange = {
+                                    categoryBadgeColors = it
+                                    context.putBoolean(
+                                        SettingsPrefs,
+                                        ShellSettingsController.KEY_CATEGORY_BADGE_COLORS,
+                                        it
+                                    )
+                                    ThemePrefs.notifyChanged()
+                                },
+                            )
+                        }
                         if (PredictiveBackUtils.isSupported()) {
                             add {
                                 MaterialSwitchItem(
@@ -972,6 +999,9 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
     var floatingBottomBarStyle by remember {
         mutableStateOf(ShellSettingsController.get(context).floatingBottomBarStyle)
     }
+    var categoryBadgeColors by remember {
+        mutableStateOf(ShellSettingsController.get(context).categoryBadgeColors)
+    }
 
     // 外壳行为项
     var swipeDismiss by remember { mutableStateOf(ShellSettingsController.get(context).swipeDismiss) }
@@ -1036,6 +1066,11 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
     val setEnableFloatingBottomBar: (Boolean) -> Unit = { enabled ->
         enableFloatingBottomBar = enabled
         context.putBoolean(SettingsPrefs, KeyEnableFloatingBottomBar, enabled)
+        ThemePrefs.notifyChanged()
+    }
+    val setCategoryBadgeColors: (Boolean) -> Unit = { enabled ->
+        categoryBadgeColors = enabled
+        context.putBoolean(SettingsPrefs, ShellSettingsController.KEY_CATEGORY_BADGE_COLORS, enabled)
         ThemePrefs.notifyChanged()
     }
     val setFloatingBottomBarStyle: (Int) -> Unit = { index ->
@@ -1254,6 +1289,21 @@ private fun ThemeScreenMiuix(onBack: () -> Unit) {
                             .padding(top = 12.dp)
                             .fillMaxWidth(),
                     ) {
+                        SwitchPreference(
+                            title = stringResource(R.string.settings_category_badge_colors),
+                            summary = stringResource(R.string.settings_category_badge_colors_summary),
+                            startAction = {
+                                MiuixIcon(
+                                    Icons.Rounded.Palette,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(R.string.settings_category_badge_colors),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = categoryBadgeColors,
+                            onCheckedChange = setCategoryBadgeColors
+                        )
+
                         if (isRenderEffectSupported()) {
                             SwitchPreference(
                                 title = stringResource(id = R.string.settings_enable_blur),

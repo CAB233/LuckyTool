@@ -24,6 +24,7 @@ import androidx.core.view.WindowCompat
 import com.luckyzyx.luckytool.ui.shell.LocalEnableBlur
 import com.luckyzyx.luckytool.ui.shell.LocalEnableFloatingBottomBar
 import com.luckyzyx.luckytool.ui.shell.LocalFloatingBottomBarStyle
+import com.luckyzyx.luckytool.ui.shell.LocalCategoryBadgeColors
 import com.luckyzyx.luckytool.ui.shell.LocalEnableNavigationBadge
 import com.luckyzyx.luckytool.ui.shell.LocalEnableSwipeDismiss
 import com.luckyzyx.luckytool.ui.shell.LocalModuleDescriptionMaxLines
@@ -184,6 +185,7 @@ fun LuckyAppTheme(content: @Composable () -> Unit) {
         LocalEnableSwipeDismiss provides shellSettings.swipeDismiss,
         LocalPagerInterceptionMode provides shellSettings.pagerInterceptionMode,
         LocalModuleDescriptionMaxLines provides shellSettings.moduleDescriptionMaxLines,
+        LocalCategoryBadgeColors provides shellSettings.categoryBadgeColors,
     ) {
         LuckyTheme(appSettings = appSettings, uiMode = uiMode, content = content)
     }

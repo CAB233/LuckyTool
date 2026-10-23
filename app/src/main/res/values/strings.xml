@@ -57,6 +57,8 @@
     <string name="settings_enable_blur_summary">Enable blur effect for the bottom bar.</string>
     <string name="settings_floating_bottom_bar">Floating bottom bar</string>
     <string name="settings_floating_bottom_bar_summary">Use a floating bottom bar with icons only.</string>
+    <string name="settings_category_badge_colors">Colorful category icons</string>
+    <string name="settings_category_badge_colors_summary">Use colored badges for category rows (Apps, Status bar, …). Turn off for single-color icons that follow the theme.</string>
     <string name="color_red">Red</string>
     <string name="color_pink">Pink</string>
     <string name="color_purple">Purple</string>

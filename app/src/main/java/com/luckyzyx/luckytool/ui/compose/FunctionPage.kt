@@ -125,7 +125,7 @@ private fun FunctionTreeScreen(
                     // 自带整页渲染的特殊页（暗色模式列表/意图/自定义浮窗等）不声明共享行、索引恒空，
                     // 空索引不代表不可见；判据与 ScopePageRegistry.hasVisibleContent 一致
                     if (index.isEmpty() && !spec.selfRendered) return@mapNotNull null
-                    val packName = spec.displayPackName ?: spec.packName
+                    val packName = rowIconPackName(key, spec)
                     val summary = if (key == "android_related" || key in ScopePageRegistry.treeTitleRes) {
                         index.mapNotNull { it.title }.take(3).joinToString(" · ").ifEmpty { null }
                     } else {

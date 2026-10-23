@@ -37,7 +37,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 #### Optimized
 
 - Clarified the descriptions of the “app clone limit” options: “How many apps can be cloned” and “The number of clones a single app can have”
-- The function page data is preloaded in the background when the app starts — switching to the Function tab and opening the full-screen search no longer wait for the list to be built; they show the previous result immediately and refresh in the background
+- The category rows on the function page now use colored badges — they previously resolved an app icon from the scope package name, which showed the battery icon for “Apps”; a new “Colorful category icons” switch falls back to single-color theme badges
 
 #### Fixed
 

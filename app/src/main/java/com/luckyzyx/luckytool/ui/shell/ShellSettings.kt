@@ -38,7 +38,8 @@ enum class FloatingBottomBarStyle(val value: String) {
  * 偏好键及默认值：
  * enable_navigation_badge = true、enable_predictive_back = true、enable_swipe_dismiss = true、
  * pager_interception_mode = 1、page_scale = 1.0f、module_description_max_lines = 4、
- * enable_blur = false、enable_floating_bottom_bar = false、floating_bottom_bar_style = miuix。
+ * enable_blur = false、enable_floating_bottom_bar = false、floating_bottom_bar_style = miuix、
+ * enable_category_badge_colors = true。
  *
  * enable_predictive_back 默认开启；
  * targetSdk 已提升到 37（>= 33），系统默认即为应用派发预测性返回，故改为「默认开启、可手动关闭」
@@ -58,6 +59,8 @@ data class ShellSettings(
     val enableFloatingBottomBar: Boolean = false,
     /** 两种样式均由 enableBlur 控制模糊效果。 */
     val floatingBottomBarStyle: FloatingBottomBarStyle = FloatingBottomBarStyle.Miuix,
+    /** 功能页分类行（应用相关 / 状态栏相关 / …）使用多彩徽标；关闭则退化成主题色单色徽标。 */
+    val categoryBadgeColors: Boolean = true,
 )
 
 object ShellSettingsController {
@@ -70,6 +73,7 @@ object ShellSettingsController {
     const val KEY_ENABLE_BLUR = "enable_blur"
     const val KEY_FLOATING_BOTTOM_BAR = "enable_floating_bottom_bar"
     const val KEY_FLOATING_BOTTOM_BAR_STYLE = "floating_bottom_bar_style"
+    const val KEY_CATEGORY_BADGE_COLORS = "enable_category_badge_colors"
     // 旧液态玻璃开关仅用于兼容已有偏好。
     const val KEY_FLOATING_BOTTOM_BAR_BLUR = "enable_floating_bottom_bar_blur"
 
@@ -86,6 +90,7 @@ object ShellSettingsController {
         enableBlur = context.getBoolean(SettingsPrefs, KEY_ENABLE_BLUR, false),
         enableFloatingBottomBar = context.getBoolean(SettingsPrefs, KEY_FLOATING_BOTTOM_BAR, false),
         floatingBottomBarStyle = floatingBottomBarStyle(context),
+        categoryBadgeColors = context.getBoolean(SettingsPrefs, KEY_CATEGORY_BADGE_COLORS, true),
     )
 
     private fun floatingBottomBarStyle(context: Context): FloatingBottomBarStyle {
@@ -113,6 +118,9 @@ val LocalEnableFloatingBottomBar = staticCompositionLocalOf { false }
 
 /** 当前悬浮底栏样式。 */
 val LocalFloatingBottomBarStyle = staticCompositionLocalOf { FloatingBottomBarStyle.Miuix }
+
+/** 功能页分类行多彩图标开关（关闭时用主题色单色徽标）。 */
+val LocalCategoryBadgeColors = staticCompositionLocalOf { true }
 
 /** 边缘横移返回手势开关 */
 val LocalEnableSwipeDismiss = staticCompositionLocalOf { true }
