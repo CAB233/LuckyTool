@@ -52,6 +52,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Fixed donate data loading by switching to the jsDelivr mirror
 - Fixed repeated permission requests and repeated jumps to the system settings page after returning from it — a cold start no longer requests permissions or jumps to the system settings page at all, the permission check only queries, and every grant starts from a button inside the page
 - Fixed backups right after a reboot or a scope reload always timing out — the command is re-sent with a fresh token (up to 4 times) while the launcher process comes up, and the status row shows the attempt
+- Fixed the “Use user typeface” switch doing nothing under the default network speed layout — the user typeface is now independent of the layout mode, so the default layout can swap just the typeface while text, size and spacing stay with the system
 
 #### Changed
 
