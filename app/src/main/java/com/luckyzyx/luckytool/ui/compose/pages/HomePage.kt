@@ -72,7 +72,9 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
     val context = LocalContext.current
     val settings = remember { PrefState.of(context, SettingsPrefs) }
     val zh = remember(context) { isZh(context) }
-    val isDev = remember { settings.getBoolean("hidden_function", false) }
+    // 隐藏功能可在运行期被「关于作者」长按反复切换：必须走可观察 Flow，
+    // 不能用 remember 快照（否则开关关掉后 isDev 仍停留在组合时的旧值）
+    val isDev by settings.booleanFlow("hidden_function", false).collectAsStateWithLifecycle()
 
     // 激活状态直接跟随框架服务绑定/断开（观察式），不再靠进入页面时问一次
     val moduleActive by XposedServiceBridge.isModuleActive.collectAsStateWithLifecycle()
@@ -85,7 +87,7 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
     var deviceInfoJob by remember { mutableStateOf<Job?>(null) }
     var updateInfo by remember { mutableStateOf<String?>(null) }
     var updateClick by remember { mutableStateOf<(() -> Unit)?>(null) }
-    var statusCardClick by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var latestUpdate by remember { mutableStateOf<UpdateUtils.UpdateInfo?>(null) }
     var showAbout by remember { mutableStateOf(false) }
     var aboutText by remember { mutableStateOf("") }
     var dexDialogVisible by remember { mutableStateOf(false) }
@@ -111,13 +113,14 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
     fun checkForUpdates() {
         if (!settings.getBoolean("auto_check_update", true)) return
         UpdateUtils(activity, isDev).checkUpdate { info ->
+            // 只留存发布信息，长按状态卡是否可用在展示侧按当前 isDev 现场判定
+            latestUpdate = info
             // 导航角标：有新版本时在「主页」tab 上提示（受主题页的导航角标开关控制）
             ShellBadgeState.updateAvailable = getVersionCode < info.code
             if (getVersionCode < info.code) {
                 updateInfo = "${info.name} (${info.code})"
                 updateClick = { updateStage = UpdateStage.Changelog(info) }
             }
-            if (isDev) statusCardClick = { updateStage = UpdateStage.Changelog(info) }
         }
     }
 
@@ -154,6 +157,11 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
         onResume = ::loadHomeData,
     )
 
+    // 长按状态卡查看更新日志属于隐藏功能：关闭后立刻失效，不残留上一次绑定的回调
+    val statusCardLongClick: (() -> Unit)? = if (!isDev) null else latestUpdate?.let { info ->
+        { updateStage = UpdateStage.Changelog(info) }
+    }
+
     HomeDashboard(
         state = HomeDashboardState(
             moduleActive = moduleActive,
@@ -171,7 +179,7 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
             showAbout = true
         },
         onUpdate = { updateClick?.invoke() },
-        onStatusLongClick = statusCardClick,
+        onStatusLongClick = statusCardLongClick,
         onCopyDeviceInfo = {
             context.copyStr(DeviceUtils.getOTACOnfigs())
             context.showToast(context.getString(R.string.home_device_info_copied))
