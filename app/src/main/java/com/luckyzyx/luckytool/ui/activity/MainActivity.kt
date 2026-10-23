@@ -100,6 +100,9 @@ open class MainActivity : AppCompatActivity() {
         checkXposed()
         checkOs()
         checkUserId()
+
+        // 指纹校验的开关在 SettingsPrefs 上，这份 prefs 只读本地文件（见 Context.appPrefs），
+        // 与框架 service 绑定无关，所以不必等激活检测结果
         checkBiometric()
 
         // 冷启动不申请任何权限：这里只做纯查询，检测出缺项就由 MainShell 进入权限阻塞页，
@@ -107,8 +110,8 @@ open class MainActivity : AppCompatActivity() {
         refreshPermissionGate()
 
         setContent {
-            // 闪屏与加载层是中性配色、不读主题；主题（ThemeController）与主界面都要从 prefs 读，
-            // 而框架服务绑定前 prefs 只能回落本地（读到默认值），所以激活检测出结果后再包主题、组合主界面
+            // 闪屏与加载层是中性配色、不读主题；主界面的页面数据来自 ModulePrefs（remote 优先），
+            // 绑定没落定时读到的还是默认值，所以激活检测出结果后再组合主界面
             LuckySplashHost {
                 if (isActivationPending) {
                     ActivationLoadingLayer()
@@ -189,6 +192,7 @@ open class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** 生物识别解锁校验：开关在 SettingsPrefs（只读本地文件），冷启动时直接调用即可，与框架服务绑定无关 */
     private fun checkBiometric() {
         val enable = getBoolean(SettingsPrefs, "enable_biometric_unlock_verification", false)
         val manager = getSystemService(classOf<KeyguardManager>())

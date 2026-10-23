@@ -15,11 +15,20 @@ const val SettingsPrefs: String = "SettingsPrefs"
 const val OtherPrefs: String = "OtherPrefs"
 
 /**
- * UI 侧 prefs 访问统一入口：框架 service 可用（YukiHook.Status 观察到的 available）时走 remote prefs
- * （与宿主进程 YukiHookPreferences 同一数据源），不可用时回落本地 prefs。
+ * 只读本地文件的 prefs：这两个文件里的键 hook 侧一处都不读（宿主进程读的是 ModulePrefs / IntentPrefs），
+ * 所以没必要绕框架 service —— 绑定失败或未激活时设置照样能存住，不会因为「回落本地读到默认值」
+ * 出现配置看起来丢了、写回去又被下次启动覆盖的情况。
+ */
+private val LocalOnlyPrefs: Set<String> = setOf(SettingsPrefs, OtherPrefs)
+
+/**
+ * UI 侧 prefs 访问统一入口：[LocalOnlyPrefs] 固定走本地 prefs；其余在框架 service 可用
+ * （YukiHook.Status 观察到的 available）时走 remote prefs（与宿主进程 YukiHookPreferences 同一数据源），
+ * 不可用时回落本地 prefs。
  */
 internal fun Context.appPrefs(prefsName: String): android.content.SharedPreferences =
-    XposedServiceBridge.preferences(prefsName)
+    if (prefsName in LocalOnlyPrefs) getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+    else XposedServiceBridge.preferences(prefsName)
         ?: getSharedPreferences(prefsName, Context.MODE_PRIVATE)
 
 
