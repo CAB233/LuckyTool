@@ -1,6 +1,5 @@
 package com.luckyzyx.luckytool.ui.compose
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -35,11 +34,13 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -114,7 +115,8 @@ private fun FunctionTreeScreen(
     onShowRestartMenu: () -> Unit,
 ) {
     val context = LocalContext.current
-    val rows by produceState(initialValue = emptyList<FunctionRow>(), key1 = Unit) {
+    // 以 Configuration 作 key：语言/字号等变化后需要重建行数据里的页面标题
+    val rows by produceState(initialValue = emptyList<FunctionRow>(), key1 = LocalConfiguration.current) {
         value = try {
             withContext(Dispatchers.IO) {
                 ScopePageRegistry.treeOrder.mapNotNull { key ->
@@ -444,16 +446,16 @@ internal fun ScopePageHost(
 }
 
 /** 版本信息对话框：xposed_scope 各包版本表（对齐旧 showBottomDialog，Markwon 渲染） */
-@SuppressLint("LocalContextResourcesRead")
 @Composable
 private fun VersionInfoDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
+    // 数组资源走 Compose API，避免 LocalContext 取值在配置变化后陈旧
+    val pkgs = stringArrayResource(R.array.xposed_scope)
     val markdown = remember(context) {
         val list = ArrayList<String>().apply {
             add("| name | package | version |")
             add("| ------ | ------ | ------ |")
         }
-        val pkgs = context.resources.getStringArray(R.array.xposed_scope)
         Arrays.sort(pkgs)
         pkgs.forEach { pkg ->
             AppUtils(context).getAppVerInfo(pkg)?.let { info ->

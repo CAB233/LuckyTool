@@ -45,6 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -106,7 +107,8 @@ import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
     val context = LocalContext.current
     val settings = remember { PrefState.of(context, SettingsPrefs) }
-    val zh = remember(context) { isZh(context) }
+    // 以 Configuration 作 key：语言切换后 isZh 需要重新求值
+    val zh = remember(LocalConfiguration.current) { isZh(context) }
     var pendingRestoreJson by remember { mutableStateOf<JSONObject?>(null) }
 
     // 备份/恢复（旧 registerForActivityResult）

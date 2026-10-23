@@ -265,6 +265,8 @@ internal fun formatUserDetailInfo(
 @Composable
 internal fun PrefScopeBuilder.DonateBody(c: Context) {
     val appContext = LocalContext.current.applicationContext
+    // 资源文本提到 composable 顶层，避免在普通函数里经 LocalContext 取串
+    val decodeErrorText = stringResource(R.string.donate_data_decode_error)
     val scope = rememberCoroutineScope()
     val miuix = LocalUiMode.current == UiMode.Miuix
 
@@ -291,7 +293,7 @@ internal fun PrefScopeBuilder.DonateBody(c: Context) {
         }
         if (jsonObject == null) {
             withContext(Dispatchers.IO) { dd.delete() }
-            c.showToast(c.getString(R.string.donate_data_decode_error))
+            c.showToast(decodeErrorText)
             return null
         }
         val markdownList = ArrayList<String>()
