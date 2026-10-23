@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -33,6 +34,7 @@ import com.luckyzyx.luckytool.ui.service.XposedServiceBridge
 import com.luckyzyx.luckytool.ui.shell.ShellBadgeState
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
+import com.luckyzyx.luckytool.utils.DeviceInfoEntry
 import com.luckyzyx.luckytool.utils.DeviceUtils
 import com.luckyzyx.luckytool.utils.DonateUtils
 import com.luckyzyx.luckytool.utils.PrefState
@@ -44,7 +46,6 @@ import com.luckyzyx.luckytool.utils.UpdateDownloadSourceDialog
 import com.luckyzyx.luckytool.utils.UpdateDownloadedDialog
 import com.luckyzyx.luckytool.utils.UpdateUtils
 import com.luckyzyx.luckytool.utils.copyStr
-import com.luckyzyx.luckytool.utils.DeviceInfoEntry
 import com.luckyzyx.luckytool.utils.getDeviceInfoEntries
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.getVersionCode
@@ -52,16 +53,16 @@ import com.luckyzyx.luckytool.utils.getVersionName
 import com.luckyzyx.luckytool.utils.isZh
 import com.luckyzyx.luckytool.utils.openUrl
 import com.luckyzyx.luckytool.utils.showToast
-import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Text as MiuixText
-import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
-import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import java.io.File
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 
 /**
  * 主页数据与操作入口，展示层按当前主题使用对应的原生组件。
@@ -95,7 +96,7 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
     var showRestartMenu by remember { mutableStateOf(false) }
     var showOptimizeDex by remember { mutableStateOf(false) }
     var showDonateList by remember { mutableStateOf(false) }
-    var showQrType by remember { mutableStateOf(-1) }
+    var showQrType by remember { mutableIntStateOf(-1) }
     var updateStage by remember { mutableStateOf<UpdateStage?>(null) }
 
     fun checkDexOptimize(controller: com.luckyzyx.luckytool.IGlobalFuncController?) {
