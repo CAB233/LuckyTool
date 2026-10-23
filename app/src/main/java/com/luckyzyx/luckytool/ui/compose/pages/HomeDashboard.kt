@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.luckyzyx.luckytool.R
@@ -209,6 +210,8 @@ private fun HomeStatusCard(state: HomeDashboardState, colors: HomeColors, onLong
     val tonal = state.moduleActive
     val foreground = if (tonal) MaterialTheme.colorScheme.onPrimaryContainer else colors.foreground
     val secondary = if (tonal) foreground else colors.secondary
+    val statusStyle = homeStatusTextStyle(headline = true)
+    val lineStyle = homeStatusTextStyle()
     HomeCard(
         background = if (tonal) MaterialTheme.colorScheme.primaryContainer else colors.card,
         foreground = foreground,
@@ -226,19 +229,30 @@ private fun HomeStatusCard(state: HomeDashboardState, colors: HomeColors, onLong
                     role = HomeTextRole.Status,
                     color = foreground,
                     modifier = Modifier.weight(1f).semantics { heading() },
+                    style = statusStyle,
                 )
             }
-            Spacer(Modifier.height(8.dp))
-            HomeText(state.moduleVersion, HomeTextRole.Body, secondary)
+            Spacer(Modifier.height(2.dp))
+            HomeText(state.moduleVersion, HomeTextRole.Body, secondary, style = lineStyle)
             if (!state.moduleActive) {
-                Spacer(Modifier.height(4.dp))
-                HomeText(stringResource(R.string.home_module_inactive_summary), HomeTextRole.Body, secondary)
+                Spacer(Modifier.height(2.dp))
+                HomeText(
+                    stringResource(R.string.home_module_inactive_summary),
+                    HomeTextRole.Body,
+                    secondary,
+                    style = lineStyle,
+                )
             }
-            Spacer(Modifier.height(16.dp))
-            HomeText(state.rootVersion ?: stringResource(R.string.loading), HomeTextRole.Body, secondary)
+            Spacer(Modifier.height(2.dp))
+            HomeText(
+                state.rootVersion ?: stringResource(R.string.loading),
+                HomeTextRole.Body,
+                secondary,
+                style = lineStyle,
+            )
             state.frameworkVersion?.let {
-                Spacer(Modifier.height(4.dp))
-                HomeText(it, HomeTextRole.Body, secondary)
+                Spacer(Modifier.height(2.dp))
+                HomeText(it, HomeTextRole.Body, secondary, style = lineStyle)
             }
         }
     }
@@ -288,7 +302,7 @@ private fun MiuixActiveStatusCard(state: HomeDashboardState, onLongClick: (() ->
                     text = stringResource(R.string.module_isactivated),
                     modifier = Modifier.fillMaxWidth().padding(end = 80.dp).semantics { heading() },
                     style = textStyle,
-                    fontSize = 22.sp,
+                    fontSize = StatusHeadlineSize,
                     fontWeight = FontWeight.SemiBold,
                     color = foreground,
                 )
@@ -297,7 +311,7 @@ private fun MiuixActiveStatusCard(state: HomeDashboardState, onLongClick: (() ->
                     text = "${stringResource(R.string.version)}: ${state.moduleVersion}",
                     modifier = Modifier.fillMaxWidth().padding(end = 80.dp),
                     style = textStyle,
-                    fontSize = 15.sp,
+                    fontSize = StatusLineSize,
                     color = foreground,
                 )
                 Spacer(Modifier.height(2.dp))
@@ -305,7 +319,7 @@ private fun MiuixActiveStatusCard(state: HomeDashboardState, onLongClick: (() ->
                     text = "${stringResource(R.string.root_source)} $root",
                     modifier = Modifier.fillMaxWidth().padding(end = 80.dp),
                     style = textStyle,
-                    fontSize = 15.sp,
+                    fontSize = StatusLineSize,
                     fontWeight = FontWeight.Medium,
                     color = foreground,
                 )
@@ -314,7 +328,7 @@ private fun MiuixActiveStatusCard(state: HomeDashboardState, onLongClick: (() ->
                     text = "${stringResource(R.string.framework_version)} $framework",
                     modifier = Modifier.fillMaxWidth().padding(end = 80.dp),
                     style = textStyle,
-                    fontSize = 15.sp,
+                    fontSize = StatusLineSize,
                     fontWeight = FontWeight.Medium,
                     color = foreground,
                 )
@@ -464,6 +478,9 @@ private fun homeColors(): HomeColors = if (LocalUiMode.current == UiMode.Miuix) 
 
 private enum class HomeTextRole { Status, Title, Body, Caption }
 
+private val StatusHeadlineSize = 22.sp
+private val StatusLineSize = 15.sp
+
 @Composable
 private fun homeTextStyle(role: HomeTextRole): TextStyle = if (LocalUiMode.current == UiMode.Miuix) {
     with(MiuixTheme.textStyles) {
@@ -492,14 +509,24 @@ private fun HomeText(
     color: Color,
     modifier: Modifier = Modifier,
     textAlign: TextAlign? = null,
+    style: TextStyle? = null,
 ) {
-    val style = homeTextStyle(role).copy(textDirection = TextDirection.ContentOrLtr)
+    val resolved = (style ?: homeTextStyle(role)).copy(textDirection = TextDirection.ContentOrLtr)
     if (LocalUiMode.current == UiMode.Miuix) {
-        MiuixText(text = text, style = style, color = color, modifier = modifier.fillMaxWidth(), textAlign = textAlign)
+        MiuixText(text = text, style = resolved, color = color, modifier = modifier.fillMaxWidth(), textAlign = textAlign)
     } else {
-        Text(text = text, style = style, color = color, modifier = modifier.fillMaxWidth(), textAlign = textAlign)
+        Text(text = text, style = resolved, color = color, modifier = modifier.fillMaxWidth(), textAlign = textAlign)
     }
 }
+
+/** 状态卡片的文字与 Miuix 已激活卡片共用同一排版节奏：无额外字距、自然行高。 */
+@Composable
+private fun homeStatusTextStyle(headline: Boolean = false): TextStyle =
+    homeTextStyle(if (headline) HomeTextRole.Status else HomeTextRole.Body).copy(
+        fontSize = if (headline) StatusHeadlineSize else StatusLineSize,
+        letterSpacing = TextUnit.Unspecified,
+        lineHeight = TextUnit.Unspecified,
+    )
 
 private enum class HomeSymbol { Active, Inactive, Phone, System, Version, Hardware, Info, Support, Update, Forward, Expand, Collapse }
 
