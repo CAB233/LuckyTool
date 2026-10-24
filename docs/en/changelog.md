@@ -53,7 +53,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Fixed repeated permission requests and repeated jumps to the system settings page after returning from it — a cold start no longer requests permissions or jumps to the system settings page at all, the permission check only queries, and every grant starts from a button inside the page
 - Fixed backups right after a reboot or a scope reload always timing out — the command is re-sent with a fresh token (up to 4 times) while the launcher process comes up, and the status row shows the attempt
 - Fixed the “Use user typeface” switch doing nothing under the default network speed layout — the user typeface is now independent of the layout mode, so the default layout can swap just the typeface while text, size and spacing stay with the system
-- Fixed “Force enable device controls tile” only producing a greyed-out tile on C17 — the hook now intercepts the source of the device controls master switch and restores the tile availability gate on C14 and later (which also carries a region check from C16), so the tile state and the controller instances recover together
+- Fixed “Force enable device controls tile” only producing a greyed-out tile on C17 — the hook now intercepts the source of the device controls master switch, restores the tile availability gate on C14 and later (which also carries a region check from C16), and no longer requires an installed controls provider app, so the tile state and the controller instances recover together
 
 #### Changed
 
