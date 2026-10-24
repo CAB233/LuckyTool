@@ -3,9 +3,11 @@ package com.luckyzyx.luckytool.hook.scopes.battery
 import android.annotation.SuppressLint
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
-import androidx.constraintlayout.widget.ConstraintLayout
 import com.highcapable.kavaref.KavaRef.Companion.resolve
+import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.injectModuleResources
 import com.luckyzyx.luckytool.R
@@ -48,14 +50,14 @@ object DisplayModuleCalculatesBatteryHealthData : YukiBaseHooker() {
                             context.getString(R.string.display_module_calculates_battery_health_data_tips)
                         }
                         contentView.apply {
-                            layoutParams?.width = ConstraintLayout.LayoutParams.WRAP_CONTENT
+                            layoutParams?.width = ViewGroup.LayoutParams.WRAP_CONTENT
                             gravity = Gravity.START
                             if(text.lines().size == 1) {
                                 text = "$text\n\nLuckyTool$tips"
                             }
                         }
                         dataView.apply {
-                            layoutParams?.width = ConstraintLayout.LayoutParams.WRAP_CONTENT
+                            layoutParams?.width = ViewGroup.LayoutParams.WRAP_CONTENT
                             gravity = Gravity.END
                             if(text.lines().size == 1) {
                                 text = "$text\n\n${health}%"

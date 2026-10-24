@@ -1,33 +1,56 @@
 package com.luckyzyx.luckytool.utils
 
-import android.annotation.SuppressLint
 import android.content.Context
-import android.content.DialogInterface
 import android.os.Process
 import android.os.RemoteException
-import android.widget.TextView
 import androidx.collection.ArrayMap
 import androidx.collection.arrayMapOf
-import com.drake.net.utils.scope
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.highcapable.betterandroid.ui.extension.view.layoutInflater
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.highcapable.betterandroid.ui.extension.view.toast
+import com.highcapable.yukihookapi.YukiHook
+import com.highcapable.yukihookapi.hook.xposed.reload.entity.ModuleReloadStatus
 import com.luckyzyx.luckytool.IPackageServiceController
 import com.luckyzyx.luckytool.R
-import com.luckyzyx.luckytool.databinding.DialogReoptimizeDexLayoutBinding
 import com.luckyzyx.luckytool.service.ActivityManagerService
 import com.luckyzyx.luckytool.service.PackagesService
 import com.luckyzyx.luckytool.service.PowerService
-import com.luckyzyx.luckytool.ui.service.XposedServiceBridge
+import com.luckyzyx.luckytool.ui.theme.LocalUiMode
+import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.ShellUtils
-import io.github.libxposed.service.HotReloadResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.lsposed.lsparanoid.Obfuscate
+import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 
 @Obfuscate
 object RestartMenuUtils {
@@ -37,112 +60,337 @@ object RestartMenuUtils {
     private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     /**
-     * 重启作用域对话框
-     * @receiver Context
+     * 重启主菜单 Compose 对话框（5 项）
      */
-    fun showMainRestartMenu(context: Context) {
-        val list = arrayOf(
-            context.getString(R.string.restart_scope),
-            context.getString(R.string.re_optimize_dex),
-            context.getString(R.string.reload_hooker),
-            context.getString(R.string.reboot),
-            context.getString(R.string.fast_reboot)
+    @Composable
+    fun RestartMenuDialog(context: Context, onDismiss: () -> Unit) {
+        val items = listOf(
+            stringResource(R.string.restart_scope),
+            stringResource(R.string.re_optimize_dex),
+            stringResource(R.string.reload_hooker),
+            stringResource(R.string.reboot),
+            stringResource(R.string.fast_reboot)
         )
-        MaterialAlertDialogBuilder(context, dialogCentered).apply {
-            setCancelable(true)
-            setItems(list) { _: DialogInterface?, i: Int ->
-                when (i) {
-                    0 -> showRestartAllScopeDialog(context)
-                    1 -> showOptimizeAllDexDialog(context)
-                    2 -> showRestartAllHookerDialog(context)
-                    3 -> {
-                        PowerService.get(context) { controller ->
-                            controller?.reboot(false, null, false)
+        var showConfirmScope by remember { mutableStateOf(false) }
+        var showConfirmHooker by remember { mutableStateOf(false) }
+        var showOptimize by remember { mutableStateOf(false) }
+        when {
+            showConfirmScope -> ConfirmRestartAllScopeDialog(context, onDismiss)
+            showConfirmHooker -> ConfirmRestartAllHookerDialog(context, onDismiss)
+            showOptimize -> OptimizeDexDialog(
+                context,
+                buildScopeMaps(context, context.resources.getStringArray(R.array.xposed_scope)),
+                confirmFirst = true,
+                onDismiss
+            )
+
+            else -> when (LocalUiMode.current) {
+                UiMode.Miuix -> OverlayDialog(
+                    show = true,
+                    onDismissRequest = onDismiss,
+                ) {
+                    Column {
+                        items.forEachIndexed { index, label ->
+                            BasicComponent(
+                                title = label,
+                                insideMargin = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+                                onClick = {
+                                    when (index) {
+                                        0 -> showConfirmScope = true
+                                        1 -> showOptimize = true
+                                        2 -> showConfirmHooker = true
+                                        3 -> {
+                                            PowerService.get(context) { controller ->
+                                                controller?.reboot(false, null, false)
+                                            }
+                                            onDismiss()
+                                        }
+
+                                        else -> {
+                                            ShellUtils.fastCmd(CommandUtils.killzygote)
+                                            onDismiss()
+                                        }
+                                    }
+                                },
+                            )
                         }
                     }
-
-                    4 -> ShellUtils.fastCmd(CommandUtils.killzygote)
                 }
+
+                UiMode.Material -> AlertDialog(onDismissRequest = onDismiss, text = {
+                    Column {
+                        items.forEachIndexed { index, label ->
+                            Text(label, Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    when (index) {
+                                        0 -> showConfirmScope = true
+                                        1 -> showOptimize = true
+                                        2 -> showConfirmHooker = true
+                                        3 -> {
+                                            PowerService.get(context) { controller ->
+                                                controller?.reboot(false, null, false)
+                                            }
+                                            onDismiss()
+                                        }
+
+                                        else -> {
+                                            ShellUtils.fastCmd(CommandUtils.killzygote)
+                                            onDismiss()
+                                        }
+                                    }
+                                }
+                                .padding(horizontal = 24.dp, vertical = 14.dp))
+                        }
+                    }
+                }, confirmButton = {})
             }
-            show()
         }
     }
 
     /**
-     * 重启部分作用域对话框
-     * @receiver Context
+     * 重启部分作用域 Compose 对话框
      * @param scopes Array<String>
      */
-    fun showRestartScopeDialog(context: Context, scopes: Array<String>, isSystem: Boolean = false) {
+    @Composable
+    fun RestartScopeDialog(
+        context: Context, scopes: Array<String>, isSystem: Boolean = false, onDismiss: () -> Unit
+    ) {
         if (scopes.isEmpty()) return
-        val list = if (isSystem && scopes.first() == "system") {
+        val isSystemPage = isSystem && scopes.first() == "system"
+        val items = if (isSystemPage) {
             arrayOf(
-                context.getString(R.string.reload_hooker),
-                context.getString(R.string.reload_only_this_page_hooker),
-            )
+                R.string.reload_hooker, R.string.reload_only_this_page_hooker
+            ).map { stringResource(it) }
         } else {
             arrayOf(
-                context.getString(R.string.restart_scope),
-                context.getString(R.string.re_optimize_dex),
-                context.getString(R.string.reload_hooker),
-                context.getString(R.string.restart_only_this_page_scope),
-                context.getString(R.string.optimize_only_this_page_scope),
-                context.getString(R.string.reload_only_this_page_hooker),
+                R.string.restart_scope,
+                R.string.re_optimize_dex,
+                R.string.reload_hooker,
+                R.string.restart_only_this_page_scope,
+                R.string.optimize_only_this_page_scope,
+                R.string.reload_only_this_page_hooker
+            ).map { stringResource(it) }
+        }
+        var showConfirmScope by remember { mutableStateOf(false) }
+        var showConfirmHooker by remember { mutableStateOf(false) }
+        var showOptimize by remember { mutableStateOf(false) }
+        var optimizeScopes by remember { mutableStateOf(arrayMapOf<String, CharSequence>()) }
+        var optimizeConfirmFirst by remember { mutableStateOf(false) }
+        when {
+            showConfirmScope -> ConfirmRestartAllScopeDialog(context, onDismiss)
+            showConfirmHooker -> ConfirmRestartAllHookerDialog(context, onDismiss)
+            showOptimize -> OptimizeDexDialog(
+                context, optimizeScopes, optimizeConfirmFirst, onDismiss
             )
-        }
-        MaterialAlertDialogBuilder(context, dialogCentered).apply {
-            setItems(list) { _, which ->
-                if (isSystem && scopes.first() == "system") {
-                    when (which) {
-                        0 -> showRestartAllHookerDialog(context)
-                        1 -> restartHooker(context, scopes)
-                    }
-                } else {
-                    when (which) {
-                        0 -> showRestartAllScopeDialog(context)
-                        1 -> showOptimizeAllDexDialog(context)
-                        2 -> showRestartAllHookerDialog(context)
-                        3 -> restartScope(context, scopes)
-                        4 -> optimizeScope(context, scopes)
-                        5 -> restartHooker(context, scopes)
+
+            else -> when (LocalUiMode.current) {
+                UiMode.Miuix -> OverlayDialog(
+                    show = true,
+                    onDismissRequest = onDismiss,
+                ) {
+                    Column {
+                        items.forEachIndexed { index, label ->
+                            BasicComponent(
+                                title = label,
+                                insideMargin = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+                                onClick = {
+                                    if (isSystemPage) {
+                                        when (index) {
+                                            0 -> showConfirmHooker = true
+                                            else -> {
+                                                restartHooker(context, scopes)
+                                                onDismiss()
+                                            }
+                                        }
+                                    } else {
+                                        when (index) {
+                                            0 -> showConfirmScope = true
+                                            1 -> {
+                                                optimizeScopes = buildScopeMaps(
+                                                    context,
+                                                    context.resources.getStringArray(R.array.xposed_scope)
+                                                )
+                                                optimizeConfirmFirst = true
+                                                showOptimize = true
+                                            }
+
+                                            2 -> showConfirmHooker = true
+                                            3 -> {
+                                                restartScope(context, scopes)
+                                                onDismiss()
+                                            }
+
+                                            4 -> {
+                                                optimizeScopes = buildScopeMaps(context, scopes)
+                                                optimizeConfirmFirst = false
+                                                showOptimize = true
+                                            }
+
+                                            else -> {
+                                                restartHooker(context, scopes)
+                                                onDismiss()
+                                            }
+                                        }
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
+
+                UiMode.Material -> AlertDialog(onDismissRequest = onDismiss, text = {
+                    Column {
+                        items.forEachIndexed { index, label ->
+                            Text(label, Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (isSystemPage) {
+                                        when (index) {
+                                            0 -> showConfirmHooker = true
+                                            else -> {
+                                                restartHooker(context, scopes)
+                                                onDismiss()
+                                            }
+                                        }
+                                    } else {
+                                        when (index) {
+                                            0 -> showConfirmScope = true
+                                            1 -> {
+                                                optimizeScopes = buildScopeMaps(
+                                                    context,
+                                                    context.resources.getStringArray(R.array.xposed_scope)
+                                                )
+                                                optimizeConfirmFirst = true
+                                                showOptimize = true
+                                            }
+
+                                            2 -> showConfirmHooker = true
+                                            3 -> {
+                                                restartScope(context, scopes)
+                                                onDismiss()
+                                            }
+
+                                            4 -> {
+                                                optimizeScopes = buildScopeMaps(context, scopes)
+                                                optimizeConfirmFirst = false
+                                                showOptimize = true
+                                            }
+
+                                            else -> {
+                                                restartHooker(context, scopes)
+                                                onDismiss()
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(horizontal = 24.dp, vertical = 14.dp))
+                        }
+                    }
+                }, confirmButton = {})
             }
-            show()
         }
     }
 
     /**
-     * 重启全部作用域
-     * @receiver Context
+     * 重启全部作用域确认对话框
      */
-    private fun showRestartAllScopeDialog(context: Context) {
-        val xposedScope = context.resources.getStringArray(R.array.xposed_scope)
-        MaterialAlertDialogBuilder(context).apply {
-            setMessage(context.getString(R.string.restart_scope_message))
-            setPositiveButton(context.getString(android.R.string.ok)) { _: DialogInterface?, _: Int ->
-                scope(Dispatchers.Default) {
-                    restartScope(context, xposedScope)
-                }
-            }
-            setNeutralButton(context.getString(android.R.string.cancel), null)
-            show()
+    @Composable
+    private fun ConfirmRestartAllScopeDialog(context: Context, onDismiss: () -> Unit) {
+        val xposedScope = remember { context.resources.getStringArray(R.array.xposed_scope) }
+        when (LocalUiMode.current) {
+            UiMode.Miuix -> MiuixMessageDialog(
+                message = stringResource(R.string.restart_scope_message),
+                onConfirm = {
+                    coroutineScope.launch(Dispatchers.Default) {
+                        restartScope(context, xposedScope)
+                    }
+                    onDismiss()
+                },
+                onDismiss = onDismiss,
+            )
+
+            UiMode.Material -> AlertDialog(
+                onDismissRequest = onDismiss,
+                text = { Text(stringResource(R.string.restart_scope_message)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        coroutineScope.launch(Dispatchers.Default) {
+                            restartScope(context, xposedScope)
+                        }
+                        onDismiss()
+                    }) { Text(stringResource(android.R.string.ok)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
+                })
         }
     }
 
     /**
-     * 重载全部作用域Hooker
-     * @receiver Context
+     * 重载全部作用域 Hooker 确认对话框
      */
-    private fun showRestartAllHookerDialog(context: Context) {
-        val xposedScope = context.resources.getStringArray(R.array.xposed_scope)
-        MaterialAlertDialogBuilder(context).apply {
-            setMessage(context.getString(R.string.reload_hooker_message))
-            setPositiveButton(context.getString(android.R.string.ok)) { _: DialogInterface?, _: Int ->
-                restartHooker(context, xposedScope)
+    @Composable
+    private fun ConfirmRestartAllHookerDialog(context: Context, onDismiss: () -> Unit) {
+        val xposedScope = remember { context.resources.getStringArray(R.array.xposed_scope) }
+        when (LocalUiMode.current) {
+            UiMode.Miuix -> MiuixMessageDialog(
+                message = stringResource(R.string.reload_hooker_message),
+                onConfirm = {
+                    restartHooker(context, xposedScope)
+                    onDismiss()
+                },
+                onDismiss = onDismiss,
+            )
+
+            UiMode.Material -> AlertDialog(
+                onDismissRequest = onDismiss,
+                text = { Text(stringResource(R.string.reload_hooker_message)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        restartHooker(context, xposedScope)
+                        onDismiss()
+                    }) { Text(stringResource(android.R.string.ok)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
+                })
+        }
+    }
+
+    /**
+     * Miuix 线的“消息 + 确认/取消”对话框。
+     *
+     * 弹层走 `overlay.OverlayDialog`，由根部 Miuix Scaffold 的 popup host 承载
+     * （`renderInRootScaffold` 保持默认 true，不自装 host）。
+     */
+    @Composable
+    private fun MiuixMessageDialog(
+        message: String,
+        onConfirm: () -> Unit,
+        onDismiss: () -> Unit,
+        title: String? = null,
+    ) {
+        OverlayDialog(
+            show = true,
+            title = title,
+            onDismissRequest = onDismiss,
+        ) {
+            MiuixText(text = message, modifier = Modifier.fillMaxWidth())
+            Row(modifier = Modifier.padding(top = 12.dp)) {
+                MiuixTextButton(
+                    text = stringResource(android.R.string.cancel),
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(20.dp))
+                MiuixTextButton(
+                    text = stringResource(android.R.string.ok),
+                    onClick = onConfirm,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                )
             }
-            setNeutralButton(context.getString(android.R.string.cancel), null)
-            show()
         }
     }
 
@@ -159,6 +407,7 @@ object RestartMenuUtils {
                 if (packName == "com.android.systemui") return@forEachIndexed
                 val uid = Process.myUid() / 100000
                 controller?.forceStopPackage(packName, uid)
+                LogUtils.d("restartScope", "forceStopPackage", packName, true)
             }
         }
         if (killSystemUI) ShellUtils.fastCmd(CommandUtils.killSysui)
@@ -170,21 +419,31 @@ object RestartMenuUtils {
      * @param scopes Array<String>
      */
     private fun restartHooker(context: Context, scopes: Array<String>) {
-        val base = XposedServiceBridge.xposedService ?: return
-        base.runningTargets.filter {
-            scopes.contains(it.processName.substringBefore(":"))
-        }.forEach {
-            base.hotReloadModule(it, null) { target, result ->
-                LogUtils.d(
-                    "restartHooker",
-                    target.processName,
-                    "${result.status} | ${result.message}",
-                    true
-                )
-                if (result.status != HotReloadResult.Status.SUCCEEDED) {
-                    context.toast("${target.processName}: ${result.message}")
+        val reload = YukiHook.Module.reload
+        if (!reload.isAvailable) return
+        val targets = runCatching { reload.targets }.onFailure {
+            LogUtils.e("restartHooker", "query reload targets failed", "$it", true)
+        }.getOrDefault(emptyList())
+        runCatching {
+            targets.filter {
+                scopes.contains(it.processName.substringBefore(":"))
+            }.forEach { target ->
+                // skippedIfUpToDate = false：与迁移前 hotReloadModule 一致，不做「代码已是最新」的跳过
+                reload.request(target, skippedIfUpToDate = false) { result ->
+                    LogUtils.d(
+                        "restartHooker",
+                        result.target.processName,
+                        "${result.status} | ${result.message}",
+                        true
+                    )
+                    if (result.status != ModuleReloadStatus.SUCCEEDED) {
+                        context.toast("${result.target.processName}: ${result.message}")
+                    }
                 }
             }
+        }.onFailure {
+            // request 内部还有一次 API 版本校验，失败会抛到这里（调用点是 Compose 回调，不能让它崩）
+            LogUtils.e("restartHooker", "request module reload failed", "$it", true)
         }
     }
 
@@ -202,80 +461,180 @@ object RestartMenuUtils {
     }
 
     /**
-     * 重新优化全部作用域Dex
-     * @receiver Context
+     * 构建作用域映射（包名 -> 应用名），过滤 android/system 与未安装应用
      */
-    fun showOptimizeAllDexDialog(context: Context, isForce: Boolean = false) {
-        val scopeMaps = arrayMapOf<String, CharSequence>()
-        context.resources.getStringArray(R.array.xposed_scope).toMutableList().apply {
-            removeIf { it == "android" || it == "system" }
-            removeIf { PackageUtils(context.packageManager).getPackageInfo(it, 0) == null }
-            forEachIndexed { _, it ->
-                val name = PackageUtils(context.packageManager).getApplicationInfo(it, 0)
-                    ?.loadLabel(context.packageManager)
-                scopeMaps[it] = name
-            }
-        }
-
-        if (isForce) optimizeScopeDex(context, scopeMaps)
-        else {
-            MaterialAlertDialogBuilder(context).apply {
-                setMessage(context.getString(R.string.re_optimize_dex_message))
-                setPositiveButton(context.getString(android.R.string.ok)) { _: DialogInterface?, _: Int ->
-                    optimizeScopeDex(context, scopeMaps)
-                }
-                setNeutralButton(context.getString(android.R.string.cancel), null)
-                show()
-            }
-        }
-    }
-
-    /**
-     * 优化部分作用域
-     * @receiver Context
-     * @param scopes Array<String>
-     */
-    fun optimizeScope(context: Context, scopes: Array<String>) {
+    fun buildScopeMaps(context: Context, scopes: Array<String>): ArrayMap<String, CharSequence> {
         val scopeMaps = arrayMapOf<String, CharSequence>()
         scopes.toMutableList().apply {
             removeIf { it == "android" || it == "system" }
             removeIf { PackageUtils(context.packageManager).getPackageInfo(it, 0) == null }
-            forEachIndexed { _, it ->
+            forEach {
                 val name = PackageUtils(context.packageManager).getApplicationInfo(it, 0)
                     ?.loadLabel(context.packageManager)
                 scopeMaps[it] = name
             }
         }
-
-        optimizeScopeDex(context, scopeMaps)
+        return scopeMaps
     }
 
-    private fun optimizeScopeDex(
+    /**
+     * 优化 Dex 进度 Compose 对话框
+     * @param confirmFirst 是否先弹出确认对话框
+     */
+    @Composable
+    fun OptimizeDexDialog(
         context: Context,
-        scopes: ArrayMap<String, CharSequence>
+        scopes: ArrayMap<String, CharSequence>,
+        confirmFirst: Boolean = false,
+        onDismiss: () -> Unit
     ) {
-        val binding = DialogReoptimizeDexLayoutBinding.inflate(context.layoutInflater)
-        val progressDialog = MaterialAlertDialogBuilder(context, dialogCentered).apply {
-            setTitle(context.getString(R.string.re_optimize_dex_optimizing))
-            setView(binding.root)
-            setCancelable(false)
-        }.create()
-        val textView = binding.tv
+        var stage by remember {
+            mutableStateOf(if (confirmFirst) OptimizeStage.Confirm else OptimizeStage.Running)
+        }
+        var current by remember { mutableStateOf(scopes) }
+        var progressText by remember { mutableStateOf("") }
+        var failedApps by remember { mutableStateOf(arrayMapOf<String, CharSequence>()) }
+        // 优化完成提示在 LaunchedEffect 回调里弹出（那里没有 Composer），字符串先在这里取一次
+        val dexCompletedText = stringResource(R.string.re_optimize_dex_completed)
+        fun launch(target: ArrayMap<String, CharSequence>) {
+            current = target
+            failedApps = arrayMapOf()
+            stage = OptimizeStage.Running
+        }
+        when (stage) {
+            OptimizeStage.Confirm -> {
+                when (LocalUiMode.current) {
+                    UiMode.Miuix -> MiuixMessageDialog(
+                        message = stringResource(R.string.re_optimize_dex_message),
+                        onConfirm = { launch(current) },
+                        onDismiss = onDismiss,
+                    )
 
+                    UiMode.Material -> AlertDialog(
+                        onDismissRequest = onDismiss,
+                        text = { Text(stringResource(R.string.re_optimize_dex_message)) },
+                        confirmButton = {
+                            TextButton(onClick = { launch(current) }) {
+                                Text(stringResource(android.R.string.ok))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = onDismiss) {
+                                Text(stringResource(android.R.string.cancel))
+                            }
+                        })
+                }
+            }
+
+            OptimizeStage.Running -> {
+                LaunchedEffect(Unit) {
+                    runOptimize(context, current, { progressText = it }) { failed ->
+                        if (failed.isNotEmpty()) {
+                            failedApps = failed
+                            stage = OptimizeStage.Failed
+                        } else {
+                            context.showToast(dexCompletedText)
+                            onDismiss()
+                        }
+                    }
+                }
+                when (LocalUiMode.current) {
+                    UiMode.Miuix -> OverlayDialog(
+                        show = true,
+                        title = stringResource(R.string.re_optimize_dex_optimizing),
+                        onDismissRequest = {},
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            CircularProgressIndicator()
+                            MiuixText(
+                                text = progressText,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                            )
+                        }
+                    }
+
+                    UiMode.Material -> AlertDialog(
+                        onDismissRequest = {},
+                        title = { Text(stringResource(R.string.re_optimize_dex_optimizing)) },
+                        text = {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                CircularProgressIndicator()
+                                Text(
+                                    text = progressText,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 12.dp),
+                                )
+                            }
+                        },
+                        confirmButton = {})
+                }
+            }
+
+            OptimizeStage.Failed -> {
+                when (LocalUiMode.current) {
+                    UiMode.Miuix -> MiuixMessageDialog(
+                        title = stringResource(R.string.re_optimize_dex_failed),
+                        message = stringResource(
+                            R.string.re_optimize_dex_faile_message,
+                            failedApps.values.joinToString("\n")
+                        ),
+                        onConfirm = { launch(failedApps) },
+                        onDismiss = onDismiss,
+                    )
+
+                    UiMode.Material -> AlertDialog(
+                        onDismissRequest = onDismiss,
+                        title = { Text(stringResource(R.string.re_optimize_dex_failed)) },
+                        text = {
+                            Text(
+                                stringResource(
+                                    R.string.re_optimize_dex_faile_message,
+                                    failedApps.values.joinToString("\n")
+                                )
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { launch(failedApps) }) {
+                                Text(stringResource(android.R.string.ok))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = onDismiss) {
+                                Text(stringResource(android.R.string.cancel))
+                            }
+                        })
+                }
+            }
+        }
+    }
+
+    private enum class OptimizeStage { Confirm, Running, Failed }
+
+    /**
+     * 执行 Dex 优化，进度与结果经回调返回
+     */
+    private fun runOptimize(
+        context: Context,
+        scopes: ArrayMap<String, CharSequence>,
+        onProgress: (String) -> Unit,
+        onDone: (ArrayMap<String, CharSequence>) -> Unit
+    ) {
         PackagesService.get(context) { controller ->
             coroutineScope.launch {
-                progressDialog.show()
-                val failedApps = try {
-                    AppUtils(context).getAllAppVerInfo(scopes.keys.toTypedArray(), true)
-                    optimizeApps(controller, scopes, textView)
-                } finally {
-                    progressDialog.dismiss()
-                }
-                if (failedApps.isNotEmpty()) {
-                    showDexRetryDialog(context, failedApps)
-                } else {
-                    context.showToast(context.getString(R.string.re_optimize_dex_completed))
-                }
+                AppUtils(context).getAllAppVerInfo(scopes.keys.toTypedArray(), true)
+                val failedApps = optimizeApps(controller, scopes, onProgress)
+                onDone(failedApps)
             }
         }
     }
@@ -283,17 +642,17 @@ object RestartMenuUtils {
     /**
      * 优化多个应用，动态更新进度信息
      */
-    @SuppressLint("SetTextI18n")
     private suspend fun optimizeApps(
         controller: IPackageServiceController?,
-        scopes: ArrayMap<String, CharSequence>, textView: TextView
+        scopes: ArrayMap<String, CharSequence>,
+        onProgress: (String) -> Unit
     ): ArrayMap<String, CharSequence> {
         val failedApps = arrayMapOf<String, CharSequence>()
         withContext(Dispatchers.IO) {
             scopes.keys.forEachIndexed { index, pack ->
                 val name = scopes[pack] ?: pack
                 withContext(Dispatchers.Main) {
-                    textView.text = "$name (${index + 1}/${scopes.size})"
+                    onProgress("$name (${index + 1}/${scopes.size})")
                 }
                 val success = try {
                     controller?.clearApplicationProfileData(pack)
@@ -312,28 +671,4 @@ object RestartMenuUtils {
         }
         return failedApps
     }
-
-    /**
-     * 显示重新优化对话框
-     */
-    private fun showDexRetryDialog(
-        context: Context,
-        failedApps: ArrayMap<String, CharSequence>
-    ) {
-        MaterialAlertDialogBuilder(context, dialogCentered).apply {
-            setTitle(context.getString(R.string.re_optimize_dex_failed))
-            setMessage(
-                context.getString(
-                    R.string.re_optimize_dex_faile_message,
-                    failedApps.values.joinToString("\n")
-                )
-            )
-            setPositiveButton(context.getString(android.R.string.ok)) { _, _ ->
-                optimizeScopeDex(context, failedApps)
-            }
-            setNeutralButton(context.getString(android.R.string.cancel), null)
-            show()
-        }
-    }
-
 }

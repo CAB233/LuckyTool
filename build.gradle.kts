@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -14,10 +16,6 @@ plugins {
     alias(libs.plugins.lsplugin.lsparanoid) apply false
 }
 
-extra["compileSdkVersion"] = 37
-extra["targetSdkVersion"] = 28
-extra["minSdkVersion"] = 30
-
 extra["jdkVersion"] = 21
 
 extra["storeFile"] = keystoreProperties["storeFile"]
@@ -25,15 +23,14 @@ extra["storePassword"] = keystoreProperties["storePassword"]
 extra["keyAlias"] = keystoreProperties["keyAlias"]
 extra["keyPassword"] = keystoreProperties["keyPassword"]
 
-buildscript {
-    dependencies {
-        classpath(libs.androidx.navigation.safe.args.gradle.plugin)
-    }
-}
-
 tasks {
     register("clean", Delete::class) {
         delete(layout.buildDirectory)
         description = ""
+    }
+    withType<KotlinJvmCompile>().configureEach {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_21)
+        }
     }
 }

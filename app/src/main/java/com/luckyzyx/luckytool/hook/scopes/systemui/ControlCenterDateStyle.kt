@@ -3,12 +3,13 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 import android.util.LayoutDirection
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.text.layoutDirection
 import com.highcapable.betterandroid.ui.extension.view.textToString
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
+import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.utils.sysui.LunarHelperUtils
 import com.luckyzyx.luckytool.hook.utils.sysui.WeatherInfoParseHelper
@@ -120,7 +121,7 @@ object ControlCenterDateStyle : YukiBaseHooker() {
 
                     if (disableScroll) mTmpConstraintSet.asResolver().firstMethod {
                         name = "constrainWidth"
-                    }.invoke(mQsDateView.id, ConstraintLayout.LayoutParams.WRAP_CONTENT)
+                    }.invoke(mQsDateView.id, ViewGroup.LayoutParams.WRAP_CONTENT)
 
                     if (showLunar && (displayMode != "0")) {
                         //162dp
@@ -166,7 +167,7 @@ object ControlCenterDateStyle : YukiBaseHooker() {
                                             name = "constrainWidth"
                                         }.invoke(
                                             mQsDateView.id,
-                                            ConstraintLayout.LayoutParams.WRAP_CONTENT
+                                            ViewGroup.LayoutParams.WRAP_CONTENT
                                         )
                                         firstMethod {
                                             name = "setTranslationX"

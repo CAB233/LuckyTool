@@ -5,13 +5,6 @@ import com.highcapable.yukihookapi.annotation.xposed.YukiHookLibXposedEntry
 import com.highcapable.yukihookapi.hook.factory.configure
 import com.highcapable.yukihookapi.hook.factory.encase
 import com.highcapable.yukihookapi.hook.xposed.YukiHookXposedModule
-import com.highcapable.yukihookapi.hook.xposed.bridge.event.registerFrameworkEvents
-import com.highcapable.yukihookapi.hook.xposed.bridge.event.v101.onModuleLoaded
-import com.highcapable.yukihookapi.hook.xposed.bridge.event.v101.onPackageLoaded
-import com.highcapable.yukihookapi.hook.xposed.bridge.event.v101.onPackageReady
-import com.highcapable.yukihookapi.hook.xposed.bridge.event.v101.onSystemServerStarting
-import com.highcapable.yukihookapi.hook.xposed.bridge.event.v102.onHotReloaded
-import com.highcapable.yukihookapi.hook.xposed.bridge.event.v102.onHotReloading
 import com.luckyzyx.luckytool.hook.hookers.HookAlarmClock
 import com.luckyzyx.luckytool.hook.hookers.HookAndroid
 import com.luckyzyx.luckytool.hook.hookers.HookAudioEffectCenter
@@ -23,7 +16,10 @@ import com.luckyzyx.luckytool.hook.hookers.HookCalendar
 import com.luckyzyx.luckytool.hook.hookers.HookCamera
 import com.luckyzyx.luckytool.hook.hookers.HookClaw
 import com.luckyzyx.luckytool.hook.hookers.HookCloudService
+import com.luckyzyx.luckytool.hook.hookers.HookCorePatch
 import com.luckyzyx.luckytool.hook.hookers.HookDirectUI
+import com.luckyzyx.luckytool.hook.hookers.HookDisableFlagSecure
+import com.luckyzyx.luckytool.hook.hookers.HookDisableFlagSecureApp
 import com.luckyzyx.luckytool.hook.hookers.HookEngineerMode
 import com.luckyzyx.luckytool.hook.hookers.HookExternalStorage
 import com.luckyzyx.luckytool.hook.hookers.HookFileManager
@@ -41,6 +37,7 @@ import com.luckyzyx.luckytool.hook.hookers.HookNotificationManager
 import com.luckyzyx.luckytool.hook.hookers.HookOShare
 import com.luckyzyx.luckytool.hook.hookers.HookOplusCosa
 import com.luckyzyx.luckytool.hook.hookers.HookOplusGames
+import com.luckyzyx.luckytool.hook.hookers.HookOplusKeyboard
 import com.luckyzyx.luckytool.hook.hookers.HookOplusMMS
 import com.luckyzyx.luckytool.hook.hookers.HookOplusOta
 import com.luckyzyx.luckytool.hook.hookers.HookPackageInstaller
@@ -65,8 +62,6 @@ import com.luckyzyx.luckytool.hook.scopes.otherapp.HookADM
 import com.luckyzyx.luckytool.hook.scopes.otherapp.HookAlphaBackupPro
 import com.luckyzyx.luckytool.hook.scopes.otherapp.HookFakeGpsJoyStick
 import com.luckyzyx.luckytool.hook.scopes.otherapp.HookKsWeb
-import io.github.lsposed.disableflagsecure.DisableFlagSecure
-import org.lsposed.corepatch.XposedMain
 import org.lsposed.lsparanoid.Obfuscate
 import java.io.File
 
@@ -127,6 +122,7 @@ import java.io.File
         "com.oplus.keyguard.personality.clocks",
         "com.oplus.beaconlink",
         "com.heytap.speechassist",
+        "com.oplus.keyboard",
         "com.oplus.wirelesssettings",
         "com.heytap.health",
         "com.android.nfc",
@@ -155,44 +151,6 @@ class MainHook : YukiHookXposedModule {
                 tag = MainHook.TAG
             }
         }
-        registerFrameworkEvents {
-            val corePatch = XposedMain()
-            val disableFlagSecure = DisableFlagSecure()
-            onModuleLoaded {
-                corePatch.onModuleLoaded(this)
-                disableFlagSecure.onModuleLoaded(this)
-            }
-            onPackageLoaded { }
-            onPackageReady {
-                val prefs = getRemotePreferences("ModulePrefs")
-                val disableFlagEnable = !prefs.getBoolean("disable_flag_secure", false)
-                if (disableFlagEnable) disableFlagSecure.onPackageReady(it)
-            }
-            onSystemServerStarting {
-                val prefs = getRemotePreferences("ModulePrefs")
-                corePatch.onSystemServerStarting(it)
-                val disableFlagEnable = !prefs.getBoolean("disable_flag_secure", false)
-                if (disableFlagEnable) disableFlagSecure.onSystemServerStarting(it)
-            }
-            // libxposed 的 saved 槽位唯一，两个组件的状态必须合并写入，否则后写覆盖先写
-            onHotReloading {
-                it.setSavedInstanceState(
-                    arrayOf(
-                        corePatch.onHotReloading(),
-                        disableFlagSecure.onHotReloading()
-                    )
-                )
-                true
-            }
-            onHotReloaded {
-                // 新一代 XposedInterface 是监听器 receiver（this），必须先重新绑定
-                val states = it.savedInstanceState as? Array<*>
-                corePatch.onModuleLoaded(this)
-                corePatch.onHotReloaded(it, states?.getOrNull(0))
-                disableFlagSecure.onModuleLoaded(this)   // 修复其静态 module 字段在新类加载器里为 null 的问题
-                disableFlagSecure.onHotReloaded(it, states?.getOrNull(1))
-            }
-        }
     }
 
     companion object {
@@ -213,9 +171,13 @@ class MainHook : YukiHookXposedModule {
 
         //系统框架
         loadSystem(HookAndroid)
+        //核心破解（上游 CorePatch）
+        loadSystem(HookCorePatch)
+        //禁用安全标记（上游 DisableFlagSecure，system_server 侧）
+        loadSystem(HookDisableFlagSecure)
 
         //系统界面
-        loadApp("com.android.systemui", HookSystemUI)
+        loadApp("com.android.systemui", HookSystemUI, HookDisableFlagSecureApp)
 
         //经典主题 Clock
         loadApp("com.oplus.keyguard.clock.base", HookKeyguardClock)
@@ -235,7 +197,9 @@ class MainHook : YukiHookXposedModule {
         loadApp("com.oplus.uiengine", HookUIEngine)
 
         //截屏
-        loadApp("com.oplus.screenshot", HookScreenshot)
+        loadApp("com.oplus.screenshot", HookScreenshot, HookDisableFlagSecureApp)
+        //应用平台服务（截图安全标记）
+        loadApp("com.oplus.appplatform", HookDisableFlagSecureApp)
 
         //安全中心
         loadApp("com.oplus.safecenter", HookSafeCenter)
@@ -297,6 +261,9 @@ class MainHook : YukiHookXposedModule {
         //小布助手
         loadApp("com.heytap.speechassist", HookSpeechAssist)
 
+        //小布输入法
+        loadApp("com.oplus.keyboard", HookOplusKeyboard)
+
         //小布识屏
         loadApp("com.coloros.directui", HookDirectUI)
 
@@ -357,6 +324,7 @@ class MainHook : YukiHookXposedModule {
         //工程模式
         loadApp("com.oplus.engineermode", HookEngineerMode)
 
+        //小布Next
         loadApp("com.oplus.claw", HookClaw)
 
         //其他APP

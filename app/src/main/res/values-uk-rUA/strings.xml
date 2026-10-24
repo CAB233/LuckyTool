@@ -37,7 +37,6 @@
     <string name="switch_autostart_function_caller_summary">1.Метод виклику модуля відкриє нову сторінку модуля та активує функцію автозапуску. Цей метод може призвести до того, що екран стане недоступним протягом декількох секунд, коли він розблокований\n2.Метод виклику системного користувальницького інтерфейсу викличе функцію автозапуску в процесі системного користувальницького інтерфейсу, необхідно надати root-права для системного інтерфейсу користувача, в іншому випадку автозапуск не може бути запущений</string>
     <string name="switch_autostart_function_caller_module">Виклик модуля</string>
     <string name="switch_autostart_function_caller_systemui">Виклик системного інтерфейсу користувача</string>
-    <string name="hide_function_page_icon">Приховати іконку сторінки функцій</string>
     <string name="hide_desktop_module_icon">Приховати іконку модуля на робочому столі</string>
     <string name="hide_desktop_module_icon_summary">LSPosed має бути вимкнено, щоб примусово відображалися іконки на робочому столі</string>
     <!--BackupRestoreClear-->
@@ -155,7 +154,6 @@
     <string name="statusbar_clock_if_zero_summary">If 0, this option will not be modified</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Швидкість мережі в рядку стану</string>
-    <string name="set_network_speed">Встановити частоту оновлення інтернет-швидкості в рядку стану на 1 секунду</string>
     <string name="enable_double_row_network_speed">Швидкість мережі у два рядки</string>
     <string name="set_network_speed_font_size">Встановити розмір шрифту швидкості мережі</string>
     <string name="set_network_speed_padding_bottom">Встановіть швидкість мережі, заповнюючи нижню частину</string>
@@ -1043,4 +1041,6 @@
     <string name="net_error">Невідома мережева помилка</string>
     <string name="net_other_error">Невідома помилка</string>
     <string name="no_error_message">Немає повідомлення про помилку</string>
+    <string name="select_color">Вибрати колір</string>
+    <string name="current_color">Поточний колір: %1$s</string>
 </resources>

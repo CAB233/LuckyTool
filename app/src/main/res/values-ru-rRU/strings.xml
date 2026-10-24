@@ -37,7 +37,6 @@
     <string name="switch_autostart_function_caller_summary">1.Метод вызова модуля откроет новую страницу модуля и активирует функцию автозапуска. Этот метод может привести к тому, что экран станет недоступным в течение нескольких секунд, когда он разблокирован\n2.Метод вызова системного интерфейса вызовет функцию автозапуска в процессе системного интерфейса, необходимо предоставить root-права для системного интерфейса, в противном случае автозапуск не может быть активирован</string>
     <string name="switch_autostart_function_caller_module">Вызов модуля</string>
     <string name="switch_autostart_function_caller_systemui">Вызов системного пользовательского интерфейса</string>
-    <string name="hide_function_page_icon">Скрыть иконки пунктов во вкладке функций</string>
     <string name="hide_desktop_module_icon">Скрыть иконку модуля на рабочем столе</string>
     <string name="hide_desktop_module_icon_summary">LSPosed должен быть отключен, чтобы принудительно отображались иконки на рабочем столе</string>
     <!--BackupRestoreClear-->
@@ -155,7 +154,6 @@
     <string name="statusbar_clock_if_zero_summary">Если 0, эта опция не будет изменена</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Скорость сети в статусбаре</string>
-    <string name="set_network_speed">Установить частоту обновления скорости сети в статусбаре на 1 секунду</string>
     <string name="enable_double_row_network_speed">Скорость сети в две строки</string>
     <string name="set_network_speed_font_size">Установить размер шрифта скорости сети</string>
     <string name="set_network_speed_padding_bottom">Смещение нижней границы скорости сети</string>
@@ -1046,4 +1044,6 @@
     <string name="no_error_message">Нет сообщения об ошибке</string>
     <string name="enable_notification_side_spacing">启用通知两侧间距</string>
     <string name="custom_notification_side_spacing_vertical">自定义通知两侧间距(竖屏)</string>
+    <string name="select_color">Выбрать цвет</string>
+    <string name="current_color">Текущий цвет: %1$s</string>
 </resources>

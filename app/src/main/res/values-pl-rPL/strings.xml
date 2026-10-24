@@ -37,7 +37,6 @@
     <string name="switch_autostart_function_caller_summary">Wybierz metodę wywołania funkcji autostartu w LuckyTool, która pozwali na ustawienie odświeżania ekranu po uruchomieniu systemu</string>
     <string name="switch_autostart_function_caller_module">Wywołanie przez moduł</string>
     <string name="switch_autostart_function_caller_systemui">Wywołanie przez SystemUI</string>
-    <string name="hide_function_page_icon">Ukryj ikony w karcie „Funkcje”</string>
     <string name="hide_desktop_module_icon">Ukryj ikonę aplikacji</string>
     <string name="hide_desktop_module_icon_summary">Wymaga wyłączenia „Wymuś aplikacjom pokazywanie ikon launchera” w ustawieniach LSPosed</string>
     <!--BackupRestoreClear-->
@@ -155,7 +154,6 @@
     <string name="statusbar_clock_if_zero_summary">If 0, this option will not be modified</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Prędkościomierz sieci</string>
-    <string name="set_network_speed">Odświeżaj co 1 sekundę</string>
     <string name="enable_double_row_network_speed">Dwuwierszowa prędkość sieci</string>
     <string name="set_network_speed_font_size">Rozmiar czcionki</string>
     <string name="set_network_speed_padding_bottom">Przesunięcie ikony (dół/góra)</string>
@@ -1046,4 +1044,6 @@
     <string name="no_error_message">Brak wiadomości o błędzie</string>
     <string name="enable_notification_side_spacing">启用通知两侧间距</string>
     <string name="custom_notification_side_spacing_vertical">自定义通知两侧间距(竖屏)</string>
+    <string name="select_color">Wybierz kolor</string>
+    <string name="current_color">Aktualny kolor: %1$s</string>
 </resources>

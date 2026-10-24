@@ -21,6 +21,59 @@
     <string name="dark_theme_off">Always off</string>
     <string name="dark_theme_on">Always on</string>
     <string name="dark_theme_follow_system" translatable="false">@string/follow_system</string>
+    <string name="dark_theme_on_amoled">Deep dark (AMOLED)</string>
+    <string name="theme_palette">Theme palette</string>
+    <string name="theme_palette_summary">Theme color, palette style and color spec</string>
+    <string name="theme_color_title">Theme color</string>
+    <string name="palette_style_title">Palette style</string>
+    <string name="color_spec_title">Color spec</string>
+    <string name="settings_navigation_badge">Navigation badge</string>
+    <string name="settings_navigation_badge_summary">Show an update badge on the navigation bar when a new version is available</string>
+    <string name="settings_enable_predictive_back">Predictive back gesture</string>
+    <string name="settings_enable_predictive_back_summary">Enable predictive back gesture support.</string>
+    <string name="settings_enable_swipe_dismiss">Swipe back gesture</string>
+    <string name="settings_enable_swipe_dismiss_summary">Swipe from the edge to return to the previous page.</string>
+    <string name="settings_pager_gesture_mode">Pager gesture mode</string>
+    <string name="settings_pager_gesture_native">Default</string>
+    <string name="settings_pager_gesture_cross_axis">Cross-axis</string>
+    <string name="settings_pager_gesture_ios_like">iOS-like</string>
+    <string name="settings_page_scale">Page Scale</string>
+    <string name="settings_page_scale_summary">Adjust the global display scale.</string>
+    <string name="settings_module_description_max_lines">Module description max lines</string>
+    <string name="settings_module_description_max_lines_summary">Descriptions exceeding this line count will be folded automatically.</string>
+    <string name="unit_lines">Lines</string>
+    <string name="settings_ui_mode">UI Style</string>
+    <string name="settings_ui_mode_summary">Choose the interface style.</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_mode_system">Follow system</string>
+    <string name="settings_theme_mode_light">Light</string>
+    <string name="settings_theme_mode_dark">Dark</string>
+    <string name="settings_monet">Enable Monet</string>
+    <string name="settings_key_color">Key color</string>
+    <string name="settings_key_color_default">Default</string>
+    <string name="settings_color_style">Color Style</string>
+    <string name="settings_color_spec">Color Spec</string>
+    <string name="settings_enable_blur">Blur</string>
+    <string name="settings_enable_blur_summary">Enable blur effect for the bottom bar.</string>
+    <string name="settings_floating_bottom_bar">Floating bottom bar</string>
+    <string name="settings_floating_bottom_bar_summary">Use a floating bottom bar with icons only.</string>
+    <string name="settings_category_badge_colors">Colorful category icons</string>
+    <string name="settings_category_badge_colors_summary">Use colored badges for category rows (Apps, Status bar, …). Turn off for single-color icons that follow the theme.</string>
+    <string name="color_red">Red</string>
+    <string name="color_pink">Pink</string>
+    <string name="color_purple">Purple</string>
+    <string name="color_deep_purple">Deep Purple</string>
+    <string name="color_indigo">Indigo</string>
+    <string name="color_blue">Blue</string>
+    <string name="color_cyan">Cyan</string>
+    <string name="color_teal">Teal</string>
+    <string name="color_green">Green</string>
+    <string name="color_yellow">Yellow</string>
+    <string name="color_amber">Amber</string>
+    <string name="color_orange">Orange</string>
+    <string name="color_brown">Brown</string>
+    <string name="color_blue_grey">Blue Grey</string>
+    <string name="color_sakura">Sakura</string>
     <string name="language">Language</string>
     <string name="privacy_agreement">Privacy Agreement</string>
     <string name="auto_check_update">Automatically check for updates</string>
@@ -42,7 +95,6 @@
     <string name="switch_autostart_function_caller_summary">1.The module calling method will open a new page of the module and trigger the self-starting function,This method may cause the screen to be untouchable for a few seconds when it is unlocked\n2.The system ui calling method will call the self-starting function on the process of the system ui,Need to give root permission to the system ui,Otherwise, the autostart cannot be triggered</string>
     <string name="switch_autostart_function_caller_module">Module call</string>
     <string name="switch_autostart_function_caller_systemui">SystemUI call</string>
-    <string name="hide_function_page_icon">Hide function page icon</string>
     <string name="hide_desktop_module_icon">Hide desktop module icon</string>
     <string name="hide_desktop_module_icon_summary">LSPosed must be turned off to force desktop icons</string>
     
@@ -54,6 +106,7 @@
     <string name="data_backup_complete">Data backup completed!</string>
     <string name="data_backup_error">Data backup error!</string>
     <string name="data_restore_complete">Data restore complete!</string>
+    <string name="data_restore_result">Restore finished: %1$d succeeded, %2$d failed</string>
     <string name="data_backup_data_version">Backup data version</string>
     <string name="data_current_system_version">Current system version</string>
     <string name="data_restore_version_tips">Restoring data across versions may cause some functions to run abnormally. It is recommended to reconfigure module function data.</string>
@@ -96,6 +149,8 @@
     <!-- Menu -->
     <string name="menu_reboot">Restart menu</string>
     <string name="menu_search">Search menu</string>
+    <string name="search_no_results">No matching results</string>
+    <string name="search_index_loading">Building search index…</string>
     <string name="menu_settings">Set menu</string>
     <string name="restart_scope">Restart scoped processes</string>
     <string name="reload_hooker">Reload processes hooker</string>
@@ -116,6 +171,8 @@
     <string name="reboot">Restart System</string>
     <string name="fast_reboot">Fast reboot</string>
     <string name="menu_versioninfo">Version Information</string>
+    <string name="back">Back</string>
+    <string name="clear">Clear</string>
     <string name="scope_version_info">Scope version information</string>
     <string name="show_system_app">Show system APP</string>
     
@@ -204,7 +261,9 @@
     
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">StatusBar NetWorkSpeed</string>
-    <string name="set_network_speed">Set status bar speed refresh rate 1 s</string>
+    <string name="set_network_speed_interval">Network speed refresh interval</string>
+    <string name="set_network_speed_interval_summary">Custom refresh interval for the status bar network speed, in seconds. Disabled by default; 0 s runs at the 0.1 s floor.</string>
+    <string name="set_network_speed_interval_value">%1$s s</string>
     <string name="enable_double_row_network_speed">Enable Double Row Network Speed</string>
     <string name="set_network_speed_font_size">Set Network Speed Font Size</string>
     <string name="set_network_speed_padding_bottom">Set Network Speed Padding Bottom</string>
@@ -657,6 +716,8 @@
     <string name="enable_custom_app_language">Enable custom app language</string>
     <string name="disable_app_archiving">Auto release app space off by default</string>
     <string name="disable_app_archiving_summary">All apps are opted out of auto-archiving (uninstall app but keep data when storage is low) by default</string>
+    <string name="disable_app_archive_button">Hide app archive button</string>
+    <string name="disable_app_archive_button_summary">Hide the Archive button on the app info page and bring back the Open button; archived apps keep their Restore button</string>
     
     <!--FloatingWindowDialogRelated-->
     <string name="FloatingWindowDialogRelated">Floating Window / Dialog Related</string>
@@ -1261,6 +1322,7 @@
     <string name="appinfo_sort_by">Sort By</string>
     <string name="appinfo_filter">Filter</string>
     <string name="appinfo_reverse">Reverse</string>
+    <string name="appinfo_search_hint">Search App Name Or Package Name</string>
     
     <string name="appinfo_app_name">App Name</string>
     <string name="appinfo_package_name">Package Name</string>
@@ -1341,6 +1403,24 @@
     <string name="all_files_access_permission">All file access permission</string>
     <string name="installed_apps_permission">Read your app list permission</string>
     <string name="install_app_permission">Install app permissions</string>
+
+    <!--AppPermission 应用权限页（设置页入口 + 冷启动阻塞门）-->
+    <string name="app_permission">App permissions</string>
+    <string name="app_permission_summary">Check and grant the permissions the module needs</string>
+    <string name="app_permission_blocked_title">Permissions required</string>
+    <string name="app_permission_blocked_summary">The module needs the 4 permissions below. Tap the button on the right of each row to grant it — the app opens once all four are granted.</string>
+    <string name="app_permission_granted">Granted</string>
+    <string name="app_permission_denied">Not granted</string>
+    <string name="app_permission_action_grant">Grant</string>
+    <string name="app_permission_open_settings">Settings</string>
+    <string name="app_permission_exit">Exit app</string>
+    <string name="app_permission_root_section">Root / LSPosed</string>
+    <string name="app_permission_root_status">Root status</string>
+    <string name="app_permission_root_yes">Obtained</string>
+    <string name="app_permission_root_no">Not obtained</string>
+    <string name="app_permission_module_status">Xposed status</string>
+    <string name="app_permission_module_active">Active</string>
+    <string name="app_permission_module_inactive">Not active</string>
     
     <string name="permission_denied_toast">Permission denied, please grant permission manually: %1$s</string>
     <string name="permission_error_toast">Failed to obtain permission: %1$s</string>
@@ -1372,6 +1452,143 @@
     <string name="apk_details_min_sdk">Minimum SDK</string>
     <string name="apk_details_target_sdk">Target SDK</string>
     <string name="apk_details_unknown">Unavailable</string>
+    <string name="select_color">Select Color</string>
+    <string name="current_color">Current Color: %1$s</string>
+    <string name="menu_more">More</string>
+    <string name="action_optimize_apps">Optimize apps</string>
+    <string name="menu_import_xml">Import Xml</string>
 
 
+    <!--StatusBarIconOrder-->
+    <string name="statusbar_icon_order">Status bar icon order</string>
+    <string name="statusbar_icon_order_category_switch">Switch</string>
+    <string name="statusbar_icon_order_category_arrange">Arrange</string>
+    <string name="statusbar_icon_order_enable">Enable status bar icon order</string>
+    <string name="statusbar_icon_order_enable_summary">Customize the position and order of the status bar icons</string>
+    <string name="statusbar_icon_order_drag_hint">Drag the handle on the right up or down (you can also long-press a row): the highlighted row shows where the icon will land. Drop below the “Right area” header to move it to the right, or back under the “Left area” header to return it to the left. If the left area becomes empty, drop at the very top to put an icon back on the left. Turning the master switch off keeps the system default order.</string>
+    <string name="statusbar_icon_order_zone_left">Left area (%1$d items)</string>
+    <string name="statusbar_icon_order_zone_right">Right area (%1$d items)</string>
+    <string name="statusbar_icon_order_clock">Clock</string>
+    <string name="statusbar_icon_order_notifications">Notification icons</string>
+    <string name="statusbar_icon_order_left_empty">Left area is empty: drag an icon here to put it back on the left</string>
+    <string name="statusbar_icon_order_reset">Reset to the system default</string>
+    <string name="statusbar_icon_order_reset_summary">Restore the native order in both areas</string>
+    <string name="status_bar_slot_logging">Screen recording</string>
+    <string name="status_bar_slot_hotspot">Hotspot</string>
+    <string name="status_bar_slot_data_saver">Data saver</string>
+    <string name="status_bar_slot_cast">Cast</string>
+    <string name="status_bar_slot_connected_display">Connected display</string>
+    <string name="status_bar_slot_vpn">VPN</string>
+    <string name="status_bar_slot_nfc">NFC</string>
+    <string name="status_bar_slot_headset">Headset</string>
+    <string name="status_bar_slot_high_performance">High performance mode</string>
+    <string name="status_bar_slot_alarm_clock">Alarm clock</string>
+    <string name="status_bar_slot_volume">Volume</string>
+    <string name="status_bar_slot_bluetooth">Bluetooth</string>
+    <string name="status_bar_slot_sos">SOS</string>
+    <string name="status_bar_slot_location">Location</string>
+    <string name="status_bar_slot_microphone">Microphone</string>
+    <string name="status_bar_slot_camera">Camera</string>
+    <string name="status_bar_slot_rotate">Auto-rotate</string>
+    <string name="status_bar_slot_ime">Input method</string>
+    <string name="status_bar_slot_sync_failing">Sync failing</string>
+    <string name="status_bar_slot_sync_active">Sync active</string>
+    <string name="status_bar_slot_tty">TTY</string>
+    <string name="status_bar_slot_speakerphone">Speakerphone</string>
+    <string name="status_bar_slot_cdma_eri">CDMA ERI</string>
+    <string name="status_bar_slot_data_connection">Data connection</string>
+    <string name="status_bar_slot_phone_evdo_signal">EVDO signal</string>
+    <string name="status_bar_slot_phone_signal">Phone signal</string>
+    <string name="status_bar_slot_secure">Secure</string>
+    <string name="status_bar_slot_managed_profile">Managed profile</string>
+    <string name="status_bar_slot_mute">Mute</string>
+    <string name="status_bar_slot_ethernet">Ethernet</string>
+    <string name="status_bar_slot_network_speed">Network speed</string>
+    <string name="status_bar_slot_vowifi">VoWiFi</string>
+    <string name="status_bar_slot_volte">VoLTE</string>
+    <string name="status_bar_slot_zen">Do not disturb</string>
+    <string name="status_bar_slot_satellite">Satellite</string>
+    <string name="status_bar_slot_scenario_assistant">Scenario assistant</string>
+    <string name="status_bar_slot_stacked_mobile">Stacked mobile signal</string>
+    <string name="status_bar_slot_mobile">Mobile signal</string>
+    <string name="status_bar_slot_nosim_all">No SIM</string>
+    <string name="status_bar_slot_nosim_one">No SIM 1</string>
+    <string name="status_bar_slot_nosim_two">No SIM 2</string>
+    <string name="status_bar_slot_wifi">Wi-Fi</string>
+    <string name="status_bar_slot_dynamic_info">Dynamic info</string>
+    <string name="status_bar_slot_secure_pay">Secure payment</string>
+    <string name="status_bar_slot_privacy_call">Private call</string>
+    <string name="status_bar_slot_stealth_mode">Stealth mode</string>
+    <string name="status_bar_slot_airplane">Airplane mode</string>
+    <string name="status_bar_slot_oplus_satellite">Satellite icon</string>
+    <string name="status_bar_slot_battery">Battery</string>
+    <string name="force_enable_oplus_keyboard_blur">Force enable blur effect</string>
+    <string name="force_enable_oplus_keyboard_blur_summary">Force the Xiaobu keyboard to use the liquid glass blur, ignoring the system blur switch, the app whitelist, the built-in theme and the folding state.</string>
+    <string name="oplus_keyboard_blur_radius">Blur strength</string>
+    <string name="oplus_keyboard_blur_radius_summary">The blur radius the keyboard asks the system for. The built-in value is 150, and a larger value blurs more.</string>
+    <!-- 桌面布局备份/恢复 -->
+    <string name="launcher_backup">Desktop layout backup</string>
+    <string name="launcher_backup_entry">Desktop layout backup and restore</string>
+    <string name="launcher_backup_entry_summary">Back up the home screen layout and restore it from a snapshot</string>
+    <string name="launcher_backup_category_settings">Backup settings</string>
+    <string name="launcher_backup_category_actions">Actions</string>
+    <string name="launcher_backup_category_history">Snapshot history</string>
+    <string name="launcher_backup_status">Snapshot status</string>
+    <string name="launcher_backup_busy">Working…</string>
+    <string name="launcher_backup_waiting_launcher">Waiting for the launcher process… (attempt %1$d/%2$d)</string>
+    <string name="launcher_backup_no_launcher">Launcher package not detected: enable the launcher scope in LSPosed and open the home screen once.</string>
+    <string name="launcher_backup_ok_ready">Ready · %1$s</string>
+    <string name="launcher_backup_send_failed">Cannot reach the launcher process: check the launcher scope in LSPosed.</string>
+    <string name="launcher_backup_root">Snapshot directory</string>
+    <string name="launcher_backup_backup_now">Back up now</string>
+    <string name="launcher_backup_backup_now_summary">Export the layout tables and the hidden-app state into a new snapshot file</string>
+    <string name="launcher_backup_import">Import a snapshot file</string>
+    <string name="launcher_backup_import_summary">Pick a .ltbackup snapshot file and copy it into the snapshot directory</string>
+    <string name="launcher_backup_empty">No snapshots yet</string>
+    <string name="launcher_backup_result_ok">Done</string>
+    <string name="launcher_backup_result_failed">Failed: %1$s</string>
+    <string name="launcher_backup_result_sent">Command sent · the result shows up in the launcher toast</string>
+    <string name="launcher_backup_restore_title">Restore snapshot</string>
+    <string name="launcher_backup_restore_message">%1$s\nA pre-restore snapshot is taken first, then the layout tables are replaced and the launcher reloads.</string>
+    <string name="launcher_backup_restore_confirm">Restore</string>
+    <string name="launcher_backup_cancel">Cancel</string>
+    <string name="launcher_backup_delete">Delete snapshot</string>
+    <string name="launcher_backup_delete_title">Delete snapshot</string>
+    <string name="launcher_backup_delete_message">%1$s\nThis cannot be undone. Delete this snapshot?</string>
+    <string name="launcher_backup_delete_confirm">Delete</string>
+    <string name="launcher_backup_delete_ok">Deleted %1$s</string>
+    <string name="launcher_backup_err_create">Cannot create the snapshot file: %1$s</string>
+    <string name="launcher_backup_err_exists">The snapshot file already exists: %1$s</string>
+    <string name="launcher_backup_err_grant">Cannot grant file access to the launcher: %1$s</string>
+    <string name="launcher_backup_err_timeout">The launcher process did not respond: right after a system reboot or a scope reload, return to the home screen first so the launcher process restarts, then try again; if it still fails, check that the launcher scope is enabled</string>
+    <string name="launcher_backup_err_empty">The snapshot file is empty: %1$s</string>
+    <string name="launcher_backup_err_pre_restore">Cannot take the pre-restore snapshot, restore aborted: %1$s</string>
+    <string name="launcher_backup_err_io">File error: %1$s</string>
+    <string name="launcher_backup_err_invalid">This file is not a valid desktop layout backup</string>
+    <string name="launcher_backup_auto">Automatic backup</string>
+    <string name="launcher_backup_auto_summary">The launcher process checks the interval itself and writes the snapshot to Download; the launcher scope must be enabled in LSPosed. A manual backup also restarts the countdown</string>
+    <string name="launcher_backup_interval">Backup interval</string>
+    <string name="launcher_backup_interval_summary">Current: %s</string>
+    <string name="launcher_backup_interval_6h">6 hours</string>
+    <string name="launcher_backup_interval_12h">12 hours</string>
+    <string name="launcher_backup_interval_24h">24 hours</string>
+    <string name="launcher_backup_interval_48h">48 hours</string>
+    <string name="launcher_backup_tag_auto">Auto</string>
+    <string name="launcher_backup_tag_manual">Manual</string>
+    <string name="launcher_backup_tag_pre_restore">Before restore</string>
+    <string name="settings_floating_bottom_bar_style">Floating bottom bar style</string>
+    <string name="settings_floating_style_miuix">Miuix</string>
+    <string name="settings_floating_style_ios">iOS style (Liquid Glass)</string>
+    <string name="home_device_details_show">More device information</string>
+    <string name="home_device_details_hide">Less device information</string>
+    <string name="home_device_info_copied">Device OTA data copied</string>
+    <string name="home_module_inactive_summary">Enable the module in your framework manager</string>
+    <string name="home_info_loading">Reading device information…</string>
+    <string name="home_device_pos" translatable="false">POS</string>
+    <string name="home_device_sas" translatable="false">SAS</string>
+    <string name="home_device_pas" translatable="false">PAS</string>
+    <string name="settings_enable_glass">Liquid glass</string>
+    <string name="settings_enable_glass_summary">Enable liquid glass effect for floating bottom bar.</string>
+    <string name="allow_third_party_installer">Allow third-party installers</string>
+    <string name="allow_third_party_installer_summary">Use your chosen default app to open APK files and remember the installer selection</string>
 </resources>

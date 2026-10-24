@@ -2,7 +2,6 @@
 
 package com.luckyzyx.luckytool.utils
 
-import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.ContentValues
 import android.content.Context
@@ -18,7 +17,6 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.drawable.Drawable
 import android.os.Build
-import android.os.Bundle
 import android.os.IBinder
 import android.os.PowerManager
 import android.os.SystemClock
@@ -31,34 +29,15 @@ import android.text.style.ForegroundColorSpan
 import android.util.ArrayMap
 import android.util.Base64
 import android.util.TypedValue
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
-import androidx.annotation.MenuRes
 import androidx.core.graphics.createBitmap
-import androidx.core.graphics.drawable.RoundedBitmapDrawableFactory
-import androidx.core.graphics.drawable.toBitmap
-import androidx.core.graphics.drawable.toBitmapOrNull
 import androidx.core.graphics.drawable.toDrawable
-import androidx.core.graphics.scale
 import androidx.core.net.toUri
-import androidx.core.view.MenuHost
-import androidx.core.view.MenuProvider
-import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.navigation.NavController
-import androidx.navigation.NavOptions
-import androidx.preference.EditTextPreference
-import androidx.preference.ListPreference
-import androidx.preference.Preference
 import com.drake.net.utils.withDefault
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.highcapable.betterandroid.system.extension.component.clipboardManager
 import com.highcapable.betterandroid.system.extension.component.copy
 import com.highcapable.betterandroid.system.extension.component.sendBroadcast
-import com.highcapable.betterandroid.ui.extension.component.base.getDrawableCompat
 import com.highcapable.betterandroid.ui.extension.graphics.decodeToBitmapOrNull
 import com.highcapable.betterandroid.ui.extension.view.toast
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
@@ -81,48 +60,53 @@ import kotlin.math.roundToLong
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
-/**
- * 获取设备信息
- * @receiver Context
- * @return String
- */
+/** 设备信息按字段保存，显示时再根据当前语言解析标题。 */
+data class DeviceInfoEntry(val labelRes: Int, val value: String)
+
+fun getDeviceInfoEntries(controller: IGlobalFuncController? = null): List<DeviceInfoEntry> {
+    fun value(vararg parts: String?): String = parts
+        .filterNot { it.isNullOrBlank() || it.equals("null", ignoreCase = true) }
+        .joinToString(" ").ifBlank { "—" }
+    val serial = controller?.snInfo
+    val chip = controller?.chipInfo
+    val osCode = getOSVersionCode
+    val osName = if (osCode > 0) runCatching { getOSVersionName(osCode) }.getOrNull()
+        ?.takeUnless { it == "null" } else null
+    val systemVersion = "Android ${Build.VERSION.RELEASE} (${Build.VERSION.SDK_INT})" +
+        (osName?.let { " · OS $it ($osCode)" } ?: "")
+    return buildList {
+        add(DeviceInfoEntry(R.string.model, value(getFingerPrintBrand, getFingerPrintModel, getModelMarketName())))
+        add(DeviceInfoEntry(R.string.system, systemVersion))
+        add(DeviceInfoEntry(R.string.version, value(controller?.otaVersion)))
+        add(DeviceInfoEntry(R.string.product, value(Build.PRODUCT, Build.DEVICE, controller?.cpuInfo, controller?.prjNameInfo, controller?.slotInfo)))
+        add(DeviceInfoEntry(R.string.build_version, value(Build.DISPLAY, getManifestEndVersion(controller?.manifestVersion))))
+        add(DeviceInfoEntry(R.string.flash, value(controller?.flashInfo)))
+        if (serial == chip) {
+            add(DeviceInfoEntry(R.string.home_device_pas, value(controller?.pcbInfo, serial)))
+        } else {
+            add(DeviceInfoEntry(R.string.home_device_pos, value(controller?.pcbInfo)))
+            add(DeviceInfoEntry(R.string.home_device_sas, value(serial, chip)))
+        }
+    }
+}
+
+/** 获取设备信息的文本表示，供日志等纯文本场景使用。 */
 fun Context.getDeviceInfo(
     controller: IGlobalFuncController? = null, isLog: Boolean = false
-): String {
-    val androidVer = "Android ${Build.VERSION.RELEASE}(${Build.VERSION.SDK_INT})"
-    val osVer = "OS $getOSVersionName($getOSVersionCode)"
-    return ArrayList<String>().apply {
-        if (isLog) {
-            add("${getString(R.string.module_version)} $getVersionName($getVersionCode)")
-            add("${getString(R.string.root_source)} ${DeviceUtils.getRootVersion(this@getDeviceInfo)}")
-            add("${getString(R.string.framework_version)} ${DeviceUtils.getFrameWorkVersion(this@getDeviceInfo)}")
-        }
-        add("${getString(R.string.model)}: $getFingerPrintBrand $getFingerPrintModel ${getModelMarketName()}")
-        add("${getString(R.string.product)}: ${Build.PRODUCT} ${Build.DEVICE} ${controller?.cpuInfo} ${controller?.prjNameInfo} ${controller?.slotInfo}")
-        add("${getString(R.string.system)}: $androidVer $osVer")
-        add(
-            "${getString(R.string.build_version)}: ${Build.DISPLAY} ${
-                getManifestEndVersion(controller?.manifestVersion)
-            }"
-        )
-        add("${getString(R.string.version)}: ${controller?.otaVersion}")
-        add("${getString(R.string.flash)}: ${controller?.flashInfo}")
-
-        if (controller?.snInfo == controller?.chipInfo) {
-            add("PAS: ${controller?.pcbInfo} ${controller?.snInfo}")
-        } else {
-            add("POS: ${controller?.pcbInfo}")
-            add("SAS: ${controller?.snInfo} ${controller?.chipInfo}")
-        }
-
-        if (isLog) {
-            add(getMyManifesstVersion())
-            add(DeviceUtils.getGuid())
-            add(DeviceUtils.getRecruitId())
-            add(DeviceUtils.getRegisterId())
-        }
-    }.let { formatStringAuto(it, "\n") }
-}
+): String = buildList {
+    if (isLog) {
+        add("${getString(R.string.module_version)} $getVersionName($getVersionCode)")
+        add(DeviceUtils.getRootVersion(this@getDeviceInfo))
+        add(DeviceUtils.getFrameWorkVersion(this@getDeviceInfo))
+    }
+    getDeviceInfoEntries(controller).forEach { add("${getString(it.labelRes)}: ${it.value}") }
+    if (isLog) {
+        add(getMyManifesstVersion())
+        add(DeviceUtils.getGuid())
+        add(DeviceUtils.getRecruitId())
+        add(DeviceUtils.getRegisterId())
+    }
+}.joinToString("\n")
 
 /**
  * 检测包名是否存在
@@ -311,21 +295,16 @@ fun getProp(key: String, def: String): String =
 
 /**
  * 发送广播以关闭折叠面板
+ *
+ * 旧实现在 sendBroadcast 失败时退回 startActivityAndCollapse(Intent)：该重载自 targetSdk 34 起
+ * 必定抛异常，而 sendBroadcast 在无接收者时并不会抛异常，退回路径实际不可达，故移除。
  * @receiver TileService
  */
-@SuppressLint("StartActivityAndCollapseDeprecated")
 fun TileService.closeCollapse() {
     try {
         sendBroadcast { action = "LuckyTool_CloseCollapse" }
     } catch (_: Exception) {
-        try {
-            @Suppress("DEPRECATION")
-            startActivityAndCollapse(Intent(Intent.ACTION_VIEW).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            })
-        } catch (_: Exception) {
 
-        }
     }
 }
 
@@ -374,59 +353,6 @@ fun Context.copyStr(string: CharSequence) {
 fun base64ToBitmap(code: String): Bitmap? {
     val decode: ByteArray = Base64.decode(code.split(",")[1], Base64.DEFAULT)
     return decode.decodeToBitmapOrNull(0, decode.size)
-}
-
-/**
- * 返回MaterialDialog Title居中样式
- */
-val dialogCentered get() = com.google.android.material.R.style.ThemeOverlay_Material3_MaterialAlertDialog_Centered
-
-/**
- * 设置Preference图标显示
- * @receiver Context 上下文
- * @param resource Any? 传入对象
- * @param result Function2<Drawable?, Boolean, Unit> 输出
- */
-fun Preference.setPrefsIconRes(resource: Any?, result: (Drawable?, Boolean) -> Unit) {
-    if (context.getBoolean(SettingsPrefs, "hide_function_page_icon", false)) {
-        result(null, false)
-        return
-    }
-    val image: Drawable? = when (resource) {
-        is Int -> context.resources.getDrawableCompat(resource, null)
-        is Drawable -> resource
-        is String -> AppUtils(context).getAppIcon(resource)
-        else -> null
-    }
-    if (image == null || image.intrinsicWidth <= 0 || image.intrinsicHeight <= 0) {
-        val icon =
-            context.resources.getDrawableCompat(android.R.mipmap.sym_def_app_icon, null)
-        result(icon, true)
-        return
-    }
-
-    val bitmap = image.toBitmapOrNull(48.dp, 48.dp, null)
-    if (bitmap == null) {
-        result(null, false)
-        return
-    }
-
-    val drawable = RoundedBitmapDrawableFactory.create(context.resources, bitmap)
-    drawable.setAntiAlias(true)
-    drawable.cornerRadius = 30F
-    result(drawable, true)
-}
-
-/**
- * 修复Icon显示大小
- * @receiver Preference
- * @param icon Drawable?
- * @return Drawable?
- */
-fun Preference.fixIconSize(icon: Drawable?): Drawable? {
-    return if (icon != null && ((icon.intrinsicWidth < 48.dp) || (icon.intrinsicHeight < 48.dp))) {
-        context.zoomDrawable(icon, 48.dp, 48.dp)
-    } else icon
 }
 
 /**
@@ -653,46 +579,6 @@ fun showRefreshRate(status: Boolean) {
 }
 
 /**
- * 判断上下文跳转fragment设置标题
- * @receiver NavController
- * @param fragemntId Int
- * @param title CharSequence?
- */
-fun NavController.navigatePage(fragemntId: Int, title: CharSequence?) = try {
-    val bundle = Bundle().apply {
-        if (!title.isNullOrBlank()) putCharSequence("title_text", title)
-    }
-    val navOptions = NavOptions.Builder().apply {
-        setEnterAnim(R.anim.fragment_enter)
-        setExitAnim(R.anim.fragment_exit)
-        setPopEnterAnim(R.anim.fragment_enter_pop)
-        setPopExitAnim(R.anim.fragment_exit_pop)
-    }.build()
-    navigate(fragemntId, bundle, navOptions)
-} catch (_: IllegalArgumentException) {
-
-}
-
-/**
- * 跳转fragment传递参数 用于功能搜索适配器
- * @receiver NavController
- * @param action Int
- * @param bundle Bundle?
- */
-fun NavController.navigatePage(action: Int, bundle: Bundle?) = try {
-    val navOptions = NavOptions.Builder().apply {
-        setEnterAnim(R.anim.fragment_enter)
-        setExitAnim(R.anim.fragment_exit)
-        setPopEnterAnim(R.anim.fragment_enter_pop)
-        setPopExitAnim(R.anim.fragment_exit_pop)
-    }.build()
-    navigate(action, bundle, navOptions)
-} catch (_: IllegalArgumentException) {
-
-}
-
-
-/**
  * 获取屏幕状态
  * (true -> 竖屏 ORIENTATION_PORTRAIT)
  * (false -> 横屏 ORIENTATION_LANDSCAPE)
@@ -768,20 +654,6 @@ fun getCharSpans(char: CharSequence): Array<out ForegroundColorSpan>? {
     return if (colorSpans == null || colorSpans.isEmpty()) null else colorSpans
 }
 
-/**
- * 缩放Drawable
- * @receiver Context
- * @param drawable Drawable
- * @param width Int
- * @param height Int
- * @return Drawable
- */
-fun Context.zoomDrawable(drawable: Drawable, width: Int, height: Int): Drawable {
-    val oldBmp = drawable.toBitmap()
-    val newBmp = oldBmp.scale(width, height)
-    return newBmp.toDrawable(resources)
-}
-
 fun Context.verityPackage() = safeOf({ exitModule() }) {
     val packInfo =
         PackageUtils(packageManager).getPackageInfo(BuildConfig.APPLICATION_ID, 0) ?: return@safeOf
@@ -817,31 +689,6 @@ fun closeScreen(context: Context) {
     }.invoke(SystemClock.uptimeMillis())
 }
 
-/**
- * Fragment快捷设置MenuProvider
- * @receiver Fragment
- * @param menuId Int Menu Resource ID
- * @param onMenuSelected Function1<MenuItem, Boolean>
- */
-fun Fragment.setupMenuProvider(@MenuRes menuId: Int, onMenuSelected: (MenuItem) -> Boolean) =
-    (requireActivity() as MenuHost).addMenuProvider(object : MenuProvider {
-        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) =
-            menuInflater.inflate(menuId, menu)
-
-        override fun onMenuItemSelected(menuItem: MenuItem) = onMenuSelected(menuItem)
-    }, viewLifecycleOwner, Lifecycle.State.RESUMED)
-
-/**
- * Fragment快捷设置MenuProvider
- * @receiver Fragment
- * @param menuProvider MenuProvider
- */
-fun Fragment.setupMenuProvider(menuProvider: MenuProvider) =
-    (requireActivity() as MenuHost).addMenuProvider(
-        menuProvider, viewLifecycleOwner, Lifecycle.State.RESUMED
-    )
-
-
 fun logcatToFile(file: File): Boolean {
     return try {
         if (!file.exists()) file.createNewFile()
@@ -857,7 +704,14 @@ fun logcatToFile(file: File): Boolean {
  * @param packName 原 dataChannel 目标包，现仅作兼容保留（不再按包路由）
  */
 fun Context.sendPrefsValue(packName: String, key: String, newValue: Any) {
-    dataChannel(packName).put(key, newValue)
+    // dataChannel 同样跨进程：集合不能把 Kotlin 单例实现（emptySet()/emptyList()）送过去，
+    // 统一复制成 java.util 实现后传输（值类型与语义不变）
+    val safeValue = when (newValue) {
+        is Set<*> -> HashSet(newValue)
+        is List<*> -> ArrayList(newValue)
+        else -> newValue
+    }
+    dataChannel(packName).put(key, safeValue)
 }
 
 /**
@@ -876,19 +730,6 @@ fun Context.sendPrefsKey(packName: String, key: String) {
 fun stringReverse(str: String): String {
     return str.toList().reversed().toString().replaceSpace.replace(",", "").replace("[", "")
         .replace("]", "")
-}
-
-/**
- * 创建并显示BottomSheetDialog
- * @receiver Context
- * @param rootView View?
- * @return BottomSheetDialog
- */
-fun Context.showBottomSheet(rootView: View? = null): BottomSheetDialog {
-    return BottomSheetDialog(this).apply {
-        if (rootView != null) setContentView(rootView)
-        show()
-    }
 }
 
 /**
@@ -927,18 +768,6 @@ fun String.convertList(): ArrayList<String> {
         list.addAll(tmp)
     }
     return list
-}
-
-fun setSummaryProvider(preference: Preference) {
-    when (preference) {
-        is EditTextPreference -> preference.setSummaryProvider {
-            EditTextPreference.SimpleSummaryProvider.getInstance().provideSummary(preference)
-        }
-
-        is ListPreference -> preference.setSummaryProvider {
-            ListPreference.SimpleSummaryProvider.getInstance().provideSummary(preference)
-        }
-    }
 }
 
 fun getManifestEndVersion(string: String?): String {

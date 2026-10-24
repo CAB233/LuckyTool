@@ -3,11 +3,11 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.lsplugin.resopt)
     alias(libs.plugins.lsplugin.lsparanoid)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.navigation.safe.args)
 }
 
 lsparanoid {
@@ -16,17 +16,14 @@ lsparanoid {
 }
 
 android {
-    namespace = "com.luckyzyx.luckytool"
-    compileSdk {
-        version = release(rootProject.extra.get("compileSdkVersion") as Int) {
-//            minorApiLevel = 1
-        }
-    }
-    defaultConfig {
-        applicationId = "com.luckyzyx.luckytool"
+    namespace = gropify.project.groupName
+    compileSdk = gropify.project.android.compileSdk
 
-        minSdk = rootProject.extra.get("minSdkVersion") as Int
-        targetSdk = rootProject.extra.get("targetSdkVersion") as Int
+    defaultConfig {
+        applicationId = gropify.project.groupName
+
+        minSdk = gropify.project.android.minSdk
+        targetSdk = gropify.project.android.targetSdk
 
         versionCode = getVersionCode()
         versionName = "1.3.5_beta"
@@ -69,21 +66,22 @@ android {
     }
     buildFeatures {
         aidl = true
-        viewBinding = true
         buildConfig = true
+        compose = true
     }
     androidResources.additionalParameters.addAll(
         arrayOf("--allow-reserved-package-id", "--package-id", "0x64")
     )
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
     packaging {
         jniLibs {
             useLegacyPackaging = false
         }
     }
-}
-
-kotlin {
-    jvmToolchain(rootProject.extra.get("jdkVersion") as Int)
 }
 
 @Suppress("UnstableApiUsage")
@@ -104,7 +102,6 @@ androidComponents {
 
 dependencies {
     compileOnly(projects.hiddenApiStub)
-    implementation(projects.colorpicker)
 
     @Suppress("AvoidDuplicateDependencies")
     platform(libs.yukihook.bom).apply {
@@ -114,6 +111,7 @@ dependencies {
     implementation(libs.yukihook.core)
     ksp(libs.yukihook.compiler)
     implementation(libs.yukihook.runtime.libxposed)
+    implementation(libs.yukihook.extension.kavaref)
 
     compileOnly(libs.libxposed.api)
     implementation(libs.libxposed.service)
@@ -126,26 +124,42 @@ dependencies {
     implementation(libs.hiddenapibypass)
 
     //AndroidX
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.biometric)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.preference.ktx)
-    implementation(libs.androidx.swiperefreshlayout)
-    implementation(libs.androidx.navigation.fragment.ktx)
-    implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.activity.compose)
+
+    //Compose (BOM 统一版本)
+    platform(libs.androidx.compose.bom)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.material.kolor)
+    implementation(libs.androidx.compose.material.icons.extended)
+    //Miuix
+    implementation(libs.miuix.ui)
+    implementation(libs.miuix.icons)
+    implementation(libs.miuix.nav)
+    implementation(libs.miuix.preference)
+    implementation(libs.miuix.blur)
+    //Markdown
+    implementation(libs.markwon.core)
+    implementation(libs.markwon.html)
+    implementation(libs.markwon.image)
+    implementation(libs.markwon.ext.tables)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+    implementation(libs.appiconloader.iconloaderlib)
 
     //Android UI
-    implementation(libs.material)
     implementation(libs.betterandroid.ui.component)
     implementation(libs.betterandroid.ui.component.adapter)
     implementation(libs.betterandroid.ui.extension)
     implementation(libs.betterandroid.system.extension)
-    implementation(libs.hikage.core)
-    implementation(libs.hikage.compiler)
-    implementation(libs.hikage.extension)
-    implementation(libs.hikage.extension.betterandroid)
-    implementation(libs.hikage.widget.androidx)
-    implementation(libs.hikage.widget.material)
 
     //KotlinX
     implementation(libs.kotlinx.coroutines.core)
@@ -162,18 +176,16 @@ dependencies {
     implementation(libs.libsu.service)
     implementation(libs.libsu.io)
 
-    //MarkDown
-    implementation(libs.markwon.core)
-    implementation(libs.markwon.html)
-    implementation(libs.markwon.image)
-    implementation(libs.markwon.ext.tables)
-
     //Tools
     implementation(libs.deviceCompat)
     implementation(libs.xxpermissions)
     implementation(libs.spiderman)
-    implementation(libs.fastscroll)
     implementation(libs.android.image.cropper)
+
+    //Test
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }
 
 fun getVersionCode(): Int {

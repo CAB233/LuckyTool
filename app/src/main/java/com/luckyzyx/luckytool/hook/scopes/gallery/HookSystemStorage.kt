@@ -5,6 +5,9 @@ import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.condition.type.VagueType
 import com.highcapable.kavaref.extension.classOf
+import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.hookAll
+import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
@@ -27,9 +30,11 @@ class HookSystemStorage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
         val seniorPicked =
             preferences(ModulePrefs).getBoolean("enable_photo_listview_senior_picked", false)
         //拇指线
-        val thumbLine = preferences(ModulePrefs).getString("set_photo_view_thumb_line_display_mode", "0")
+        val thumbLine =
+            preferences(ModulePrefs).getString("set_photo_view_thumb_line_display_mode", "0")
         //GIF合成
-        val gifSynthesis = preferences(ModulePrefs).getBoolean("enable_photo_editor_gif_synthesis", false)
+        val gifSynthesis =
+            preferences(ModulePrefs).getBoolean("enable_photo_editor_gif_synthesis", false)
         //闪速抠图
         val lnsImage = preferences(ModulePrefs).getBoolean("enable_lns_cut_photo", false)
         //画框水印
@@ -39,7 +44,8 @@ class HookSystemStorage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
         //AI大师水印
         val aiWaterMark = preferences(ModulePrefs).getBoolean("enable_ai_master_watermark", false)
         //隐私水印
-        val privicyWaterMark = preferences(ModulePrefs).getBoolean("enable_privacy_watermark", false)
+        val privicyWaterMark =
+            preferences(ModulePrefs).getBoolean("enable_privacy_watermark", false)
         //新春水印
         val springFestival =
             preferences(ModulePrefs).getBoolean("enable_spring_festival_watermark", false)
@@ -48,21 +54,22 @@ class HookSystemStorage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
             preferences(ModulePrefs).getBoolean("enable_national_day_watermark", false)
 
         //Source OtherSystemStorage
+        //配置键已由 String 改为 vab 对象, 类内字符串随版本变动不可作锚点, 改为纯结构特征定位
         dexKitBridge.findClass {
             matcher {
                 fields {
-                addForType(classOf<Context>())
+                    addForType(classOf<Context>())
                 }
                 methods {
-                    add { paramCount(2);returnType(classOf<Int>(primitiveType = false)) }
-                    add { paramCount(2);returnType(classOf<Long>(primitiveType = false)) }
+                    add { paramCount(2); returnType(classOf<Int>(primitiveType = false)) }
+                    add { paramCount(2); returnType(classOf<Long>(primitiveType = false)) }
                     add { paramCount(2); returnType(classOf<Boolean>(primitiveType = false)) }
-                    add { paramCount(2);returnType(classOf<String>()) }
-                    add { paramCount(2);returnType(Void.TYPE) }
-                    add { paramCount(0);returnType(classOf<Boolean>()) }
+                    add { paramCount(2); returnType(classOf<String>()) }
+                    add { paramCount(2); returnType(Void.TYPE) }
+                    add { paramCount(0); returnType(classOf<Boolean>()) }
 //                    add { paramCount(4);returnType(Boolean::class.java) }
                 }
-                usingStrings("configNode")
+                usingStrings("OtherSystemStorage")
             }
         }.apply {
             checkDataList("HookSystemStorage")
@@ -82,7 +89,8 @@ class HookSystemStorage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                                 if (osCode >= 34 && aiWaterMark) result = true
                             }
                             //com.oplus.camera.support.custom.hasselblad.watermark
-                            configNode.contains("feature_is_support_hassel_watermark") -> if (hasselWaterMark) result = true
+                            configNode.contains("feature_is_support_hassel_watermark") -> if (hasselWaterMark) result =
+                                true
                             //com.oplus.feature.custom.makeup.watermark.support
 //                            configNode.contains("feature_is_support_street_watermark") -> if (waterMark) result = true
                             //debug.enable.ipu
@@ -102,27 +110,33 @@ class HookSystemStorage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
 //                                frameWaterMark
 
                             //is_realme_brand / debug.gallery.photo.editor.watermark.switcher
-                            configNode.contains("feature_is_support_privacy_watermark") -> if (privicyWaterMark) result = true
+                            configNode.contains("feature_is_support_privacy_watermark") -> if (privicyWaterMark) result =
+                                true
                             //os.graphic.gallery.photolistview.senior_picked
-                            configNode.contains("feature_is_support_senior_picked") -> if (seniorPicked) result = true
+                            configNode.contains("feature_is_support_senior_picked") -> if (seniorPicked) result =
+                                true
                             //debug.gallery.photo.photothumbline / os.graphic.gallery.photoview.thumb_line
                             configNode.contains("feature_is_support_photo_thumb_line") -> when (thumbLine) {
                                 "1" -> result = true
                                 "2" -> result = false
                             }
                             //debug.gallery.gif.support.synthesis / os.graphic.gallery.photoeditor.gif_synthesis
-                            configNode.contains("feature_is_support_gif_synthesis") -> if (gifSynthesis) result = true
+                            configNode.contains("feature_is_support_gif_synthesis") -> if (gifSynthesis) result =
+                                true
                             //debug.gallery.lns / os.graphic.gallery.photoview.lns
-                            configNode.contains("feature_is_support_lns") -> if (lnsImage) result = true
+                            configNode.contains("feature_is_support_lns") -> if (lnsImage) result =
+                                true
 
                             //isOsSupport 29 -> 27 (Downgrade)
                             //debug.gallery.photo.editor.watermark.switcher / is_region_cn (property_domestic)
                             configNode.contains("feature_is_support_spring_festival_watermark") -> {
-                                if (springFestival && osCode in 27..33 && isRegionCN(context)) result = true
+                                if (springFestival && osCode in 27..33 && isRegionCN(context)) result =
+                                    true
                             }
                             //debug.gallery.photo.editor.watermark.switcher / is_region_cn (property_domestic)
                             configNode.contains("feature_is_support_national_day_watermark") -> {
-                                if (nationalDay && osCode in 27..33 && isRegionCN(context)) result = true
+                                if (nationalDay && osCode in 27..33 && isRegionCN(context)) result =
+                                    true
                             }
                         }
                     }
@@ -134,7 +148,7 @@ class HookSystemStorage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
             //Source WatermarkInfo / WatermarkDevice
             dexKitBridge.findClass {
                 matcher {
-                addFieldForType(classOf<Int>())
+                    addFieldForType(classOf<Int>())
                     addFieldForType(classOf<Boolean>())
                     addFieldForType(classOf<String>())
                     usingStrings("WatermarkDevice", "isHasselDevice")
@@ -164,8 +178,8 @@ class HookSystemStorage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
 //                    addForType(Context::class.java)
 //                }
                 methods {
-                    add { name = "close";paramCount(0) }
-                    add { name = "contains";paramTypes(classOf<String>()) }
+                    add { name = "close"; paramCount(0) }
+                    add { name = "contains"; paramTypes(classOf<String>()) }
                     add { returnType(classOf<AutoCloseable>()) }
                     add {
 //                        paramTypes(String::class.java, Int::class.java)
@@ -178,7 +192,7 @@ class HookSystemStorage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                         returnType(classOf<Long>(primitiveType = false))
                     }
                     add {
-                    paramTypes(classOf<String>(), classOf<String>())
+                        paramTypes(classOf<String>(), classOf<String>())
                         returnType(classOf<String>())
                     }
 //                    add {

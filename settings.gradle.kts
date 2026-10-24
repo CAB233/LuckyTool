@@ -20,16 +20,36 @@ pluginManagement {
 }
 
 plugins {
+    id("com.highcapable.gropify") version "1.0.2"
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
+gropify {
+    isEnabled = true
+    debugMode = false
+    global {
+        sourceCode {
+            includeKeys("^project\\..*$".toRegex())
+            isRestrictedAccessEnabled = true
+        }
+    }
+    rootProject {
+        common {
+            isEnabled = true
+        }
+    }
+    projects(":app", ":hidden-api-stub") {
+        common {
+            isEnabled = true
+        }
+    }
 }
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         mavenLocal {
-            content { includeGroup("com.highcapable.yukihookapi") }
             content { includeGroup("com.highcapable.kavaref") }
-            content { includeGroup("com.highcapable.hikage") }
         }
         google()
         mavenCentral()
@@ -42,4 +62,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "LuckyTool"
-include(":app", ":colorpicker", ":hidden-api-stub")
+include(":app", ":hidden-api-stub")

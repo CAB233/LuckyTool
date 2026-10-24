@@ -8,8 +8,13 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.core.view.MenuProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
 import androidx.lifecycle.Lifecycle
 import com.canhub.cropper.CropImage
@@ -20,13 +25,12 @@ import com.canhub.cropper.CropImageView.OnCropImageCompleteListener
 import com.canhub.cropper.CropImageView.OnSetImageUriCompleteListener
 import com.canhub.cropper.R
 import com.canhub.cropper.parcelable
-import com.luckyzyx.luckytool.databinding.ActivityCropImageBinding
-import com.luckyzyx.luckytool.ui.activity.base.BaseActivity
 import com.luckyzyx.luckytool.utils.ThemeUtils
 import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.R as LuckyToolR
 
 @Obfuscate
-class CropImageActivity : BaseActivity<ActivityCropImageBinding>(), MenuProvider,
+class CropImageActivity : AppCompatActivity(), MenuProvider,
     OnSetImageUriCompleteListener, OnCropImageCompleteListener {
 
     private var cropImageView: CropImageView? = null
@@ -44,11 +48,23 @@ class CropImageActivity : BaseActivity<ActivityCropImageBinding>(), MenuProvider
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        ThemeUtils.initTheme(this)
+        enableEdgeToEdge()
+        window.isNavigationBarContrastEnforced = false
+
+        setContentView(LuckyToolR.layout.activity_crop_image)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(0, systemBars.top, 0, 0)
+            insets
+        }
+
         addMenuProvider(this, this, Lifecycle.State.RESUMED)
 
-        setSupportActionBar(binding.toolbar)
+        val toolbar = findViewById<Toolbar>(LuckyToolR.id.toolbar)
+        setSupportActionBar(toolbar)
 
-        cropImageView = binding.cropImageView
+        cropImageView = findViewById(LuckyToolR.id.cropImageView)
 
         val bundle = intent.getBundleExtra(CropImage.CROP_IMAGE_EXTRA_BUNDLE)
         key = bundle?.getString("key") ?: ""
@@ -60,7 +76,7 @@ class CropImageActivity : BaseActivity<ActivityCropImageBinding>(), MenuProvider
             title = cropImageOptions.activityTitle.ifEmpty { "" }
             setDisplayHomeAsUpEnabled(true)
         }
-        binding.toolbar.setNavigationOnClickListener {
+        toolbar.setNavigationOnClickListener {
             setResultCancel()
             onBackPressedDispatcher.onBackPressed()
         }

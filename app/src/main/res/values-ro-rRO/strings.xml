@@ -37,7 +37,6 @@
     <string name="switch_autostart_function_caller_summary">1.The module calling method will open a new page of the module and trigger the self-starting function,This method may cause the screen to be untouchable for a few seconds when it is unlocked\n2.The system ui calling method will call the self-starting function on the process of the system ui,Need to give root permission to the system ui,Otherwise, the autostart cannot be triggered</string>
     <string name="switch_autostart_function_caller_module">Apel modul</string>
     <string name="switch_autostart_function_caller_systemui">Apel SystemUI</string>
-    <string name="hide_function_page_icon">Ascundeți pictograma paginii de funcții</string>
     <string name="hide_desktop_module_icon">Ascunde pictograma modulului desktop</string>
     <string name="hide_desktop_module_icon_summary">LSPosed trebuie să fie oprit pentru a forța pictogramele desktop</string>
     <!--BackupRestoreClear-->
@@ -155,7 +154,6 @@
     <string name="statusbar_clock_if_zero_summary">If 0, this option will not be modified</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Viteza rețelei din Bara de stare</string>
-    <string name="set_network_speed">Setează rata de reîmprospătare a vitezei în bara de stare 1 s</string>
     <string name="enable_double_row_network_speed">Activează viteza rețelei cu rând dublu</string>
     <string name="set_network_speed_font_size">Set Network Speed Font Size</string>
     <string name="set_network_speed_padding_bottom">Set Network Speed Padding Bottom</string>
@@ -1046,4 +1044,6 @@
     <string name="no_error_message">No error message</string>
     <string name="enable_notification_side_spacing">启用通知两侧间距</string>
     <string name="custom_notification_side_spacing_vertical">自定义通知两侧间距(竖屏)</string>
+    <string name="select_color">Selectați culoarea</string>
+    <string name="current_color">Culoarea actuală: %1$s</string>
 </resources>

@@ -3,6 +3,8 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
+import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import org.lsposed.lsparanoid.Obfuscate
 
@@ -22,7 +24,7 @@ object HidePanoramicAodStatusBar : YukiBaseHooker() {
                 before {
                     val context = firstField { type = Context::class }.of(instance).get<Context>()
                         ?: return@before
-                    val aodDataInstance = aodData.asResolver().firstMethod {
+                    val aodDataInstance = aodData.resolve().firstMethod {
                         name = "getInstance"
                         parameters(Context::class)
                     }.invoke(context) ?: return@before

@@ -15,11 +15,20 @@ const val SettingsPrefs: String = "SettingsPrefs"
 const val OtherPrefs: String = "OtherPrefs"
 
 /**
- * UI 侧 prefs 访问统一入口：绑定 libxposed service 时走 remote prefs
- * （与宿主进程 YukiHookPreferences 同一数据源），未绑定时回落本地 prefs。
+ * 只读本地文件的 prefs：这两个文件里的键 hook 侧一处都不读（宿主进程读的是 ModulePrefs / IntentPrefs），
+ * 所以没必要绕框架 service —— 绑定失败或未激活时设置照样能存住，不会因为「回落本地读到默认值」
+ * 出现配置看起来丢了、写回去又被下次启动覆盖的情况。
+ */
+private val LocalOnlyPrefs: Set<String> = setOf(SettingsPrefs, OtherPrefs)
+
+/**
+ * UI 侧 prefs 访问统一入口：[LocalOnlyPrefs] 固定走本地 prefs；其余在框架 service 可用
+ * （YukiHook.Status 观察到的 available）时走 remote prefs（与宿主进程 YukiHookPreferences 同一数据源），
+ * 不可用时回落本地 prefs。
  */
 internal fun Context.appPrefs(prefsName: String): android.content.SharedPreferences =
-    XposedServiceBridge.preferences(prefsName)
+    if (prefsName in LocalOnlyPrefs) getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+    else XposedServiceBridge.preferences(prefsName)
         ?: getSharedPreferences(prefsName, Context.MODE_PRIVATE)
 
 
@@ -55,17 +64,29 @@ fun Context.getStringSet(
     }
 }
 
+/**
+ * 跨进程传输安全的集合副本。
+ *
+ * remote prefs（libxposed RemotePreferences）是把写入值打包进 Bundle 经 Binder 交给框架进程执行的，
+ * 接收侧按 Serializable 反序列化，而 Parcel 的默认类解析走 bootstrap 类加载器：Kotlin 单例集合
+ * （`emptySet()` 得到的 `kotlin.collections.EmptySet`）与 androidx 集合都不在 boot 路径上，解析不到就抛
+ * `android.os.BadParcelableException: ... ClassNotFoundException ... EmptySet`，这一次 prefs 更新连同
+ * 同批的其它键一起失败（表现为设置写不进宿主进程）。写入前统一复制成 java.util.HashSet：
+ * 值类型与语义都不变，也不再把 Kotlin 实现泄漏给框架。
+ */
+internal fun Set<String>.toPrefsSafeSet(): HashSet<String> = HashSet(this)
+
 fun Context.putStringSet(prefsName: String, key: String, value: Set<String>): Boolean {
     return try {
         val prefs = appPrefs(prefsName)
-        prefs.edit().putStringSet(key, value).commit()
+        prefs.edit().putStringSet(key, value.toPrefsSafeSet()).commit()
     } catch (t: Throwable) {
         LogUtils.e("SPUtils", "putStringSet $key -> $value", "$t", true)
         false
     }
 }
 
-fun Context.getInt(prefsName: String, key: String, defaultValue: Int = -1): Int {
+fun Context.getInt(prefsName: String, key: String, defaultValue: Int): Int {
     return try {
         val prefs = appPrefs(prefsName)
         prefs.getInt(key, defaultValue)
@@ -85,7 +106,7 @@ fun Context.putInt(prefsName: String, key: String, value: Int): Boolean {
     }
 }
 
-fun Context.getLong(prefsName: String, key: String, defaultValue: Long = -1L): Long {
+fun Context.getLong(prefsName: String, key: String, defaultValue: Long): Long {
     return try {
         val prefs = appPrefs(prefsName)
         prefs.getLong(key, defaultValue)
@@ -105,7 +126,7 @@ fun Context.putLong(prefsName: String, key: String, value: Long): Boolean {
     }
 }
 
-fun Context.getFloat(prefsName: String, key: String, defaultValue: Float = -1F): Float {
+fun Context.getFloat(prefsName: String, key: String, defaultValue: Float): Float {
     return try {
         val prefs = appPrefs(prefsName)
         prefs.getFloat(key, defaultValue)

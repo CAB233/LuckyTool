@@ -1,10 +1,12 @@
 package com.luckyzyx.luckytool.hook.scopes.otherapp
 
 import android.app.Activity
+import android.content.Context
 import androidx.core.content.edit
-import androidx.preference.PreferenceManager
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
+import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
@@ -31,7 +33,7 @@ object HookADM : YukiBaseHooker() {
                 firstMethod { name = "onCreate" }.hook {
                     after {
                         val activity = instance<Activity>()
-                        val sp = PreferenceManager.getDefaultSharedPreferences(activity)
+                        val sp = activity.getSharedPreferences("${activity.packageName}_preferences", Context.MODE_PRIVATE)
                         sp.edit(commit = true) {
                             putBoolean("EVENT_DISA", false)
                             putBoolean("hua_voices", false)

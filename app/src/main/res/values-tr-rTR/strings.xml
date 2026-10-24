@@ -41,7 +41,6 @@
     <string name="switch_autostart_function_caller_summary">1. Modül çağırma yöntemi, modül ekranını yeniden açarak otomatik başlatma işlevini tetikler. Bu yöntem ekran kilidi açıldığında birkaç saniyeliğine ekrana dokunulamamasına neden olabilir.\n2. System UI çağırma yöntemi, System UI süreci üzerinden otomatik başlatmayı tetikler. System UI işlemine Root izni vermek gerekir, aksi takdirde otomatik başlatma tetiklenemez.</string>
     <string name="switch_autostart_function_caller_module">Modül çağrısı</string>
     <string name="switch_autostart_function_caller_systemui">SystemUI çağrısı</string>
-    <string name="hide_function_page_icon">İşlev sayfası simgesini gizle</string>
     <string name="hide_desktop_module_icon">Masaüstü modül simgesini gizle</string>
     <string name="hide_desktop_module_icon_summary">Özelliği zorla uygulamak için LSPosed üzerinden masaüstü ikon gizleme devre dışı bırakılmalıdır</string>
     
@@ -179,7 +178,6 @@
     
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Durum Çubuğu Ağ Hızı</string>
-    <string name="set_network_speed">Durum çubuğu yenileme hızını 1 saniye olarak ayarla</string>
     <string name="enable_double_row_network_speed">Çift Satırlı Ağ Hızını Etkinleştir</string>
     <string name="set_network_speed_font_size">Ağ Hızı Yazı Tipi Boyutunu Ayarla</string>
     <string name="set_network_speed_padding_bottom">Ağ Hızı Alt Kenar Boşluğunu Ayarla</string>
@@ -1294,4 +1292,6 @@
     <string name="net_other_error">Bilinmeyen Türden  Hata !.</string>
     <string name="no_error_message">Belirti / İşaret vb Olan Hiçbir vs Hata mesajı Yok ! (Sıfır Sorun)...</string>
 
+    <string name="select_color">Renk seç</string>
+    <string name="current_color">Geçerli renk: %1$s</string>
 </resources>
