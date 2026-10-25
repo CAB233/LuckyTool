@@ -46,72 +46,87 @@ object MediaPlayerPanel : YukiBaseHooker() {
             var mode = preferences(ModulePrefs).getString("set_media_player_display_mode", "0")
             dataChannel.wait<String>("set_media_player_display_mode") { mode = it }
 
-            //Source OplusQsMediaCarouselController
-            val controller =
-                "com.oplus.systemui.qs.media.OplusQsMediaCarouselController".toClass().resolve()
-                    .apply {
-                        firstMethodOrNull { name = "setCurrentMediaData" }?.hook {
-                            after {
-                                val status = when (mode) {
-                                    "1" -> true
-                                    "2" -> false
-                                    "3" -> getMediaData() != null
-                                    else -> return@after
-                                }
-                                val mediaModeChangeListener =
-                                    firstField { name = "mediaModeChangeListener" }.of(instance)
-                                        .get() ?: return@after
-                                mediaModeChangeListener.asResolver()
-                                    .firstMethod { name = "onChanged" }
-                                    .invoke(status)
-                            }
-                            firstMethodOrNull { name = "setMediaModeChangeListener" }?.hook {
-                                after {
-                                    val status = when (mode) {
-                                        "1" -> true
-                                        "2" -> false
-                                        "3" -> getMediaData() != null
-                                        else -> return@after
-                                    }
-                                    val mediaModeChangeListener =
-                                        firstArg().get() ?: return@after
-                                    mediaModeChangeListener.asResolver()
-                                        .firstMethod { name = "onChanged" }.invoke(status)
-                                }
-                            }
+            //期望状态：null 表示不干预原实现
+            fun wishStatus(): Boolean? = when (mode) {
+                "1" -> true
+                "2" -> false
+                "3" -> safeOfNull { getMediaData() != null }
+                else -> null
+            }
+
+            //把期望状态补推给媒体模式监听器：宿主自己只在 无媒体↔有媒体 翻转时才回调
+            fun callbackWish(listener: Any?) {
+                val status = wishStatus() ?: return
+                listener?.asResolver()?.firstMethodOrNull { name = "onChanged" }?.invoke(status)
+            }
+
+            //Source OplusQsMediaCarouselController（C13.0~C14）
+            //C17 起该类已被移除，这里必须软查找：硬查找抛出的异常会中断整个 onHook，后面的替代挂点一个都注册不上
+            "com.oplus.systemui.qs.media.OplusQsMediaCarouselController".toClassOrNull(hostClassLoader)
+                ?.resolve()?.apply {
+                    firstMethodOrNull { name = "setCurrentMediaData" }?.hook {
+                        intercept {
+                            val original = callOriginal()
+                            callbackWish(
+                                firstField { name = "mediaModeChangeListener" }.of(instance).get()
+                            )
+                            original
                         }
                     }
-
-            if (controller.firstMethodOrNull { name = "setCurrentMediaData" } != null) return
-
-            //Source OplusQSContainerImpl
-            "com.oplus.systemui.qs.OplusQSContainerImpl".toClass().resolve().apply {
-                firstMethod { name = "setQsMediaPanelShown" }.hook {
-                    before {
-                        val status = when (mode) {
-                            "1" -> true
-                            "2" -> false
-                            "3" -> getMediaData() != null
-                            else -> return@before
+                    firstMethodOrNull { name = "setMediaModeChangeListener" }?.hook {
+                        intercept {
+                            val original = callOriginal()
+                            callbackWish(firstArg().get())
+                            original
                         }
-                        firstArg().set(status)
                     }
                 }
+
+            //Source OplusQsMediaControllerExImpl（C17）：取代上面的类，注册监听时会立刻回调一次当前状态
+            "com.oplus.systemui.qs.media.OplusQsMediaControllerExImpl".toClassOrNull(hostClassLoader)
+                ?.resolve()?.apply {
+                    firstMethodOrNull { name = "setMediaModeChangeListener" }?.hook {
+                        intercept {
+                            val original = callOriginal()
+                            callbackWish(firstArg().get())
+                            original
+                        }
+                    }
+                }
+
+            //容器侧的最终开关，只改参数不接管实现
+            fun hookMediaPanelShown(classNames: List<String>, methodName: String) {
+                classNames.firstNotNullOfOrNull { it.toClassOrNull(hostClassLoader) }?.resolve()
+                    ?.firstMethodOrNull { name = methodName }?.hook {
+                        intercept {
+                            val status = wishStatus()
+                            if (status != null) args[0] = status
+                            callOriginal()
+                        }
+                    }
             }
+
+            //Source OplusQSContainerImpl（C13~C16 兜底，C17 已忽略参数）
+            hookMediaPanelShown(
+                listOf(
+                    "com.oplusos.systemui.qs.OplusQSContainerImpl", //C13.1
+                    "com.oplus.systemui.qs.OplusQSContainerImpl" //C14
+                ), "setQsMediaPanelShown"
+            )
             //Source OplusQSTileMediaContainerController
-            "com.oplus.systemui.qs.OplusQSTileMediaContainerController".toClass().resolve().apply {
-                firstMethod { name = "setQsMediaPanelShown" }.hook {
-                    before {
-                        val status = when (mode) {
-                            "1" -> true
-                            "2" -> false
-                            "3" -> getMediaData() != null
-                            else -> return@before
-                        }
-                        firstArg().set(status)
-                    }
-                }
-            }
+            hookMediaPanelShown(
+                listOf(
+                    "com.oplusos.systemui.qs.OplusQSTileMediaContainerController", //C13.1
+                    "com.oplus.systemui.qs.OplusQSTileMediaContainerController" //C14+
+                ), "setQsMediaPanelShown"
+            )
+            //Source OplusQSTileMediaContainer
+            hookMediaPanelShown(
+                listOf(
+                    "com.oplusos.systemui.qs.OplusQSTileMediaContainer", //C13.1
+                    "com.oplus.systemui.qs.OplusQSTileMediaContainer" //C14+
+                ), "setMediaMode"
+            )
         }
     }
 

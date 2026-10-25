@@ -10,7 +10,8 @@ class MediaPlayerDataUtils(val classLoader: ClassLoader?) {
     val clazz = VariousClass(
         "com.oplus.systemui.qs.media.OplusQsMediaCarouselController\$MediaPlayerData",  //C13.0 C13.1
         "com.oplusos.systemui.media.OplusMediaControllerImpl\$MediaPlayerData",  //C13.2
-        "com.oplus.systemui.media.OplusMediaControllerImpl\$MediaPlayerData"  //C14
+        "com.oplus.systemui.media.OplusMediaControllerImpl\$MediaPlayerData",  //C14
+        "com.oplus.systemui.media.OplusMediaDataFilterExImpl\$MediaPlayerData"  //C17
     ).load(classLoader)
 
     fun getMediaDataStatus(): Any? {
