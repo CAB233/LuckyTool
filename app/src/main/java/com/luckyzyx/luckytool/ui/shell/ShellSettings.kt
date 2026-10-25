@@ -53,9 +53,9 @@ data class ShellSettings(
     val pagerInterceptionMode: Int = PagerModeCrossAxis,
     val pageScale: Float = 1.0f,
     val moduleDescriptionMaxLines: Int = 4,
-    /** Miuix 外观线：顶栏 / 底栏背景模糊（需 isRenderEffectSupported()，API 31+） */
+    /** Miuix 顶栏 / 底栏及 Material 悬浮底栏背景模糊（需 isRenderEffectSupported()，API 31+） */
     val enableBlur: Boolean = false,
-    /** Miuix 外观线：只显示图标的悬浮底栏 */
+    /** 只显示图标的悬浮底栏，适用于两种外观。 */
     val enableFloatingBottomBar: Boolean = false,
     /** 两种样式均由 enableBlur 控制模糊效果。 */
     val floatingBottomBarStyle: FloatingBottomBarStyle = FloatingBottomBarStyle.Miuix,

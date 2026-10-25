@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
@@ -37,16 +38,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.GateDialog
+import com.luckyzyx.luckytool.ui.compose.components.material.MaterialFloatingBottomBar
 import com.luckyzyx.luckytool.ui.compose.components.material.LocalBottomBarPresent
 import com.luckyzyx.luckytool.ui.compose.components.material.LocalShellBottomInset
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixBarItem
@@ -80,12 +80,12 @@ import kotlin.system.exitProcess
 /** 跨标签页打开作用域页时保留来源标签。 */
 data class FunctionRequest(val pageKey: String, val title: String?)
 
-internal enum class MainTab(val labelRes: Int, val iconRes: Int, val miuixIcon: ImageVector) {
-    Other(R.string.nav_other, R.drawable.ic_baseline_dashboard_24, MiuixIcons.GridView),
-    Function(R.string.nav_function, R.drawable.ic_baseline_extension_24, MiuixIcons.Tune),
-    Home(R.string.nav_home, R.drawable.ic_baseline_home_24, MiuixIcons.Home),
-    Log(R.string.nav_log, R.drawable.ic_baseline_assignment_24, MiuixIcons.Notes),
-    Setting(R.string.nav_setting, R.drawable.ic_baseline_settings_24, MiuixIcons.Settings),
+internal enum class MainTab(val labelRes: Int, val icon: ImageVector) {
+    Other(R.string.nav_other, MiuixIcons.GridView),
+    Function(R.string.nav_function, MiuixIcons.Tune),
+    Home(R.string.nav_home, MiuixIcons.Home),
+    Log(R.string.nav_log, MiuixIcons.Notes),
+    Setting(R.string.nav_setting, MiuixIcons.Settings),
 }
 
 @Composable
@@ -207,17 +207,17 @@ internal fun MainTabs(
     val enableBlur = LocalEnableBlur.current
     val floatingStyle = LocalFloatingBottomBarStyle.current
     val density = LocalDensity.current
-    var floatingBarHeight by remember(floatingStyle, density) { mutableStateOf(76.dp) }
+    var floatingBarHeight by remember(isMiuix, floatingStyle, density) { mutableStateOf(76.dp) }
     val enableBadge = LocalEnableNavigationBadge.current
-    val floatingBar = isMiuix && LocalEnableFloatingBottomBar.current
+    val floatingBar = LocalEnableFloatingBottomBar.current
     val tabs = MainTab.entries
     val selectedIndex = mainPagerState.selectedPage
     val onSelect: (Int) -> Unit = { index -> if (isActive) mainPagerState.animateToPage(index) }
     val tabStateHolder = rememberSaveableStateHolder()
 
     // 只录制页面内容，底栏/胶囊必须在采样层之外，避免渲染树循环引用。
-    val backdropSurface = if (isMiuix) MiuixTheme.colorScheme.surface else Color.Unspecified
-    val backdrop = if (isMiuix) {
+    val backdropSurface = if (isMiuix) MiuixTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainer
+    val backdrop = if (isMiuix || (floatingBar && enableBlur && isRenderEffectSupported())) {
         rememberLayerBackdrop {
             drawRect(backdropSurface)
             drawContent()
@@ -225,7 +225,7 @@ internal fun MainTabs(
     } else {
         null
     }
-    val barBlurBackdrop = if (isMiuix && enableBlur && isRenderEffectSupported()) backdrop else null
+    val barBlurBackdrop = if (enableBlur && isRenderEffectSupported()) backdrop else null
     val needBackdrop = barBlurBackdrop != null
     val containerColor = if (isMiuix) MiuixTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainer
 
@@ -238,7 +238,7 @@ internal fun MainTabs(
                     items = tabs.map { tab ->
                         MiuixBarItem(
                             label = stringResource(tab.labelRes),
-                            icon = tab.miuixIcon,
+                            icon = tab.icon,
                             badge = if (enableBadge && tab == MainTab.Home && ShellBadgeState.updateAvailable) {
                                 { Badge { Text("1") } }
                             } else {
@@ -277,10 +277,10 @@ internal fun MainTabs(
                                             ) { Text("1") }
                                         },
                                     ) {
-                                        Icon(painterResource(tab.iconRes), contentDescription = null)
+                                        Icon(tab.icon, contentDescription = null, modifier = Modifier.size(top.yukonga.miuix.kmp.basic.NavigationBarDefaults.IconSize))
                                     }
                                 } else {
-                                    Icon(painterResource(tab.iconRes), contentDescription = null)
+                                    Icon(tab.icon, contentDescription = null, modifier = Modifier.size(top.yukonga.miuix.kmp.basic.NavigationBarDefaults.IconSize))
                                 }
                             },
                             label = { Text(stringResource(tab.labelRes)) },
@@ -329,27 +329,39 @@ internal fun MainTabs(
 
                 // 悬浮底栏位于背景采样层之外，页面按实际测量高度留出滚动空间。
                 if (floatingBar) {
-                    MiuixBottomBar(
-                        items = tabs.map { tab ->
-                            MiuixBarItem(
-                                label = stringResource(tab.labelRes),
-                                icon = tab.miuixIcon,
-                                badge = if (enableBadge && tab == MainTab.Home && ShellBadgeState.updateAvailable) {
-                                    { Badge { Text("1") } }
-                                } else {
-                                    null
-                                },
-                            )
-                        },
-                        selectedIndex = selectedIndex,
-                        onSelected = onSelect,
-                        blurBackdrop = barBlurBackdrop,
-                        floating = true,
-                        floatingStyle = floatingStyle,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .onSizeChanged { floatingBarHeight = with(density) { it.height.toDp() } },
-                    )
+                    val barModifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .onSizeChanged { floatingBarHeight = with(density) { it.height.toDp() } }
+                    if (!isMiuix) {
+                        MaterialFloatingBottomBar(
+                            selectedIndex = selectedIndex,
+                            onSelected = onSelect,
+                            showUpdateBadge = enableBadge && ShellBadgeState.updateAvailable,
+                            backdrop = barBlurBackdrop,
+                            floatingStyle = floatingStyle,
+                            modifier = barModifier,
+                        )
+                    } else {
+                        MiuixBottomBar(
+                            items = tabs.map { tab ->
+                                MiuixBarItem(
+                                    label = stringResource(tab.labelRes),
+                                    icon = tab.icon,
+                                    badge = if (enableBadge && tab == MainTab.Home && ShellBadgeState.updateAvailable) {
+                                        { Badge { Text("1") } }
+                                    } else {
+                                        null
+                                    },
+                                )
+                            },
+                            selectedIndex = selectedIndex,
+                            onSelected = onSelect,
+                            blurBackdrop = barBlurBackdrop,
+                            floating = true,
+                            floatingStyle = floatingStyle,
+                            modifier = barModifier,
+                        )
+                    }
                 }
             }
         }
