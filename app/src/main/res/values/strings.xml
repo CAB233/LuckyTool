@@ -1304,6 +1304,7 @@
     <string name="global_dc">Global DC</string>
     <string name="fiveg_mode">FiveG Switch</string>
     <string name="display_refresh_rate">Show/Hide Refresh Rate</string>
+    <string name="display_hdr_sdr_ratio">Show/Hide HDR/SDR Ratio</string>
     <string name="google_service">Google Service</string>
     <string name="bypass_power">Bypass Power</string>
     <string name="run_in_background">Run in background</string>

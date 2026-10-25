@@ -1125,6 +1125,7 @@
     <string name="global_dc">全局 DC</string>
     <string name="fiveg_mode">5G开关</string>
     <string name="display_refresh_rate">显示/隐藏刷新率</string>
+    <string name="display_hdr_sdr_ratio">显示/隐藏 HDR/SDR 比率</string>
     <string name="google_service">Google 服务</string>
     <string name="bypass_power">旁路供电</string>
     <!--Service-->

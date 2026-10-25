@@ -12,4 +12,7 @@ interface IGlobalFuncController {
     String getPrjNameInfo();
     String getSlotInfo();
     String getCpuInfo();
+
+    boolean getHdrSdrRatioOverlay();
+    void setHdrSdrRatioOverlay(boolean enabled);
 }

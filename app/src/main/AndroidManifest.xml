@@ -126,6 +126,16 @@
             </intent-filter>
         </service>
         <service
+                android:name=".service.tiles.HdrSdrRatioDisplayTile"
+                android:exported="true"
+                android:icon="@drawable/ic_baseline_hdr_sdr_24"
+                android:label="@string/display_hdr_sdr_ratio"
+                android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+        <service
                 android:name=".service.tiles.HighBrightnessModeTile"
                 android:exported="true"
                 android:icon="@drawable/baseline_brightness_high_24"
