@@ -46,6 +46,7 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 
 #### 修复
 
+- 修复「移除小布 Next Root 检测」在小布 Next 17.0.75 上不生效的问题
 - 修复「移除应用分身徽标」不生效的问题，并适配 C17
 - 修复部分选择器与开关无法点击选择的问题
 - 修复桌面布局列数达到上限时图标下沉导致桌面崩溃的问题 C16

@@ -45,6 +45,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 
 #### Fixed
 
+- Fixed “Remove Breeno Next root detection” not working on Breeno Next 17.0.75
 - Fixed “Remove app clone badge” not taking effect
 - Fixed some selectors and switches not responding to taps
 - Fixed the launcher crashing with sinking icons when the maximum number of columns is used C16
