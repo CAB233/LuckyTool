@@ -1,11 +1,15 @@
 package com.luckyzyx.luckytool.ui.compose.pages
 
+import android.app.Activity
 import android.app.KeyguardManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.DocumentsContract
 import android.util.ArraySet
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -112,7 +116,7 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
     // 备份前先展示四个 prefs 各自的落点，回调链里没有 Composer，这段收进 lambda
     val startBackup: () -> Unit = { writeBackupData(activity) }
     val restoreLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
+        OpenBackupDocument
     ) { uri ->
         if (uri != null) {
             val entryData = FileUtils.readFromUri(activity, uri)
@@ -688,6 +692,33 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
             )
         }
     }
+}
+
+/**
+ * Download/LuckyTool 在「外部存储」文档 provider 里的 document uri。
+ *
+ * EXTRA_INITIAL_URI 只吃 document uri（buildDocumentUri 的 documentId 形如 primary:Download/LuckyTool），
+ * 拿不到时选择器会退回默认目录，所以这只是「打开在哪」的预设，不影响实际读取的 uri。
+ */
+private fun backupDirDocumentUri(): Uri = DocumentsContract.buildDocumentUri(
+    "com.android.externalstorage.documents",
+    "primary:$DOWNLOAD_TOOL_DIR",
+)
+
+/**
+ * 恢复用的文件选择器：ACTION_OPEN_DOCUMENT + EXTRA_INITIAL_URI 预设到备份目录，
+ * 用户不必每次从 Download 根目录一层层点进 LuckyTool（部分文件管理器会忽略该预设，回退到默认目录）。
+ */
+private object OpenBackupDocument : ActivityResultContract<String, Uri?>() {
+    override fun createIntent(context: Context, input: String): Intent =
+        Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = input
+            putExtra(DocumentsContract.EXTRA_INITIAL_URI, backupDirDocumentUri())
+        }
+
+    override fun parseResult(resultCode: Int, intent: Intent?): Uri? =
+        if (resultCode == Activity.RESULT_OK) intent?.data else null
 }
 
 /** 备份：JSON(osCode + 四个 prefs 文件，各带 target 记录落点) → base64 → 投稿到 Download/LuckyTool */
