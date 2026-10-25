@@ -3,17 +3,17 @@ package com.luckyzyx.luckytool.service.tiles
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import org.lsposed.lsparanoid.Obfuscate
-import com.luckyzyx.luckytool.IGlobalFuncController
-import com.luckyzyx.luckytool.service.GlobalFuncService
+import com.luckyzyx.luckytool.IRefreshRateController
+import com.luckyzyx.luckytool.service.RefreshRateService
 import com.luckyzyx.luckytool.utils.A15
 import com.luckyzyx.luckytool.utils.SDK
 
 @Obfuscate
 class HdrSdrRatioDisplayTile : TileService() {
-    private var controller: IGlobalFuncController? = null
+    private var controller: IRefreshRateController? = null
 
     override fun onStartListening() {
-        GlobalFuncService.get(this) {
+        RefreshRateService.get(this) {
             controller = it
             refreshData()
         }

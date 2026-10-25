@@ -35,6 +35,9 @@ object RefreshRateService : BaseControllerService<IRefreshRateController>() {
             private const val serviceName = "SurfaceFlinger"
             private const val interfaceName = "android.ui.ISurfaceComposer"
 
+            /** HDR/SDR 比率覆盖层 开启(1) / 关闭(0) / 查询(2)，与开发者选项里的同名开关共用 */
+            private const val codeHdrSdrRatio = 1043
+
             private val surfaceFlinger by lazy {
                 ServiceManager.getService(serviceName)
             }
@@ -153,6 +156,41 @@ object RefreshRateService : BaseControllerService<IRefreshRateController>() {
                     setRefreshRateMode(-1)
                 } catch (_: Exception) {
 //                LogUtils.e(tag, "resetRefreshRateMode", "$e", true)
+                }
+            }
+
+            override fun getHdrSdrRatioOverlay(): Boolean {
+                val obtain = Parcel.obtain()
+                val obtain2 = Parcel.obtain()
+                return try {
+                    obtain.writeInterfaceToken(interfaceName)
+                    obtain.writeInt(2)
+                    // 更早的 SurfaceFlinger 没有 code 1043，transact 返回 false 且 reply 为空
+                    if (surfaceFlinger?.transact(codeHdrSdrRatio, obtain, obtain2, 0) != true
+                        || obtain2.dataSize() < 4
+                    ) {
+                        LogUtils.d(TAG, "getHdrSdrRatioOverlay", "not supported", isDebug)
+                        false
+                    } else obtain2.readBoolean()
+                } catch (e: Exception) {
+                    LogUtils.e(TAG, "getHdrSdrRatioOverlay", "$e", true)
+                    false
+                } finally {
+                    obtain2.recycle()
+                    obtain.recycle()
+                }
+            }
+
+            override fun setHdrSdrRatioOverlay(enabled: Boolean) {
+                val obtain = Parcel.obtain()
+                try {
+                    obtain.writeInterfaceToken(interfaceName)
+                    obtain.writeInt(if (enabled) 1 else 0)
+                    surfaceFlinger?.transact(codeHdrSdrRatio, obtain, null, 0)
+                } catch (e: Exception) {
+                    LogUtils.e(TAG, "setHdrSdrRatioOverlay", "$e", true)
+                } finally {
+                    obtain.recycle()
                 }
             }
         }

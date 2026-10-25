@@ -6,4 +6,7 @@ interface IRefreshRateController {
     List getSupportModes();
     void setRefreshRateMode(int modeId);
     void resetRefreshRateMode();
+
+    boolean getHdrSdrRatioOverlay();
+    void setHdrSdrRatioOverlay(boolean enabled);
 }
