@@ -124,7 +124,6 @@ class StatusBarClock : YukiBaseHooker() {
             }
             firstMethodOrNull { name = "onMeasure" }?.hook {
                 before {
-                    val height = lastArg().get<Int>() ?: 0
                     val clockView = instance<TextView>().apply {
                         val clockName = safeOfNull { resources.getResourceEntryName(id) }
                         if (clockName != "clock") return@before
@@ -132,8 +131,6 @@ class StatusBarClock : YukiBaseHooker() {
                     if (customMinimumWidth > 0) {
                         clockView.minWidth = customMinimumWidth * 10
                         clockView.minimumWidth = customMinimumWidth * 10
-                        firstMethod { name = "setMeasuredDimension"; superclass() }.of(instance)
-                            .invoke(customMinimumWidth * 10, height)
                     }
                 }
             }
@@ -169,27 +166,38 @@ class StatusBarClock : YukiBaseHooker() {
                         safeOfNull { clockView.resources.getResourceEntryName(clockView.id) }
                     if (clockName != "clock") return@intercept proceed()
                     clockView.initView()
-                    if (customMinimumWidth > 0) {
-                        clockView.minWidth = customMinimumWidth * 10
-                        clockView.minimumWidth = customMinimumWidth * 10
+                    val minWidth = if (customMinimumWidth > 0) customMinimumWidth * 10 else 0
+                    if (minWidth > 0) {
+                        clockView.minWidth = minWidth
+                        clockView.minimumWidth = minWidth
                     }
                     //文本带换行或视图已是非单行模式（自定义格式里的换行同样会走到这里）
                     val isMultiRow =
                         clockView.text?.contains('\n') == true || !clockView.isSingleLine
-                    if (!isMultiRow) return@intercept proceed()
-                    //原实现会把 paint 字号改成 stat_clock_size 再量，这里先用当前字号量出各行的真实最大宽度
-                    val paint = clockView.paint
-                    val textWidth =
-                        clockView.text.split('\n').maxOfOrNull { paint.measureText(it) }?.toInt()
-                            ?: 0
-                    val padEnd = paddingEndField?.copy()?.of(instance)?.get<Int>()
-                        ?: clockView.paddingEnd
-                    val targetWidth = textWidth + clockView.paddingStart + padEnd
-                    proceed()
-                    //resolver 的 of(instance) 只能设置一次实例，复用必须 copy()
-                    cachedMinutesWidthField?.copy()?.of(instance)?.set(targetWidth)
-                    setMeasuredDimension?.copy()?.of(instance)
-                        ?.invoke(targetWidth, clockView.measuredHeight)
+                    if (isMultiRow) {
+                        //原实现会把 paint 字号改成 stat_clock_size 再量，这里先用当前字号量出各行的真实最大宽度
+                        val paint = clockView.paint
+                        val textWidth = clockView.text.split('\n')
+                            .maxOfOrNull { paint.measureText(it) }?.toInt() ?: 0
+                        val padEnd = paddingEndField?.copy()?.of(instance)?.get<Int>()
+                            ?: clockView.paddingEnd
+                        val targetWidth = maxOf(textWidth + clockView.paddingStart + padEnd, minWidth)
+                        proceed()
+                        //resolver 的 of(instance) 只能设置一次实例，复用必须 copy()
+                        cachedMinutesWidthField?.copy()?.of(instance)?.set(targetWidth)
+                        setMeasuredDimension?.copy()?.of(instance)
+                            ?.invoke(targetWidth, clockView.measuredHeight)
+                    } else {
+                        proceed()
+                        //单排的宽度是原实现自然量出来的，最小宽度只在它更宽时补上
+                        if (minWidth > clockView.measuredWidth) {
+                            cachedMinutesWidthField?.copy()?.of(instance)?.set(minWidth)
+                            setMeasuredDimension?.copy()?.of(instance)
+                                ?.invoke(minWidth, clockView.measuredHeight)
+                        }
+                    }
+                    //原实现测量期间把 paint 字号换成 stat_clock_size，用户字号与行距要在这里再还原一次
+                    clockView.initView()
                 }
                 firstMethodOrNull { name = "updateMinWidth" }?.hook {
                     before {
