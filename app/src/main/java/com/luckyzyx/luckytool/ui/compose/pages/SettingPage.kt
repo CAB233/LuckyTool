@@ -3,7 +3,6 @@ package com.luckyzyx.luckytool.ui.compose.pages
 import android.app.KeyguardManager
 import android.content.ComponentName
 import android.content.Context
-import android.net.Uri
 import android.util.ArraySet
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -63,9 +62,9 @@ import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.AppUtils
 import com.luckyzyx.luckytool.utils.BiometricUtils
 import com.luckyzyx.luckytool.utils.DonateUtils
+import com.luckyzyx.luckytool.utils.DOWNLOAD_TOOL_DIR
 import com.luckyzyx.luckytool.utils.FileUtils
 import com.luckyzyx.luckytool.utils.IntentPrefs
-import com.luckyzyx.luckytool.utils.IntentUtils
 import com.luckyzyx.luckytool.utils.LogUtils
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.OtherPrefs
@@ -86,14 +85,12 @@ import com.luckyzyx.luckytool.utils.prefsForTarget
 import com.luckyzyx.luckytool.utils.prefsTarget
 import com.luckyzyx.luckytool.utils.recordedTarget
 import com.luckyzyx.luckytool.utils.showToast
+import com.luckyzyx.luckytool.utils.writeDownloadFile
 import org.json.JSONArray
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
-import java.io.FileNotFoundException
-import java.io.FileOutputStream
-import java.io.IOException
 import kotlin.system.exitProcess
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
@@ -111,23 +108,9 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
     val zh = remember(LocalConfiguration.current) { isZh(context) }
     var pendingRestoreJson by remember { mutableStateOf<JSONObject?>(null) }
 
-    // 备份/恢复（旧 registerForActivityResult）
-    val backupLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json")
-    ) { uri -> if (uri != null) writeBackupData(activity, uri) }
-    // 备份前先展示当前落点再进系统文件选择器；回调链里没有 Composer，这段收进 lambda
-    val startBackup: () -> Unit = {
-        FileUtils.checkDownloadDir(context, "LuckyTool").apply {
-            if (isFile) delete()
-            if (!exists()) mkdirs()
-        }
-        val fileName = "LuckyTool_" + formatDate("yyyyMMdd_HHmmss") + "_backup.json"
-        if (IntentUtils(activity).checkCreateDocument()) {
-            backupLauncher.launch(fileName)
-        } else {
-            context.showToast("Intent Create Document Error!")
-        }
-    }
+    // 备份落点是预设目录 Download/LuckyTool（MediaStore 投稿写文件，不再进系统文件选择器）；
+    // 备份前先展示四个 prefs 各自的落点，回调链里没有 Composer，这段收进 lambda
+    val startBackup: () -> Unit = { writeBackupData(activity) }
     val restoreLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
@@ -574,6 +557,7 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
             "$name: $label"
         }
         val message = statusLines.joinToString("\n") + "\n\n" +
+                stringResource(R.string.data_backup_path, DOWNLOAD_TOOL_DIR) + "\n" +
                 stringResource(R.string.data_backup_status_tips)
         when (LocalUiMode.current) {
             UiMode.Miuix -> OverlayDialog(
@@ -706,8 +690,8 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
     }
 }
 
-/** 备份：JSON(osCode + 四个 prefs 文件，各带 target 记录落点) → base64 → 写入 uri */
-private fun writeBackupData(context: Context, uri: Uri) {
+/** 备份：JSON(osCode + 四个 prefs 文件，各带 target 记录落点) → base64 → 投稿到 Download/LuckyTool */
+private fun writeBackupData(context: Context) {
     val json = JSONObject().apply { put("osCode", getOSVersionCode) }
     val dataMapList = context.backupAllPrefs(*BackupPrefs.toTypedArray())
     dataMapList.keys.forEach { prefs ->
@@ -743,16 +727,12 @@ private fun writeBackupData(context: Context, uri: Uri) {
         })
     }
     val str = base64Encode(json.toString())
-    try {
-        context.contentResolver.openFileDescriptor(uri, "w")?.use { its ->
-            FileOutputStream(its.fileDescriptor).use { it.write(str.toByteArray()) }
-        }
-        context.showToast(context.getString(R.string.data_backup_complete))
-    } catch (e: FileNotFoundException) {
-        e.printStackTrace()
-        context.showToast(context.getString(R.string.data_backup_error))
-    } catch (e: IOException) {
-        e.printStackTrace()
+    val fileName = "LuckyTool_" + formatDate("yyyyMMdd_HHmmss") + "_backup.json"
+    // 目录交给 provider 的 RELATIVE_PATH，不需要任何存储权限，也不要用户每次挑目录
+    val uri = context.writeDownloadFile(fileName, "application/json", str.toByteArray())
+    if (uri != null) {
+        context.showToast(context.getString(R.string.data_backup_saved, "$DOWNLOAD_TOOL_DIR/$fileName"))
+    } else {
         context.showToast(context.getString(R.string.data_backup_error))
     }
 }

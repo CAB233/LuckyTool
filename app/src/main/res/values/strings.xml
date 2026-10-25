@@ -112,6 +112,8 @@
     <string name="data_restore_version_tips">Restoring data across versions may cause some functions to run abnormally. It is recommended to reconfigure module function data.</string>
     <string name="data_prefs_target_local">Local</string>
     <string name="data_prefs_target_remote">Remote</string>
+    <string name="data_backup_path">Backup location: %1$s</string>
+    <string name="data_backup_saved">Backup saved to %1$s</string>
     <string name="data_backup_status_tips">The backup records where each storage currently lives. Restoring writes back to the recorded place instead of the current one.</string>
     <string name="data_restore_targets">Restore targets: %1$s</string>
     <string name="data_restore_targets_legacy">This backup has no recorded target, data will be restored to where each storage lives now.</string>
