@@ -9,6 +9,7 @@ import android.widget.TextView
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
 import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.intercept
 import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.utils.sysui.LunarHelperUtils
@@ -60,9 +61,12 @@ class StatusBarClock : YukiBaseHooker() {
 
     val customPadding = preferences(ModulePrefs).getBoolean("statusbar_clock_custom_padding", false)
     var customTopPadding = preferences(ModulePrefs).getInt("statusbar_clock_custom_top_padding", 0)
-    var customBottomPadding = preferences(ModulePrefs).getInt("statusbar_clock_custom_bottom_padding", 0)
-    var customLeftPadding = preferences(ModulePrefs).getInt("statusbar_clock_custom_left_padding", 0)
-    var customRightPadding = preferences(ModulePrefs).getInt("statusbar_clock_custom_right_padding", 0)
+    var customBottomPadding =
+        preferences(ModulePrefs).getInt("statusbar_clock_custom_bottom_padding", 0)
+    var customLeftPadding =
+        preferences(ModulePrefs).getInt("statusbar_clock_custom_left_padding", 0)
+    var customRightPadding =
+        preferences(ModulePrefs).getInt("statusbar_clock_custom_right_padding", 0)
 
     var lunarInstance: Any? = null
     var newline = ""
@@ -146,21 +150,42 @@ class StatusBarClock : YukiBaseHooker() {
                 intercept()
             }
             if (osCode >= 33) {
-                firstMethod { name = "onMeasure" }.hook {
-                    after {
-                        val height = lastArg().get<Int>() ?: 0
-                        val clockView = instance<TextView>().apply {
-                            val clockName = safeOfNull { resources.getResourceEntryName(id) }
-                            if (clockName != "clock") return@after
-                            initView()
-                        }
-                        if (customMinimumWidth > 0) {
-                            clockView.minWidth = customMinimumWidth * 10
-                            clockView.minimumWidth = customMinimumWidth * 10
-                            firstMethod { name = "setMeasuredDimension"; superclass() }.of(instance)
-                                .invoke(customMinimumWidth * 10, height)
-                        }
+                //StatClock 未开秒时把整段文本交给 paint.measureText 测量，多排文本（双排或自定义格式里带换行）的
+                //换行符会被当成普通字符，量出≈各行之和的宽度；该宽度还会经 onLayout 上报成流体云的时钟分钟区，
+                //胶囊出现时被判成相交，官方直接把整个时钟 setVisibility(INVISIBLE)。
+                //故多排时改走父类测量（TextView 按换行分行取最宽行），并同步修正上报宽度。
+                val superOnMeasure = firstMethodOrNull {
+                    name = "onMeasure"
+                    superclass()
+                    parameterCount = 2
+                }
+                val mShowSecondsField = firstFieldOrNull { name = "mShowSeconds"; superclass() }
+                val cachedMinutesWidthField = firstFieldOrNull { name = "cachedMinutesLayoutWidth" }
+                firstMethodOrNull { name = "onMeasure" }?.intercept {
+                    val clockView = instanceOrNull<TextView>()
+                        ?: return@intercept proceed()
+                    val clockName =
+                        safeOfNull { clockView.resources.getResourceEntryName(clockView.id) }
+                    if (clockName != "clock") return@intercept proceed()
+                    clockView.initView()
+                    if (customMinimumWidth > 0) {
+                        clockView.minWidth = customMinimumWidth * 10
+                        clockView.minimumWidth = customMinimumWidth * 10
                     }
+                    //文本带换行或视图已是非单行模式（自定义格式里的换行同样会走到这里）
+                    val isMultiRow =
+                        clockView.text?.contains('\n') == true || !clockView.isSingleLine
+                    if (!isMultiRow) return@intercept proceed()
+                    if (superOnMeasure == null) return@intercept proceed()
+                    //Clock.onMeasure 在开秒时按秒宽固定测量，双排会被截断，测量期间临时关掉再还原
+                    val oldShowSeconds = mShowSecondsField?.of(instance)?.get<Boolean>() ?: false
+                    if (oldShowSeconds) mShowSecondsField.of(instance).set(false)
+                    try {
+                        superOnMeasure.of(instance).invoke(arg(0), arg(1))
+                    } finally {
+                        if (oldShowSeconds) mShowSecondsField.of(instance).set(true)
+                    }
+                    cachedMinutesWidthField?.of(instance)?.set(clockView.measuredWidth)
                 }
                 firstMethodOrNull { name = "updateMinWidth" }?.hook {
                     before {
