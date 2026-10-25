@@ -70,6 +70,7 @@ import com.luckyzyx.luckytool.utils.LogUtils
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.OtherPrefs
 import com.luckyzyx.luckytool.utils.PrefState
+import com.luckyzyx.luckytool.utils.PrefsTarget
 import com.luckyzyx.luckytool.utils.SettingsPrefs
 import com.luckyzyx.luckytool.utils.backupAllPrefs
 import com.luckyzyx.luckytool.utils.base64Decode
@@ -80,11 +81,10 @@ import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.getOSVersionName
 import com.luckyzyx.luckytool.utils.isZh
 import com.luckyzyx.luckytool.utils.openUrl
-import com.luckyzyx.luckytool.utils.putBoolean
-import com.luckyzyx.luckytool.utils.putInt
-import com.luckyzyx.luckytool.utils.putString
-import com.luckyzyx.luckytool.utils.putStringSet
-import com.luckyzyx.luckytool.utils.removeKey
+import com.luckyzyx.luckytool.utils.prefsData
+import com.luckyzyx.luckytool.utils.prefsForTarget
+import com.luckyzyx.luckytool.utils.prefsTarget
+import com.luckyzyx.luckytool.utils.recordedTarget
 import com.luckyzyx.luckytool.utils.showToast
 import org.json.JSONArray
 import org.json.JSONObject
@@ -115,19 +115,27 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
     val backupLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri -> if (uri != null) writeBackupData(activity, uri) }
+    // 备份前先展示当前落点再进系统文件选择器；回调链里没有 Composer，这段收进 lambda
+    val startBackup: () -> Unit = {
+        FileUtils.checkDownloadDir(context, "LuckyTool").apply {
+            if (isFile) delete()
+            if (!exists()) mkdirs()
+        }
+        val fileName = "LuckyTool_" + formatDate("yyyyMMdd_HHmmss") + "_backup.json"
+        if (IntentUtils(activity).checkCreateDocument()) {
+            backupLauncher.launch(fileName)
+        } else {
+            context.showToast("Intent Create Document Error!")
+        }
+    }
     val restoreLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
             val entryData = FileUtils.readFromUri(activity, uri)
             val json = JSONObject(base64Decode(entryData))
-            val osCode = json.optInt("osCode")
-            if (osCode > 0 && osCode != getOSVersionCode) {
-                // 旧 checkRestoreData：跨版本备份先提示，再恢复
-                pendingRestoreJson = json
-            } else {
-                writeRestoreData(activity, json)
-            }
+            // 旧 checkRestoreData 只在跨版本时提示；现在总是先弹对话框展示落点与当前状态
+            pendingRestoreJson = json
         }
     }
 
@@ -137,6 +145,7 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
 
     var showDonateList by remember { mutableStateOf(false) }
     var showQrType by remember { mutableStateOf(-1) }
+    var showBackupDialog by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
     var showFeedbackDialog by remember { mutableStateOf(false) }
 
@@ -281,19 +290,7 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                 click(
                     title = backupDataTitle,
                     leading = { PrefIcon(Icons.Rounded.SaveAlt) },
-                    onClick = {
-                        FileUtils.checkDownloadDir(context, "LuckyTool").apply {
-                            if (isFile) delete()
-                            if (!exists()) mkdirs()
-                        }
-                        val fileName =
-                            "LuckyTool_" + formatDate("yyyyMMdd_HHmmss") + "_backup.json"
-                        if (IntentUtils(activity).checkCreateDocument()) {
-                            backupLauncher.launch(fileName)
-                        } else {
-                            context.showToast("Intent Create Document Error!")
-                        }
-                    },
+                    onClick = { showBackupDialog = true },
                 )
                 click(
                     title = restoreDataTitle,
@@ -566,18 +563,102 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
         }
     }
 
-    pendingRestoreJson?.let { json ->
-        val osCode = json.optInt("osCode")
-        val restoreMessage = """
-                    ${stringResource(R.string.data_backup_data_version)}: ${
-            getOSVersionName(
-                osCode
+    // 备份前确认：展示当前四个 prefs 各自的落点（remote 依赖框架 service 可用）
+    if (showBackupDialog) {
+        val localLabel = stringResource(R.string.data_prefs_target_local)
+        val remoteLabel = stringResource(R.string.data_prefs_target_remote)
+        // 每次打开现算：service 可用性会变，remember 会把上一次的状态带过来
+        val statusLines = BackupPrefs.map { name ->
+            val label =
+                if (context.prefsTarget(name) == PrefsTarget.REMOTE) remoteLabel else localLabel
+            "$name: $label"
+        }
+        val message = statusLines.joinToString("\n") + "\n\n" +
+                stringResource(R.string.data_backup_status_tips)
+        when (LocalUiMode.current) {
+            UiMode.Miuix -> OverlayDialog(
+                show = true,
+                onDismissRequest = { showBackupDialog = false },
+            ) {
+                MiuixText(text = message, modifier = Modifier.fillMaxWidth())
+                Row(modifier = Modifier.padding(top = 12.dp)) {
+                    MiuixTextButton(
+                        text = stringResource(android.R.string.cancel),
+                        onClick = { showBackupDialog = false },
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(20.dp))
+                    MiuixTextButton(
+                        text = stringResource(R.string.backup_data),
+                        onClick = {
+                            showBackupDialog = false
+                            startBackup()
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.textButtonColorsPrimary(),
+                    )
+                }
+            }
+
+            UiMode.Material -> AlertDialog(
+                onDismissRequest = { showBackupDialog = false },
+                text = { Text(message) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showBackupDialog = false
+                        startBackup()
+                    }) { Text(stringResource(R.string.backup_data)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showBackupDialog = false }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                },
             )
         }
-                    ${stringResource(R.string.data_current_system_version)}: $getOSVersionName
-                    
-                    ${stringResource(R.string.data_restore_version_tips)}
-                    """.trimIndent()
+    }
+
+    pendingRestoreJson?.let { json ->
+        val osCode = json.optInt("osCode")
+        // 旧 checkRestoreData 只在跨版本时提示，这里只用来决定要不要显示跨版本提示行
+        val crossVersion = osCode > 0 && osCode != getOSVersionCode
+        val versionLines = buildList {
+            if (osCode > 0) {
+                add("${stringResource(R.string.data_backup_data_version)}: ${getOSVersionName(osCode)}")
+            } else {
+                add("${stringResource(R.string.data_backup_data_version)}: -")
+            }
+            add("${stringResource(R.string.data_current_system_version)}: $getOSVersionName")
+            if (crossVersion) add(stringResource(R.string.data_restore_version_tips))
+        }
+        val localLabel = stringResource(R.string.data_prefs_target_local)
+        val remoteLabel = stringResource(R.string.data_prefs_target_remote)
+        // 落点按备份记录的 target 展示；旧备份没有 target 时说明按当前落点恢复
+        val legacyTargets = BackupPrefs.all { json.recordedTarget(it) == null }
+        val targetsSummary = if (legacyTargets) {
+            stringResource(R.string.data_restore_targets_legacy)
+        } else {
+            stringResource(
+                R.string.data_restore_targets,
+                BackupPrefs.joinToString(", ") { name ->
+                    val label = when (json.recordedTarget(name)) {
+                        PrefsTarget.REMOTE -> remoteLabel
+                        else -> localLabel
+                    }
+                    "$name: $label"
+                },
+            )
+        }
+        // 备份记录的是远程落点、此刻 service 不可用：这些键计入失败，不静默写本地
+        val remoteUnwritable = BackupPrefs.any { name ->
+            json.recordedTarget(name) == PrefsTarget.REMOTE &&
+                    context.prefsTarget(name) != PrefsTarget.REMOTE
+        }
+        val restoreMessage = buildList {
+            add(versionLines.joinToString("\n"))
+            add(targetsSummary)
+            if (remoteUnwritable) add(stringResource(R.string.data_remote_unavailable_tips))
+        }.joinToString("\n\n")
         when (LocalUiMode.current) {
             UiMode.Miuix -> OverlayDialog(
                 show = true,
@@ -589,17 +670,17 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                 )
                 Row(modifier = Modifier.padding(top = 12.dp)) {
                     MiuixTextButton(
-                        text = stringResource(R.string.ignore),
-                        onClick = {
-                            pendingRestoreJson = null
-                            writeRestoreData(activity, json)
-                        },
+                        text = stringResource(android.R.string.cancel),
+                        onClick = { pendingRestoreJson = null },
                         modifier = Modifier.weight(1f),
                     )
                     Spacer(Modifier.width(20.dp))
                     MiuixTextButton(
-                        text = stringResource(android.R.string.ok),
-                        onClick = { pendingRestoreJson = null },
+                        text = stringResource(R.string.restore_data),
+                        onClick = {
+                            pendingRestoreJson = null
+                            writeRestoreData(activity, json)
+                        },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.textButtonColorsPrimary(),
                     )
@@ -610,25 +691,25 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                 onDismissRequest = { pendingRestoreJson = null },
                 text = { Text(restoreMessage) },
                 confirmButton = {
-                    TextButton(onClick = { pendingRestoreJson = null }) {
-                        Text(stringResource(android.R.string.ok))
-                    }
-                },
-                dismissButton = {
                     TextButton(onClick = {
                         pendingRestoreJson = null
                         writeRestoreData(activity, json)
-                    }) { Text(stringResource(R.string.ignore)) }
+                    }) { Text(stringResource(R.string.restore_data)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingRestoreJson = null }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
                 },
             )
         }
     }
 }
 
-/** 旧 writeBackupData：JSON(osCode + 四个 prefs 文件) → base64 → 写入 uri */
+/** 备份：JSON(osCode + 四个 prefs 文件，各带 target 记录落点) → base64 → 写入 uri */
 private fun writeBackupData(context: Context, uri: Uri) {
     val json = JSONObject().apply { put("osCode", getOSVersionCode) }
-    val dataMapList = context.backupAllPrefs(ModulePrefs, IntentPrefs, SettingsPrefs, OtherPrefs)
+    val dataMapList = context.backupAllPrefs(*BackupPrefs.toTypedArray())
     dataMapList.keys.forEach { prefs ->
         val jsons = JSONObject()
         dataMapList[prefs]?.keys?.forEach { key ->
@@ -656,7 +737,10 @@ private fun writeBackupData(context: Context, uri: Uri) {
                 LogUtils.e("SettingPage", "backup skip $key", "$t", false)
             }
         }
-        json.put(prefs, jsons)
+        json.put(prefs, JSONObject().apply {
+            put("target", context.prefsTarget(prefs).key)
+            put("data", jsons)
+        })
     }
     val str = base64Encode(json.toString())
     try {
@@ -673,41 +757,64 @@ private fun writeBackupData(context: Context, uri: Uri) {
     }
 }
 
-/** 旧 writeRestoreData：逐 prefs 逐键写回，完成后重启 Activity */
+/**
+ * 恢复：按备份记录的 target 逐 prefs 逐键写回，完成后重启 Activity。
+ *
+ * target 是落点而不是建议：备份记 remote 但此刻框架 service 不可用时，这些键按失败计数并提示，
+ * 不静默回落到本地 —— 否则界面显示恢复成功，hook 侧却读不到。
+ */
 private fun writeRestoreData(context: Context, json: JSONObject) {
     if (json.length() <= 0) return
     json.remove("osCode")
     var success = 0
     var failed = 0
+    var remoteUnwritable = 0
     val failedKeys = ArrayList<String>()
-    json.keys().forEach { prefs ->
-        val prefsDatas = json.getJSONObject(prefs)
-        if (prefsDatas.length() > 0) {
-            prefsDatas.keys().forEach { key ->
-                val value = prefsDatas.get(key)
-                try {
-                    val ok = when (value.javaClass.simpleName) {
-                        "Boolean" -> context.putBoolean(prefs, key, value as Boolean)
-                        "Integer" -> context.putInt(prefs, key, value as Int)
-                        "JSONArray" -> {
-                            val set = ArraySet<String>()
-                            val list = value as JSONArray
-                            for (i in 0 until list.length()) set.add(list[i] as String)
-                            context.putStringSet(prefs, key, set)
-                        }
-
-                        "String" -> context.putString(prefs, key, value as String)
-                        else -> error("${value.javaClass.simpleName} is not restorable")
+    json.keys().forEach { prefsName ->
+        val prefsDatas = json.prefsData(prefsName) ?: return@forEach
+        if (prefsDatas.length() <= 0) return@forEach
+        // 旧备份没有 target：退回当前落点，与迁移前的行为一致
+        val target = json.recordedTarget(prefsName) ?: context.prefsTarget(prefsName)
+        val prefs = context.prefsForTarget(prefsName, target)
+        if (prefs == null) {
+            remoteUnwritable += prefsDatas.length()
+            failed += prefsDatas.length()
+            failedKeys.add("$prefsName/*(${target.key} unavailable)")
+            LogUtils.e(
+                "SettingPage",
+                "restore skip $prefsName",
+                "${target.key} unavailable, ${prefsDatas.length()} keys",
+                false,
+            )
+            return@forEach
+        }
+        prefsDatas.keys().forEach { key ->
+            val value = prefsDatas.get(key)
+            try {
+                val editor = prefs.edit()
+                when (value.javaClass.simpleName) {
+                    "Boolean" -> editor.putBoolean(key, value as Boolean)
+                    "Integer" -> editor.putInt(key, value as Int)
+                    "JSONArray" -> {
+                        // 集合一律写成 java.util.HashSet：remote 侧按 Serializable 反序列化，
+                        // Kotlin 单例集合与 androidx 集合解析不到会让整次更新失败
+                        val set = HashSet<String>()
+                        val list = value as JSONArray
+                        for (i in 0 until list.length()) set.add(list[i] as String)
+                        editor.putStringSet(key, set)
                     }
-                    if (!ok) error("write failed")
-                    success++
-                } catch (t: Throwable) {
-                    // 恢复不了的值：记录日志、跳过，并把该键从本地 prefs 移除，不让坏数据留在设备上
-                    failed++
-                    failedKeys.add("$prefs/$key")
-                    LogUtils.e("SettingPage", "restore skip $prefs/$key", "$t", false)
-                    context.removeKey(prefs, key)
+
+                    "String" -> editor.putString(key, value as String)
+                    else -> error("${value.javaClass.simpleName} is not restorable")
                 }
+                if (!editor.commit()) error("write failed")
+                success++
+            } catch (t: Throwable) {
+                // 恢复不了的值：记录日志、跳过，并把该键从目标 prefs 移除，不让坏数据留在设备上
+                failed++
+                failedKeys.add("$prefsName/$key")
+                LogUtils.e("SettingPage", "restore skip $prefsName/$key", "$t", false)
+                runCatching { prefs.edit().remove(key).commit() }
             }
         }
     }
@@ -715,10 +822,19 @@ private fun writeRestoreData(context: Context, json: JSONObject) {
         LogUtils.e(
             "SettingPage",
             "restore result",
-            "success=$success failed=$failed ${failedKeys.joinToString()}",
+            "success=$success failed=$failed remoteUnwritable=$remoteUnwritable " +
+                    failedKeys.joinToString(),
             false,
         )
     }
     context.showToast(context.getString(R.string.data_restore_result, success, failed))
+    if (remoteUnwritable > 0) {
+        context.showToast(
+            context.getString(R.string.data_restore_remote_unavailable, remoteUnwritable)
+        )
+    }
     (context as? MainActivity)?.restart()
 }
+
+/** 备份/恢复涉及的四个 prefs 文件，顺序即 JSON 里的顺序 */
+private val BackupPrefs = listOf(ModulePrefs, IntentPrefs, SettingsPrefs, OtherPrefs)

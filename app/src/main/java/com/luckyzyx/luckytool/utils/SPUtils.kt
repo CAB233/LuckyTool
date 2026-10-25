@@ -8,6 +8,7 @@ import android.util.ArraySet
 import androidx.collection.arrayMapOf
 import androidx.collection.arraySetOf
 import com.luckyzyx.luckytool.ui.service.XposedServiceBridge
+import org.json.JSONObject
 
 const val ModulePrefs: String = "ModulePrefs"
 const val IntentPrefs: String = "IntentPrefs"
@@ -22,13 +23,54 @@ const val OtherPrefs: String = "OtherPrefs"
 private val LocalOnlyPrefs: Set<String> = setOf(SettingsPrefs, OtherPrefs)
 
 /**
+ * prefs 的落点。[key] 是备份 JSON 里记录的值：恢复时按记录写回，不再由「恢复那一刻 service 是否可用」
+ * 决定配置落到哪儿 —— 否则同一份备份在不同时刻恢复会落进不同存储，hook 侧可能读不到。
+ */
+enum class PrefsTarget(val key: String) {
+    REMOTE("remote"),
+    LOCAL("local");
+
+    companion object {
+        fun ofKey(key: String?): PrefsTarget? = entries.firstOrNull { it.key == key }
+    }
+}
+
+/** 当前实际落点：remote 只在该 prefs 不在 [LocalOnlyPrefs] 且框架 service 可用时成立 */
+internal fun Context.prefsTarget(prefsName: String): PrefsTarget =
+    if (prefsName in LocalOnlyPrefs || XposedServiceBridge.preferences(prefsName) == null)
+        PrefsTarget.LOCAL else PrefsTarget.REMOTE
+
+/**
+ * 按指定落点取 prefs。remote 在框架 service 不可用时返回 null：备份/恢复据此计入失败，
+ * 不静默写本地（那会显示成恢复成功，hook 侧却读不到）。
+ */
+internal fun Context.prefsForTarget(
+    prefsName: String, target: PrefsTarget
+): android.content.SharedPreferences? = when (target) {
+    PrefsTarget.LOCAL -> getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+    PrefsTarget.REMOTE -> XposedServiceBridge.preferences(prefsName)
+}
+
+/** 备份里记录的落点：新格式 `{ "target": ..., "data": {...} }`；旧备份直接是键值对象，返回 null */
+internal fun JSONObject.recordedTarget(prefsName: String): PrefsTarget? {
+    val entry = optJSONObject(prefsName) ?: return null
+    if (!entry.has("data")) return null
+    return PrefsTarget.ofKey(entry.optString("target"))
+}
+
+/** 某个 prefs 文件的实际键值数据：新格式在 data 下，旧备份就是它本身 */
+internal fun JSONObject.prefsData(prefsName: String): JSONObject? {
+    val entry = optJSONObject(prefsName) ?: return null
+    return entry.optJSONObject("data") ?: entry
+}
+
+/**
  * UI 侧 prefs 访问统一入口：[LocalOnlyPrefs] 固定走本地 prefs；其余在框架 service 可用
  * （YukiHook.Status 观察到的 available）时走 remote prefs（与宿主进程 YukiHookPreferences 同一数据源），
  * 不可用时回落本地 prefs。
  */
 internal fun Context.appPrefs(prefsName: String): android.content.SharedPreferences =
-    if (prefsName in LocalOnlyPrefs) getSharedPreferences(prefsName, Context.MODE_PRIVATE)
-    else XposedServiceBridge.preferences(prefsName)
+    prefsForTarget(prefsName, prefsTarget(prefsName))
         ?: getSharedPreferences(prefsName, Context.MODE_PRIVATE)
 
 
