@@ -161,7 +161,7 @@ class MainHook : YukiHookXposedModule {
             return try {
                 File("/sdcard/disable_lt").exists()
             } catch (_: Throwable) {
-                true
+                false
             }
         }
     }
