@@ -18,31 +18,28 @@ object RemoveRotateScreenButton : YukiBaseHooker() {
         VariousClass(
             "com.android.systemui.statusbar.phone.FloatingRotationButton", //A11
             "com.android.systemui.navigationbar.gestural.FloatingRotationButton", //A12
-            "com.android.systemui.shared.rotation.FloatingRotationButton" //C13 C14 C16 C17
+            "com.android.systemui.shared.rotation.FloatingRotationButton" //C13 C14 C15 C16 C17
         ).toClass().resolve().apply {
-            //C17 removed the Context constructor, the button is created via the no-arg
-            //constructor and mKeyButtonView is assigned afterwards by NavigationBarView,
-            //so the constructor hook below no longer matches on C17.
-            //updateDimensionResources is invoked right after mKeyButtonView is populated
-            //on every version, hide the rotate button there.
-            firstMethod {
-                name = "updateDimensionResources"
-                emptyParameters()
-            }.hook {
-                after {
-                    firstField { name = "mKeyButtonView" }.of(instance).get<View>()
-                        ?.isVisible = false
+            //C13-C17 都有 updateDimensionResources，且调用点在 mKeyButtonView 赋值之后，
+            //在这里隐藏即可；A11 A12 没有该方法，只能退回构造器（这两个版本的
+            //mKeyButtonView 在构造器内部就已赋值）。
+            //C17 的 FloatingRotationButton 连构造器都没有，逻辑内联在 NavigationBarView 里，
+            //所以构造器钩子必须用 OrNull：firstConstructor 匹配不到会直接抛异常。
+            if (firstMethodOrNull { name = "updateDimensionResources"; emptyParameters() } != null) {
+                firstMethod { name = "updateDimensionResources"; emptyParameters() }.hook {
+                    after {
+                        firstField { name = "mKeyButtonView" }.of(instance).get<View>()
+                            ?.isVisible = false
+                    }
                 }
-            }
-            //Fallback for A11 A12: no updateDimensionResources below C13, hide
-            //in the constructor instead. C12 C13 C14 C15 C16 constructors all take
-            //Context as the first param and assign mKeyButtonView inside the ctor,
-            //so this hook is universal for C16 and below (and doubles as a safety
-            //net on C13-C16).
-            firstConstructor { parameters { it.isNotEmpty() && it[0] == classOf<Context>() } }.hook {
-                after {
-                    firstField { name = "mKeyButtonView" }.of(instance).get<View>()
-                        ?.isVisible = false
+            } else {
+                firstConstructorOrNull {
+                    parameters { it.isNotEmpty() && it[0] == classOf<Context>() }
+                }?.hook {
+                    after {
+                        firstField { name = "mKeyButtonView" }.of(instance).get<View>()
+                            ?.isVisible = false
+                    }
                 }
             }
         }
