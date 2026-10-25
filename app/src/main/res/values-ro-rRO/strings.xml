@@ -150,6 +150,7 @@
     <string name="statusbar_clock_doublerow_fontsize">Double row font size</string>
     <string name="statusbar_clock_custom_format">Format ceas</string>
     <string name="statusbar_clock_custom_fontsize">Mărime font ceas</string>
+    <string name="statusbar_clock_custom_minimum_width">Clock minimum width</string>
     <string name="statusbar_clock_if_zero_summary">If 0, this option will not be modified</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Viteza rețelei din Bara de stare</string>

@@ -150,6 +150,7 @@
     <string name="statusbar_clock_doublerow_fontsize">Розмір шрифту у два рядки</string>
     <string name="statusbar_clock_custom_format">Формат годинника</string>
     <string name="statusbar_clock_custom_fontsize">Розмір шрифту годинника</string>
+    <string name="statusbar_clock_custom_minimum_width">Clock minimum width</string>
     <string name="statusbar_clock_if_zero_summary">If 0, this option will not be modified</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Швидкість мережі в рядку стану</string>

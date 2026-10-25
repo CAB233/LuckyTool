@@ -202,6 +202,7 @@
     <string name="statusbar_clock_doublerow_fontsize">双排字体大小</string>
     <string name="statusbar_clock_custom_format">时钟格式</string>
     <string name="statusbar_clock_custom_fontsize">时钟字体大小</string>
+    <string name="statusbar_clock_custom_minimum_width">时钟最小宽度</string>
     <string name="statusbar_clock_custom_right_padding">时钟右边距</string>
     <string name="statusbar_clock_if_zero_summary">若为0，则该选项将不进行修改</string>
     <!-- StatusBarNetWorkSpeed -->

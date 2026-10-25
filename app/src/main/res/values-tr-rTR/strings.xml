@@ -168,6 +168,7 @@
     <string name="statusbar_clock_doublerow_fontsize">Çift satır yazı tipi boyutu</string>
     <string name="statusbar_clock_custom_format">Saat biçimi</string>
     <string name="statusbar_clock_custom_fontsize">Saat yazı tipi boyutu</string>
+    <string name="statusbar_clock_custom_minimum_width">Saatin minimum genişliği</string>
     <string name="statusbar_clock_custom_padding">Saatin özel kenar boşluğu (padding)</string>
     <string name="statusbar_clock_custom_top_padding">Saatin üst kenar boşluğu</string>
     <string name="statusbar_clock_custom_bottom_padding">Saatin alt kenar boşluğu</string>

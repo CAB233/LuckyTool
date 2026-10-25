@@ -152,6 +152,7 @@
     <string name="statusbar_clock_doublerow_fontsize">Cỡ chữ hàng kép</string>
     <string name="statusbar_clock_custom_format">Định dạng đồng hồ</string>
     <string name="statusbar_clock_custom_fontsize">Kích thước phông chữ đồng hồ</string>
+    <string name="statusbar_clock_custom_minimum_width">Chiều rộng tối thiểu của đồng hồ</string>
     <string name="statusbar_clock_if_zero_summary">Nếu 0, tùy chọn này sẽ không được sửa đổi</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Tốc độ mạng</string>

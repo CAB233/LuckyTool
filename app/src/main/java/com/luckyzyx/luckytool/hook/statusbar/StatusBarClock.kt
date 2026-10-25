@@ -5,6 +5,7 @@ import android.graphics.Typeface
 import android.os.Handler
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.View
 import android.widget.TextView
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
@@ -12,6 +13,7 @@ import com.highcapable.yukihookapi.extension.kavaref.hook
 import com.highcapable.yukihookapi.extension.kavaref.intercept
 import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
+import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.hook.utils.sysui.LunarHelperUtils
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.dp
@@ -52,6 +54,8 @@ class StatusBarClock : YukiBaseHooker() {
     var customFormat =
         preferences(ModulePrefs).getString("statusbar_clock_custom_format", "HH:mm:ss")
     var customFontsize = preferences(ModulePrefs).getInt("statusbar_clock_custom_fontsize", 0)
+    var customMinimumWidth =
+        preferences(ModulePrefs).getInt("statusbar_clock_custom_minimum_width", 0)
 
     val userTypeface = preferences(ModulePrefs).getBoolean("statusbar_clock_user_typeface", false)
     var useBoldFont =
@@ -68,6 +72,7 @@ class StatusBarClock : YukiBaseHooker() {
 
     var lunarInstance: Any? = null
     var newline = ""
+    private var lastLoggedWidth = -1
 
     override fun onHook() {
         val osCode = getOSVersionCode
@@ -76,6 +81,7 @@ class StatusBarClock : YukiBaseHooker() {
         dataChannel.wait<String>("statusbar_clock_text_alignment") { clockAlignment = it }
         dataChannel.wait<String>("statusbar_clock_custom_format") { customFormat = it }
         dataChannel.wait<Int>("statusbar_clock_custom_fontsize") { customFontsize = it }
+        dataChannel.wait<Int>("statusbar_clock_custom_minimum_width") { customMinimumWidth = it }
         dataChannel.wait<Int>("statusbar_clock_singlerow_fontsize") { singleRowFontSize = it }
         dataChannel.wait<Int>("statusbar_clock_doublerow_fontsize") { doubleRowFontSize = it }
         dataChannel.wait<Boolean>("statusbar_clock_use_bold_font_style") { useBoldFont = it }
@@ -119,6 +125,18 @@ class StatusBarClock : YukiBaseHooker() {
                     }
                 }
             }
+            firstMethodOrNull { name = "onMeasure" }?.hook {
+                before {
+                    val clockView = instance<TextView>().apply {
+                        val clockName = safeOfNull { resources.getResourceEntryName(id) }
+                        if (clockName != "clock") return@before
+                    }
+                    if (customMinimumWidth > 0) {
+                        clockView.minWidth = customMinimumWidth * 10
+                        clockView.minimumWidth = customMinimumWidth * 10
+                    }
+                }
+            }
         }
 
         //Source StatClock
@@ -135,7 +153,7 @@ class StatusBarClock : YukiBaseHooker() {
                 //StatClock 未开秒时把整段文本交给 paint.measureText 测量，多排文本（双排或自定义格式里带换行）的
                 //换行符会被当成普通字符，量出≈各行之和的宽度；该宽度还会经 onLayout 上报成流体云的时钟分钟区，
                 //胶囊出现时被判成相交，官方直接把整个时钟 setVisibility(INVISIBLE)。
-                //故多排时先按各行最宽算出真实宽度，走完原测量后再重设测量宽并同步修正上报宽度。
+                //故多排时按各行最宽重设测量宽；用户设置了最小宽度就直接用换算后的值，不再与真实宽度取大。
                 //不能用反射调父类 onMeasure：KavaRef 的 superclass() 是本类优先的包含式搜索，会命中本类自己造成递归。
                 val paddingEndField = firstFieldOrNull { name = "paddingEnd" }
                 val cachedMinutesWidthField = firstFieldOrNull { name = "cachedMinutesLayoutWidth" }
@@ -144,34 +162,66 @@ class StatusBarClock : YukiBaseHooker() {
                     superclass()
                     parameterCount = 2
                 }
+
+                fun resolverClockWidth(clockView: TextView, padEnd: Int): Int? {
+                    //用户显式设置的宽度优先，设置多少就是多少
+                    if (customMinimumWidth > 0) return customMinimumWidth * 10
+                    //文本带换行或视图已是非单行模式（自定义格式里的换行同样会走到这里）
+                    val isMultiRow =
+                        clockView.text?.contains('\n') == true || !clockView.isSingleLine
+                    if (!isMultiRow) return null
+                    //原实现会把 paint 字号改成 stat_clock_size 再量，这里先用当前字号量出各行的真实最大宽度
+                    val paint = clockView.paint
+                    val textWidth = clockView.text.split('\n')
+                        .maxOfOrNull { paint.measureText(it) }?.toInt() ?: 0
+                    return textWidth + clockView.paddingStart + padEnd
+                }
+
                 firstMethodOrNull { name = "onMeasure" }?.intercept {
                     val clockView = instanceOrNull<TextView>()
                         ?: return@intercept proceed()
                     val clockName =
                         safeOfNull { clockView.resources.getResourceEntryName(clockView.id) }
                     if (clockName != "clock") return@intercept proceed()
+                    if (customMinimumWidth > 0) {
+                        clockView.minWidth = customMinimumWidth * 10
+                        clockView.minimumWidth = customMinimumWidth * 10
+                    }
                     clockView.initView()
-                    //文本带换行或视图已是非单行模式（自定义格式里的换行同样会走到这里）
-                    val isMultiRow =
-                        clockView.text?.contains('\n') == true || !clockView.isSingleLine
-                    if (isMultiRow) {
-                        //原实现会把 paint 字号改成 stat_clock_size 再量，这里先用当前字号量出各行的真实最大宽度
-                        val paint = clockView.paint
-                        val textWidth = clockView.text.split('\n')
-                            .maxOfOrNull { paint.measureText(it) }?.toInt() ?: 0
-                        val padEnd = paddingEndField?.copy()?.of(instance)?.get<Int>()
-                            ?: clockView.paddingEnd
-                        val targetWidth = textWidth + clockView.paddingStart + padEnd
-                        proceed()
+                    val padEnd = paddingEndField?.copy()?.of(instance)?.get<Int>()
+                        ?: clockView.paddingEnd
+                    val targetWidth = resolverClockWidth(clockView, padEnd)
+                    if (targetWidth != null && targetWidth != lastLoggedWidth) {
+                        lastLoggedWidth = targetWidth
+                        YLog.debug(
+                            "clock width target=" + targetWidth +
+                                " x=" + clockView.x +
+                                " measured=" + clockView.measuredWidth +
+                                " text=" + clockView.text
+                        )
+                    }
+                    proceed()
+                    if (targetWidth != null) {
                         //resolver 的 of(instance) 只能设置一次实例，复用必须 copy()
                         cachedMinutesWidthField?.copy()?.of(instance)?.set(targetWidth)
                         setMeasuredDimension?.copy()?.of(instance)
                             ?.invoke(targetWidth, clockView.measuredHeight)
-                    } else {
-                        proceed()
                     }
                     //原实现测量期间把 paint 字号换成 stat_clock_size，用户字号与行距要在这里再还原一次
                     clockView.initView()
+                }
+                //流体云胶囊出现/消失时走 setHideSecBySeeding -> refreshWidth，会把上报宽度改回整串测量值；
+                //用户设置了最小宽度时在这里再写回一次，避免胶囊一出现时钟就被判成相交。
+                firstMethodOrNull { name = "refreshWidth" }?.hook {
+                    after {
+                        if (customMinimumWidth <= 0) return@after
+                        val targetWidth = customMinimumWidth * 10
+                        val current = cachedMinutesWidthField?.copy()?.of(instance)?.get<Int>()
+                        if (current == targetWidth) return@after
+                        cachedMinutesWidthField?.copy()?.of(instance)?.set(targetWidth)
+                        //上报值只在 onLayout 里刷新，写回后要重新走一次测量与布局才能生效
+                        instanceOrNull<View>()?.requestLayout()
+                    }
                 }
                 firstMethodOrNull { name = "updateMinWidth" }?.hook {
                     before {

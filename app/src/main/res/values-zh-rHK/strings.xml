@@ -200,6 +200,7 @@
     <string name="statusbar_clock_doublerow_fontsize">双排字体大小</string>
     <string name="statusbar_clock_custom_format">时钟格式</string>
     <string name="statusbar_clock_custom_fontsize">时钟字体大小</string>
+    <string name="statusbar_clock_custom_minimum_width">时钟最小宽度</string>
     <string name="statusbar_clock_custom_top_padding">时钟上边距</string>
     <string name="statusbar_clock_custom_bottom_padding">时钟下边距</string>
     <string name="statusbar_clock_custom_left_padding">时钟左边距</string>
