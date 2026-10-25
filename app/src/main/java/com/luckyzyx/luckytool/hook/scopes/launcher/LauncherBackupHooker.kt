@@ -372,8 +372,8 @@ object LauncherBackupHooker : YukiBaseHooker() {
     /** 到期判定：开关和周期从宿主 ModulePrefs 只读，时间戳只来自 [LauncherBackupGate] */
     private fun autoBackupDue(now: Long): Boolean {
         val context = hostContext ?: return false
+        if (!autoBackupEnabled()) return false
         val prefs = preferences(ModulePrefs)
-        if (!prefs.getBoolean(LauncherBackupPrefs.KEY_AUTO_ENABLED, false)) return false
         val hours = LauncherBackupPrefs.intervalHours(
             prefs.getString(
                 LauncherBackupPrefs.KEY_AUTO_INTERVAL,
@@ -388,10 +388,16 @@ object LauncherBackupHooker : YukiBaseHooker() {
         )
     }
 
+    /** 自动备份开关；重试链路里每一跳都要重新确认，用户可能在等待期间把它关掉 */
+    private fun autoBackupEnabled(): Boolean = runCatching {
+        preferences(ModulePrefs).getBoolean(LauncherBackupPrefs.KEY_AUTO_ENABLED, false)
+    }.getOrDefault(false)
+
     /**
      * 到期就在桌面进程里自己写一份自动备份。
      * 先记尝试时间戳再动手：写失败（例如真机确实没有写公共目录的权限）时靠 30 分钟节流防抖，
      * 不会每一轮自查都重试；只有真的落盘成功才刷新「上次成功」。
+     * 尝试时间戳只在首轮记：重试属于同一次到期，再记一次会把节流窗口又往后推。
      */
     private fun runAutoBackupSelfCheck() {
         runCatching {
@@ -402,16 +408,59 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 return
             }
             LauncherBackupGate.markAttempt(context, now)
-            val outcome = autoBackup(now)
-            if (outcome.ok) LauncherBackupGate.markSuccess(context, now)
-            val text = if (outcome.ok) {
-                "自动备份完成" + (if (outcome.message.isBlank()) "" else "（" + outcome.message + "）")
-            } else {
-                //失败必须带上异常原文：真机上看 toast / 日志就能判断是不是没写权限
-                "自动备份失败：" + outcome.message
-            }
-            toast(text)
+            runAutoBackupAttempt(LauncherBackupGate.PROVIDER_RETRY_TIMES)
         }.onFailure { YLog.debug("$TAG 自动备份自查异常", it) }
+    }
+
+    /**
+     * 一轮自动备份尝试（首轮与重试共用这个入口）。
+     *
+     * 媒体 provider 不可用时隔 [LauncherBackupGate.PROVIDER_RETRY_DELAY_MS]（5 分钟）再试，
+     * 最多 [LauncherBackupGate.PROVIDER_RETRY_TIMES] 次：桌面进程可能比媒体 provider 先起来，
+     * 或者 provider 正在重启，缓一会儿再投稿往往就成功了。
+     * 中间失败只记日志，最终结果才 toast —— 否则一轮重试会连刷 4 条提示。
+     */
+    private fun runAutoBackupAttempt(retriesLeft: Int) {
+        if (!autoBackupEnabled()) {
+            LogUtils.d(TAG, "runAutoBackupAttempt", "自动备份已关闭，放弃本次（含重试）")
+            return
+        }
+        val startedAt = System.currentTimeMillis()
+        val outcome = runCatching { autoBackup(startedAt) }.getOrElse { throwable ->
+            YLog.debug("$TAG 自动备份异常", throwable)
+            Outcome(false, throwable.message ?: throwable.javaClass.simpleName)
+        }
+        if (outcome.ok) {
+            hostContext?.let { LauncherBackupGate.markSuccess(it, startedAt) }
+            toast("自动备份完成" + (if (outcome.message.isBlank()) "" else "（" + outcome.message + "）"))
+            return
+        }
+        val delayMs = LauncherBackupGate.providerRetryDelayMs(retriesLeft)
+        if (outcome.retryable && delayMs != null) {
+            LogUtils.d(
+                TAG,
+                "runAutoBackupAttempt",
+                "自动备份失败，" + delayMs / 60_000L + " 分钟后重试（还剩 " + retriesLeft + " 次）：" + outcome.message,
+            )
+            scheduleAutoBackupRetry(retriesLeft - 1, delayMs)
+            return
+        }
+        //失败必须带上异常原文：真机上看 toast / 日志就能判断是不是没写权限
+        toast("自动备份失败：" + outcome.message)
+    }
+
+    /**
+     * 用桌面 lifecycleOwner 的延迟任务排一次重试。
+     * 为什么不在执行器里 sleep：那是单线程执行器，睡 5 分钟会把手动备份/恢复指令一起堵住。
+     */
+    private fun scheduleAutoBackupRetry(retriesLeft: Int, delayMs: Long) {
+        runCatching {
+            hostContext?.lifecycleOwner?.runDelayed(delayMs) {
+                runCatching { executor.execute { runAutoBackupAttempt(retriesLeft) } }.onFailure {
+                    YLog.debug("$TAG 提交自动备份重试失败", it)
+                }
+            }
+        }.onFailure { YLog.debug("$TAG 排期自动备份重试失败", it) }
     }
 
     /** 布局是否加载完成：ROM 里 LauncherModel.mModelLoaded 由 LoaderTransaction.commit() 置位 */
@@ -504,7 +553,9 @@ object LauncherBackupHooker : YukiBaseHooker() {
         val target = runCatching { resolver.insert(collection, pending) }.getOrElse { throwable ->
             YLog.debug("$TAG 自动备份投稿失败", throwable)
             return Outcome(
-                false, "insert failed: " + (throwable.message ?: throwable.javaClass.simpleName)
+                false,
+                "insert failed: " + (throwable.message ?: throwable.javaClass.simpleName),
+                LauncherBackupGate.isProviderUnavailable(throwable),
             )
         } ?: return Outcome(false, "insert failed: $displayName")
 
@@ -521,7 +572,9 @@ object LauncherBackupHooker : YukiBaseHooker() {
             YLog.debug("$TAG 自动备份写流失败: $target", throwable)
             deleteMedia(resolver, target)
             return Outcome(
-                false, displayName + ": " + (throwable.message ?: throwable.javaClass.simpleName)
+                false,
+                displayName + ": " + (throwable.message ?: throwable.javaClass.simpleName),
+                LauncherBackupGate.isProviderUnavailable(throwable),
             )
         }
         if (!written) {
@@ -973,7 +1026,12 @@ object LauncherBackupHooker : YukiBaseHooker() {
         else -> value
     }
 
-    private data class Outcome(val ok: Boolean, val message: String)
+    /**
+     * 一次操作的结果。
+     * [retryable] 只标记延迟可恢复的失败（媒体 provider 还没就绪），由自动备份决定要不要隔段时间重试；
+     * 权限 / 磁盘 / 找不到 launcher.db 这类确定性失败一律 false，重试没有意义。
+     */
+    private data class Outcome(val ok: Boolean, val message: String, val retryable: Boolean = false)
 
     // ---------------- 数据库工具 ----------------
 

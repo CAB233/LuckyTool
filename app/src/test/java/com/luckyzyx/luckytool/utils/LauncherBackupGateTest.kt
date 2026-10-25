@@ -2,6 +2,7 @@ package com.luckyzyx.luckytool.utils
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -117,5 +118,28 @@ class LauncherBackupGateTest {
             listOf("launcher_20260102_000000_auto", "launcher_20260103_000000_manual"),
             LauncherBackupUtils.planEvictions(rows, limit = 1, excluded = setOf("launcher_20260101_000000_auto")).map { it.name },
         )
+    }
+
+    /** 只有「媒体 provider 不可用」才算可重试：权限 / 参数类失败重试多少次都一样 */
+    @Test
+    fun providerUnavailableOnlyForUnknownUrl() {
+        assertTrue(
+            LauncherBackupGate.isProviderUnavailable(
+                IllegalArgumentException("Unknown URL content://media/external_primary/downloads"),
+            ),
+        )
+        assertFalse(LauncherBackupGate.isProviderUnavailable(SecurityException("Permission Denial")))
+        assertFalse(LauncherBackupGate.isProviderUnavailable(IllegalArgumentException("Invalid column name")))
+        assertFalse(LauncherBackupGate.isProviderUnavailable(null))
+    }
+
+    /** 重试次数用尽后不再给出延迟，调用方据此收尾（避免无限重试） */
+    @Test
+    fun providerRetryDelayStopsWhenExhausted() {
+        val delay = LauncherBackupGate.providerRetryDelayMs(LauncherBackupGate.PROVIDER_RETRY_TIMES)
+        assertEquals(5 * 60 * 1000L, delay)
+        assertEquals(5 * 60 * 1000L, LauncherBackupGate.providerRetryDelayMs(1))
+        assertNull(LauncherBackupGate.providerRetryDelayMs(0))
+        assertNull(LauncherBackupGate.providerRetryDelayMs(-1))
     }
 }
