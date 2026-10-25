@@ -85,6 +85,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Remove the image save watermark of the Pictorial lock screen v40.10.15.2(4e15fb0)
 - Enable the Smart Sidebar to keep running in the background C17 — an older version of the Smart Sidebar may be required
 - Remove the battery restriction plugin C17
+- Fix the clock disappearing behind the fluid cloud when the double-row layout or a custom format containing a line break is used — measure by the widest line, report that width to the fluid cloud, and restore the user font size after measuring
 
 #### Changed
 
@@ -94,3 +95,4 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 
 - Removed “Notification Center two-side alignment” (adapted for C17 in this version, then removed)
 - Removed the secure payment scope; the related restrictions can be turned off in the system secure payment settings
+- Removed the “Clock minimum width” setting — it inflated the clock area reported to the fluid cloud, which then judged the clock as intersecting and hid it
