@@ -149,7 +149,6 @@
     <string name="statusbar_clock_doublerow_fontsize">Dimensione del carattere a doppia riga</string>
     <string name="statusbar_clock_custom_format">Formato orologio</string>
     <string name="statusbar_clock_custom_fontsize">Dimensione carattere orologio</string>
-    <string name="statusbar_clock_custom_minimum_width">Larghezza minima dell\'orologio</string>
     <string name="statusbar_clock_if_zero_summary">Se 0, questa opzione non verrà modificata</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Velocità Internet nella Barra di Stato</string>

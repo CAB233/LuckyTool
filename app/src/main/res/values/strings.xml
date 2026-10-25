@@ -251,7 +251,6 @@
     <string name="statusbar_clock_doublerow_fontsize">Double row font size</string>
     <string name="statusbar_clock_custom_format">Clock format</string>
     <string name="statusbar_clock_custom_fontsize">Clock font size</string>
-    <string name="statusbar_clock_custom_minimum_width">Clock minimum width</string>
     <string name="statusbar_clock_custom_padding">Custom clock padding</string>
     <string name="statusbar_clock_custom_top_padding">Clock top padding</string>
     <string name="statusbar_clock_custom_bottom_padding">Clock bottom padding</string>

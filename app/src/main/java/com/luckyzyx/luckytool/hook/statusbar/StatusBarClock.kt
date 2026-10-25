@@ -52,8 +52,6 @@ class StatusBarClock : YukiBaseHooker() {
     var customFormat =
         preferences(ModulePrefs).getString("statusbar_clock_custom_format", "HH:mm:ss")
     var customFontsize = preferences(ModulePrefs).getInt("statusbar_clock_custom_fontsize", 0)
-    var customMinimumWidth =
-        preferences(ModulePrefs).getInt("statusbar_clock_custom_minimum_width", 0)
 
     val userTypeface = preferences(ModulePrefs).getBoolean("statusbar_clock_user_typeface", false)
     var useBoldFont =
@@ -78,7 +76,6 @@ class StatusBarClock : YukiBaseHooker() {
         dataChannel.wait<String>("statusbar_clock_text_alignment") { clockAlignment = it }
         dataChannel.wait<String>("statusbar_clock_custom_format") { customFormat = it }
         dataChannel.wait<Int>("statusbar_clock_custom_fontsize") { customFontsize = it }
-        dataChannel.wait<Int>("statusbar_clock_custom_minimum_width") { customMinimumWidth = it }
         dataChannel.wait<Int>("statusbar_clock_singlerow_fontsize") { singleRowFontSize = it }
         dataChannel.wait<Int>("statusbar_clock_doublerow_fontsize") { doubleRowFontSize = it }
         dataChannel.wait<Boolean>("statusbar_clock_use_bold_font_style") { useBoldFont = it }
@@ -119,18 +116,6 @@ class StatusBarClock : YukiBaseHooker() {
                         "1" -> getDate(context, nowTime) + newline + getTime(context, nowTime)
                         "2" -> formatDate(getFormat(context, customFormat, nowTime), nowTime)
                         else -> return@after
-                    }
-                }
-            }
-            firstMethodOrNull { name = "onMeasure" }?.hook {
-                before {
-                    val clockView = instance<TextView>().apply {
-                        val clockName = safeOfNull { resources.getResourceEntryName(id) }
-                        if (clockName != "clock") return@before
-                    }
-                    if (customMinimumWidth > 0) {
-                        clockView.minWidth = customMinimumWidth * 10
-                        clockView.minimumWidth = customMinimumWidth * 10
                     }
                 }
             }

@@ -150,7 +150,6 @@
     <string name="statusbar_clock_doublerow_fontsize">Rozmiar czcionki (dwa wiersze)</string>
     <string name="statusbar_clock_custom_format">Format czasu</string>
     <string name="statusbar_clock_custom_fontsize">Rozmiar czcionki</string>
-    <string name="statusbar_clock_custom_minimum_width">Clock minimum width</string>
     <string name="statusbar_clock_if_zero_summary">If 0, this option will not be modified</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">Prędkościomierz sieci</string>

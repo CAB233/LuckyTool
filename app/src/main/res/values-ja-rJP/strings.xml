@@ -149,7 +149,6 @@
     <string name="statusbar_clock_doublerow_fontsize">多段表示のフォントの大きさ</string>
     <string name="statusbar_clock_custom_format">時計の書式設定</string>
     <string name="statusbar_clock_custom_fontsize">時計のフォントサイズ</string>
-    <string name="statusbar_clock_custom_minimum_width">Clock minimum width</string>
     <string name="statusbar_clock_if_zero_summary">If 0, this option will not be modified</string>
     <!-- StatusBarNetWorkSpeed -->
     <string name="StatusBarNetWorkSpeed">ステータスバーのネットワーク速度</string>

@@ -98,13 +98,6 @@ object StatusBarClockPage {
             }
         }
         if (state.getString("statusbar_clock_mode", "0") != "0") {
-            slider(
-                key = "statusbar_clock_custom_minimum_width",
-                title = c.getString(R.string.statusbar_clock_custom_minimum_width),
-                valueRange = 0..50,
-                summary = c.getString(R.string.statusbar_clock_if_zero_summary),
-                notify = true,
-            )
             switch(
                 key = "statusbar_clock_custom_padding",
                 title = c.getString(R.string.statusbar_clock_custom_padding),
