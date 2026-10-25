@@ -44,7 +44,8 @@ class StatusBarTile(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
         }
 
         //媒体播放器
-        if (osCode in 26..37) loadHooker(MediaPlayerPanel)
+        //上界 37 是 C16.0.0，C16.1 起的版本被这条判断整个挡在门外，设置项变成空转
+        if (osCode >= 26) loadHooker(MediaPlayerPanel)
 
         //磁贴布局
         loadHooker(ControlCenterTiles)
