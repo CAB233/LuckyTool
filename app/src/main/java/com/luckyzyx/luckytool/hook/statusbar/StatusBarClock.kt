@@ -13,7 +13,6 @@ import com.highcapable.yukihookapi.extension.kavaref.hook
 import com.highcapable.yukihookapi.extension.kavaref.intercept
 import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.hook.utils.sysui.LunarHelperUtils
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.dp
@@ -193,12 +192,12 @@ class StatusBarClock : YukiBaseHooker() {
                     val targetWidth = resolverClockWidth(clockView, padEnd)
                     if (targetWidth != null && targetWidth != lastLoggedWidth) {
                         lastLoggedWidth = targetWidth
-                        YLog.debug(
-                            "clock width target=" + targetWidth +
-                                " x=" + clockView.x +
-                                " measured=" + clockView.measuredWidth +
-                                " text=" + clockView.text
-                        )
+//                        YLog.debug(
+//                            "clock width target=" + targetWidth +
+//                                " x=" + clockView.x +
+//                                " measured=" + clockView.measuredWidth +
+//                                " text=" + clockView.text
+//                        )
                     }
                     proceed()
                     if (targetWidth != null) {
