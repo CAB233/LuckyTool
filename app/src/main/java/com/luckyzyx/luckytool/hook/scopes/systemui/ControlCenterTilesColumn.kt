@@ -3,8 +3,11 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 import android.view.View
 import android.view.ViewGroup
 import com.highcapable.kavaref.KavaRef.Companion.resolve
+import com.highcapable.kavaref.extension.VariousClass
 import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.intercept
 import com.highcapable.yukihookapi.extension.kavaref.toClass
+import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.utils.sysui.MediaPlayerDataUtils
 import com.luckyzyx.luckytool.hook.utils.sysui.QSFeatureOptionUtils
@@ -52,52 +55,99 @@ object ControlCenterTiles : YukiBaseHooker() {
                 }
             }
 
+            //期望行数：竖屏取设置值，横屏按自动扩展规则，返回 null 表示不改
+            val resolveRows: (View) -> Int? = { view ->
+                var vertical = true
+                getScreenOrientation(view) { vertical = it }
+                if (vertical) rowExpandedVerticalC13 else when {
+                    !autoExpandTile -> null
+                    QSFeatureOptionUtils(hostClassLoader!!).isSupportVolumeSeekBar() -> null
+                    mediaMode == "2" -> 2
+                    mediaMode == "3" -> {
+                        if (MediaPlayerDataUtils(hostClassLoader!!).getMediaDataStatus() == null) 2
+                        else null
+                    }
+                    else -> null
+                }
+            }
+
             //Source QuickQSPanel
-            "com.android.systemui.qs.QuickQSPanel".toClass().resolve().apply {
-                firstMethod { name = "getNumQuickTiles" }.hook {
-                    intercept(columnUnexpandedVerticalC13)
+            VariousClass(
+                "com.android.systemui.qs.QuickQSPanel",
+                "com.android.systemui.qs.deprecated.QuickQSPanel"
+            ).toClass().resolve().apply {
+                firstMethod { name = "getNumQuickTiles" }.intercept {
+                    columnUnexpandedVerticalC13
                 }
             }
 
             //Source TileLayout
-            "com.android.systemui.qs.TileLayout".toClass().resolve().apply {
-                firstMethod { name = "updateMaxRows" }.hook {
-                    before {
-                        getScreenOrientation(instance<ViewGroup>()) {
-                            val mRows = firstField { name = "mRows" }.of(instance).get<Int>()
-                            val newRows = if (it) rowExpandedVerticalC13
-                            else if (autoExpandTile &&
-                                QSFeatureOptionUtils(hostClassLoader!!).isSupportVolumeSeekBar().not()
-                            ) when (mediaMode) {
-                                "2" -> 2
-                                "3" -> {
-                                    if (MediaPlayerDataUtils(hostClassLoader!!).getMediaDataStatus() == null) 2
-                                    else return@getScreenOrientation
-                                }
-
-                                else -> return@getScreenOrientation
-                            }
-                            else return@getScreenOrientation
-                            firstField { name = "mRows" }.of(instance).set(newRows)
-                            result = mRows != newRows
+            VariousClass(
+                "com.android.systemui.qs.TileLayout",
+                "com.android.systemui.qs.deprecated.TileLayout"
+            ).toClass().resolve().apply {
+                val updateMaxRowsMethod = firstMethodOrNull { name = "updateMaxRows" }
+                if (updateMaxRowsMethod != null) {
+                    val mRows = firstField { name = "mRows" }
+                    updateMaxRowsMethod.intercept {
+                        val newRows = resolveRows(instance<ViewGroup>())
+                            ?: return@intercept proceed()
+                        val field = mRows.copy().of(instance)
+                        val oldRows = field.get<Int>() ?: return@intercept proceed()
+                        field.set(newRows)
+                        oldRows != newRows
+                    }
+                } else {
+                    //ColorOS17 移除了 updateMaxRows：行数改由 PagedTileLayout.onMeasure 按可用高度计算，
+                    //再夹取到 [mMinRows, mMaxAllowedRows]，故测量前临时改写首页这两个字段，测量后还原
+                    //mMinRows/mMaxAllowedRows 声明在 TileLayout，页面实例本身是 TileLayout 子类，
+                    //故这两个字段从 TileLayout 取，只有 mPages 来自 PagedTileLayout
+                    val mMinRows = firstFieldOrNull { name = "mMinRows" } ?: return@apply
+                    val mMaxAllowedRows =
+                        firstFieldOrNull { name = "mMaxAllowedRows" } ?: return@apply
+                    val pagedScope = VariousClass(
+                        "com.android.systemui.qs.PagedTileLayout",
+                        "com.android.systemui.qs.deprecated.PagedTileLayout"
+                    ).toClassOrNull()?.resolve() ?: return@apply
+                    val mPages = pagedScope.firstFieldOrNull { name = "mPages" } ?: return@apply
+                    pagedScope.firstMethod { name = "onMeasure" }.intercept {
+                        //onMeasure 无返回值，恒走原实现，仅在测量期间临时改字段
+                        val view = instanceOrNull<ViewGroup>() ?: return@intercept proceed()
+                        val newRows = resolveRows(view) ?: return@intercept proceed()
+                        val page = mPages.copy().of(instance).get<ArrayList<*>>()
+                            ?.firstOrNull() ?: return@intercept proceed()
+                        val minRows = mMinRows.copy().of(page)
+                        val maxAllowedRows = mMaxAllowedRows.copy().of(page)
+                        val oldMinRows = minRows.get<Int>() ?: return@intercept proceed()
+                        val oldMaxAllowedRows =
+                            maxAllowedRows.get<Int>() ?: return@intercept proceed()
+                        //已是目标行数时不必重写字段，直接走原实现
+                        if (oldMinRows == newRows && oldMaxAllowedRows == newRows) {
+                            return@intercept proceed()
+                        }
+                        minRows.set(newRows)
+                        maxAllowedRows.set(newRows)
+                        try {
+                            proceed()
+                        } finally {
+                            minRows.set(oldMinRows)
+                            maxAllowedRows.set(oldMaxAllowedRows)
                         }
                     }
                 }
 
+                val mColumns = firstField { name = "mColumns" }
                 (firstMethodOrNull { name = "updateColumns" }
-                    ?: firstMethod { name = "setMaxColumns" }).hook {
-                    before {
-                        instance<ViewGroup>().apply {
-                            getScreenOrientation(this) {
-                                val mColumns =
-                                    firstField { name = "mColumns" }.of(instance).get<Int>()
-                                val newColumns = if (it) columnExpandedVerticalC13
-                                else columnHorizontal
-                                firstField { name = "mColumns" }.of(instance).set(newColumns)
-                                result = mColumns != newColumns
-                            }
-                        }
-                    }
+                    ?: firstMethod { name = "setMaxColumns" }).intercept {
+                    val view = instance<ViewGroup>()
+                    var vertical = true
+                    getScreenOrientation(view) { vertical = it }
+                    val newColumns =
+                        if (vertical) columnExpandedVerticalC13 else columnHorizontal
+                    val field = mColumns.copy().of(view)
+                    val oldColumns = field.get<Int>() ?: return@intercept proceed()
+                    field.set(newColumns)
+                    oldColumns != newColumns
                 }
             }
         }

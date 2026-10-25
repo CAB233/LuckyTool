@@ -168,16 +168,14 @@ object StatusBarTilesPage {
                 title = c.getString(R.string.remove_control_center_tile_count_limit),
             )
         }
-        if (osCode < 40) {
-            switch(
-                key = "control_center_tile_enable",
-                title = c.getString(R.string.control_center_tile_enable),
-                summary = c.getString(R.string.classic_control_center_mode_only),
-                onChange = { v ->
-                    if (!v) state.set("auto_expand_tile_rows_horizontal", false)
-                },
-            )
-        }
+        switch(
+            key = "control_center_tile_enable",
+            title = c.getString(R.string.control_center_tile_enable),
+            summary = c.getString(R.string.classic_control_center_mode_only),
+            onChange = { v ->
+                if (!v) state.set("auto_expand_tile_rows_horizontal", false)
+            },
+        )
         if (state.getBoolean("control_center_tile_enable")) {
             if (SDK < A13) {
                 slider(
@@ -228,7 +226,8 @@ object StatusBarTilesPage {
                     key = "tile_columns_horizontal_c13",
                     title = c.getString(R.string.tile_columns_horizontal_c13),
                     valueRange = 1..6,
-                    default = 5,
+                    //与宿主 R.integer.quick_settings_num_columns 的默认值保持一致
+                    default = 4,
                 )
             }
         }

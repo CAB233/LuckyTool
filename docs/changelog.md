@@ -33,6 +33,7 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 - MEMC 配置的 Activity 列表支持搜索并显示 Activity 名称
 - 桌面布局备份与恢复 —— 在「桌面相关」页内手动备份与恢复图标位置、文件夹、热座与隐藏应用状态；支持按周期自动快照，快照保存为 .ltbackup 文件（内部是 zip 容器，含 meta.json 与 layout.json），位于 Download/LuckyTool/launcher_backup，最多保留 20 份，历史列表可逐份删除（行尾按钮或长按）
 - 允许选择第三方 APK 安装器 (@蛮吉)
+- 经典控制中心磁贴行列数适配 ColorOS 17 —— 修复该功能在 ColorOS 17 上失效的问题，竖屏行数、横竖屏列数仍可自由设置
 
 #### 优化
 
