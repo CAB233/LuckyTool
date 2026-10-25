@@ -52,23 +52,11 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Fixed data backup and restore for set values and legacy string formats; unwritable entries are skipped and the result now reports how many entries succeeded and failed
 - Fixed donate data loading by switching to the jsDelivr mirror
 - Fixed repeated permission requests and repeated jumps to the system settings page after returning from it — a cold start no longer requests permissions or jumps to the system settings page at all, the permission check only queries, and every grant starts from a button inside the page
+- Fixed “Custom launcher layout rows/columns” not taking effect C17
 - Fixed backups right after a reboot or a scope reload always timing out — the command is re-sent with a fresh token (up to 4 times) while the launcher process comes up, and the status row shows the attempt
 - Fixed the “Use user typeface” switch doing nothing under the default network speed layout — the user typeface is now independent of the layout mode, so the default layout can swap just the typeface while text, size and spacing stay with the system
 - Fixed “Force enable device controls tile” only producing a greyed-out tile on C17 — the hook now intercepts the source of the device controls master switch, restores the tile availability gate on C14 and later (which also carries a region check from C16), and no longer requires an installed controls provider app, so the tile state and the controller instances recover together
-
-#### Changed
-
-- “Auto app archiving” is now disabled by default; it can be enabled in the settings when needed
-
-#### Removed
-
-- Removed “Notification Center two-side alignment” (adapted for C17 in this version, then removed)
-- Removed the secure payment scope; the related restrictions can be turned off in the system secure payment settings
-
-#### Adapted
-
 - Enable Wi-Fi details to display the gateway C16.1
-- Remove the Control Center clock C16.1(400)
 - Disable automatic switching to the last task v16.6.17(8a73764)
 - Remove the countdown for adding a virus app to the Phone Manager whitelist v17.3.10(c24156e)
 - Migrated to libxposed API 102
@@ -80,8 +68,6 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Force Docker background blur C17
 - Desktop page indicator component sliding C17
 - Custom launcher icon size C17
-- Remove the app clone badge C17
-- Notification Center two-side alignment C17
 - Control Center clock seconds display C17
 - Status bar battery notification C17
 - Enable Opex local installation C17
@@ -98,3 +84,12 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Remove the image save watermark of the Pictorial lock screen v40.10.15.2(4e15fb0)
 - Enable the Smart Sidebar to keep running in the background C17 — an older version of the Smart Sidebar may be required
 - Remove the battery restriction plugin C17
+
+#### Changed
+
+- “Auto app archiving” is now disabled by default; it can be enabled in the settings when needed
+
+#### Removed
+
+- Removed “Notification Center two-side alignment” (adapted for C17 in this version, then removed)
+- Removed the secure payment scope; the related restrictions can be turned off in the system secure payment settings
