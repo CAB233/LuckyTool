@@ -36,7 +36,7 @@ class RemoveRootDetection(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                 returnType(classOf<Boolean>())
                 usingStrings(*bootProps)
             }
-        }.firstOrNull()
+        }.singleOrNull()
 
         //Source RecruitmentUtilsKt DeviceScenario 检测（旧版结构，17.0.75 起已不存在）
         //Root 检测: e7.b().d() || ro.boot.flash.locked==0 || vbmeta==unlocked || verifiedbootstate==orange
@@ -46,7 +46,7 @@ class RemoveRootDetection(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                 usingStrings(*bootProps)
                 usingStrings("root_inspect", "device_eligibility")
             }
-        }.firstOrNull()
+        }.singleOrNull()
 
         when {
             modern != null -> modern.className.toClass().resolve().firstMethodOrNull {
