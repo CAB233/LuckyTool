@@ -560,9 +560,12 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
                 if (context.prefsTarget(name) == PrefsTarget.REMOTE) remoteLabel else localLabel
             "$name: $label"
         }
-        val message = statusLines.joinToString("\n") + "\n\n" +
-                stringResource(R.string.data_backup_path, DOWNLOAD_TOOL_DIR) + "\n" +
-                stringResource(R.string.data_backup_status_tips)
+        // 三段式（信息 / 落点 / 说明）与恢复对话框保持同一排版：段间空行，段内逐行
+        val message = listOf(
+            stringResource(R.string.data_backup_path, DOWNLOAD_TOOL_DIR),
+            stringResource(R.string.data_prefs_targets_title) + "\n" + statusLines.joinToString("\n"),
+            stringResource(R.string.data_backup_status_tips),
+        ).joinToString("\n\n")
         when (LocalUiMode.current) {
             UiMode.Miuix -> OverlayDialog(
                 show = true,
@@ -623,25 +626,24 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
         val remoteLabel = stringResource(R.string.data_prefs_target_remote)
         // 落点按备份记录的 target 展示；旧备份没有 target 时说明按当前落点恢复
         val legacyTargets = BackupPrefs.all { json.recordedTarget(it) == null }
+        // 与备份对话框同形：标题行 + 逐行落点，旧备份没有 target 时换成一句说明
         val targetsSummary = if (legacyTargets) {
             stringResource(R.string.data_restore_targets_legacy)
         } else {
-            stringResource(
-                R.string.data_restore_targets,
-                BackupPrefs.joinToString(", ") { name ->
-                    val label = when (json.recordedTarget(name)) {
-                        PrefsTarget.REMOTE -> remoteLabel
-                        else -> localLabel
-                    }
-                    "$name: $label"
-                },
-            )
+            stringResource(R.string.data_prefs_targets_title) + "\n" + BackupPrefs.joinToString("\n") { name ->
+                val label = when (json.recordedTarget(name)) {
+                    PrefsTarget.REMOTE -> remoteLabel
+                    else -> localLabel
+                }
+                "$name: $label"
+            }
         }
         // 备份记录的是远程落点、此刻 service 不可用：这些键计入失败，不静默写本地
         val remoteUnwritable = BackupPrefs.any { name ->
             json.recordedTarget(name) == PrefsTarget.REMOTE &&
                     context.prefsTarget(name) != PrefsTarget.REMOTE
         }
+        // 同三段式：版本信息 / 落点 / 提示
         val restoreMessage = buildList {
             add(versionLines.joinToString("\n"))
             add(targetsSummary)

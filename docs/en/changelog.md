@@ -41,7 +41,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Clarified the descriptions of the “app clone limit” options: “How many apps can be cloned” and “The number of clones a single app can have”
 - The category rows on the function page now use colored badges — they previously resolved an app icon from the scope package name, which showed the battery icon for “Apps”; a new “Colorful category icons” switch falls back to single-color theme badges
 - Settings backup/restore now records where each storage lives — both actions show a dialog with the current local/remote state, and restore writes back to the recorded place instead of silently falling back to local when remote storage is unavailable
-- Settings backup now defaults to Download/LuckyTool — the system file picker no longer opens on every backup; the file is written straight into that directory through MediaStore (no storage permission needed), the dialog shows the full target, and the toast reports the file name; the restore picker also opens in that directory instead of the Download root
+- Settings backup now defaults to Download/LuckyTool — the system file picker no longer opens on every backup; the file is written straight into that directory through MediaStore (no storage permission needed), the dialog shows the full target, and the toast reports the file name; the restore picker also opens in that directory instead of the Download root; both dialogs now share one layout (info / data targets / notes) with the targets listed line by line
 
 #### Fixed
 
