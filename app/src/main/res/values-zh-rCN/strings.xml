@@ -107,7 +107,7 @@
     <string name="data_restore_version_tips">跨版本恢复数据可能会导致部分功能运行异常，建议重新配置模块功能数据</string>
     <string name="data_prefs_target_local">本地</string>
     <string name="data_prefs_target_remote">远程</string>
-    <string name="data_backup_path">文件位置：%1$s</string>
+    <string name="data_backup_path">默认位置：%1$s（可在选择器中更改）</string>
     <string name="data_backup_saved">已备份到 %1$s</string>
     <string name="data_backup_status_tips">备份会记录每个数据存储当前的落点，恢复时按记录的落点写回，而不是按恢复时的落点。</string>
     <string name="data_prefs_targets_title">数据落点</string>

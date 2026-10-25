@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import android.util.ArraySet
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContract
@@ -66,7 +67,6 @@ import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.AppUtils
 import com.luckyzyx.luckytool.utils.BiometricUtils
 import com.luckyzyx.luckytool.utils.DonateUtils
-import com.luckyzyx.luckytool.utils.DOWNLOAD_TOOL_DIR
 import com.luckyzyx.luckytool.utils.FileUtils
 import com.luckyzyx.luckytool.utils.IntentPrefs
 import com.luckyzyx.luckytool.utils.LogUtils
@@ -89,7 +89,6 @@ import com.luckyzyx.luckytool.utils.prefsForTarget
 import com.luckyzyx.luckytool.utils.prefsTarget
 import com.luckyzyx.luckytool.utils.recordedTarget
 import com.luckyzyx.luckytool.utils.showToast
-import com.luckyzyx.luckytool.utils.writeDownloadFile
 import org.json.JSONArray
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -112,9 +111,16 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
     val zh = remember(LocalConfiguration.current) { isZh(context) }
     var pendingRestoreJson by remember { mutableStateOf<JSONObject?>(null) }
 
-    // 备份落点是预设目录 Download/LuckyTool（MediaStore 投稿写文件，不再进系统文件选择器）；
+    // 备份仍走系统文件选择器（落点由用户确认），只是把选择器的起始目录预设成 Download/LuckyTool；
     // 备份前先展示四个 prefs 各自的落点，回调链里没有 Composer，这段收进 lambda
-    val startBackup: () -> Unit = { writeBackupData(activity) }
+    val backupLauncher = rememberLauncherForActivityResult(
+        SaveBackupDocument
+    ) { uri ->
+        if (uri != null) writeBackupData(activity, uri)
+    }
+    val startBackup: () -> Unit = {
+        backupLauncher.launch("LuckyTool_" + formatDate("yyyyMMdd_HHmmss") + "_backup.json")
+    }
     val restoreLauncher = rememberLauncherForActivityResult(
         OpenBackupDocument
     ) { uri ->
@@ -723,8 +729,30 @@ private object OpenBackupDocument : ActivityResultContract<String, Uri?>() {
         if (resultCode == Activity.RESULT_OK) intent?.data else null
 }
 
-/** 备份：JSON(osCode + 四个 prefs 文件，各带 target 记录落点) → base64 → 投稿到 Download/LuckyTool */
-private fun writeBackupData(context: Context) {
+/**
+ * 备份用的文件选择器：ACTION_CREATE_DOCUMENT + EXTRA_INITIAL_URI 把起始目录预设到 Download/LuckyTool，
+ * EXTRA_TITLE 给一个带时间戳的建议文件名。落点仍由用户在系统选择器里确认（可以改到别处），
+ * 预设只是省掉「从 Download 根目录一层层点进去」。
+ */
+private object SaveBackupDocument : ActivityResultContract<String, Uri?>() {
+    override fun createIntent(context: Context, input: String): Intent =
+        Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/json"
+            putExtra(Intent.EXTRA_TITLE, input)
+            putExtra(DocumentsContract.EXTRA_INITIAL_URI, backupDirDocumentUri())
+        }
+
+    override fun parseResult(resultCode: Int, intent: Intent?): Uri? =
+        if (resultCode == Activity.RESULT_OK) intent?.data else null
+}
+
+/**
+ * 备份：JSON(osCode + 四个 prefs 文件，各带 target 记录落点) → base64 → 写进用户在文件选择器里确认的 uri。
+ *
+ * 落点仍由用户在系统选择器里确认（起始目录已预设到 Download/LuckyTool），写入失败只提示错误。
+ */
+private fun writeBackupData(context: Context, uri: Uri) {
     val json = JSONObject().apply { put("osCode", getOSVersionCode) }
     val dataMapList = context.backupAllPrefs(*BackupPrefs.toTypedArray())
     dataMapList.keys.forEach { prefs ->
@@ -760,14 +788,31 @@ private fun writeBackupData(context: Context) {
         })
     }
     val str = base64Encode(json.toString())
-    val fileName = "LuckyTool_" + formatDate("yyyyMMdd_HHmmss") + "_backup.json"
-    // 目录交给 provider 的 RELATIVE_PATH，不需要任何存储权限，也不要用户每次挑目录
-    val uri = context.writeDownloadFile(fileName, "application/json", str.toByteArray())
-    if (uri != null) {
-        context.showToast(context.getString(R.string.data_backup_saved, "$DOWNLOAD_TOOL_DIR/$fileName"))
+    val saved = runCatching {
+        context.contentResolver.openOutputStream(uri)?.use { it.write(str.toByteArray()) }
+            ?: error("openOutputStream null")
+    }.onFailure {
+        LogUtils.e("SettingPage", "backup write", "$it", false)
+    }.isSuccess
+    if (saved) {
+        context.showToast(context.getString(R.string.data_backup_saved, backupSavedPath(context, uri)))
     } else {
         context.showToast(context.getString(R.string.data_backup_error))
     }
+}
+
+/**
+ * toast 里展示的落点：外部存储 provider 的 documentId 就是相对路径（primary:Download/LuckyTool/x.json），
+ * 取冒号后半段即可；别的 provider（如 Downloads）退回文件名。
+ */
+private fun backupSavedPath(context: Context, uri: Uri): String {
+    val docId = runCatching { DocumentsContract.getDocumentId(uri) }.getOrNull()
+    docId?.substringAfter(':', docId)?.takeIf { it.contains('/') }?.let { return it }
+    val name = runCatching {
+        context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+            ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+    }.getOrNull()
+    return name ?: uri.lastPathSegment?.substringAfterLast('/') ?: uri.toString()
 }
 
 /**
@@ -851,3 +896,6 @@ private fun writeRestoreData(context: Context, json: JSONObject) {
 
 /** 备份/恢复涉及的四个 prefs 文件，顺序即 JSON 里的顺序 */
 private val BackupPrefs = listOf(ModulePrefs, IntentPrefs, SettingsPrefs, OtherPrefs)
+
+/** 备份目录（外部存储相对路径）：只用来预设文件选择器打开的位置，真实落点由用户在选择器里确认 */
+private const val DOWNLOAD_TOOL_DIR = "Download/LuckyTool"
