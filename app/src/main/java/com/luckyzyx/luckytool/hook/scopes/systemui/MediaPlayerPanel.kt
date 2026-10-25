@@ -27,7 +27,7 @@ object MediaPlayerPanel : YukiBaseHooker() {
         val isAutoDisplay = VariousClass(
             "com.oplusos.systemui.qs.OplusQSTileMediaContainer", //C13.1
             "com.oplus.systemui.qs.OplusQSTileMediaContainer" //C14
-        ).toClassOrNull(hostClassLoader)?.let {
+        ).toClassOrNull()?.let {
             it.resolve().firstMethodOrNull { name = "setMediaMode" } != null
         } ?: true
 
@@ -60,10 +60,12 @@ object MediaPlayerPanel : YukiBaseHooker() {
                 listener?.asResolver()?.firstMethodOrNull { name = "onChanged" }?.invoke(status)
             }
 
-            //Source OplusQsMediaCarouselController（C13.0~C14）
-            //C17 起该类已被移除，这里必须软查找：硬查找抛出的异常会中断整个 onHook，后面的替代挂点一个都注册不上
-            "com.oplus.systemui.qs.media.OplusQsMediaCarouselController".toClassOrNull(hostClassLoader)
-                ?.resolve()?.apply {
+            //Source OplusQsMediaCarouselController（C13.0~C16）
+            //该类存在时沿用「只把期望状态推给监听器」的老路径：C13~C16 上验证过的就是这条，不要额外去改容器参数
+            val carousel =
+                "com.oplus.systemui.qs.media.OplusQsMediaCarouselController".toClassOrNull()
+            if (carousel != null) {
+                carousel.resolve().apply {
                     firstMethodOrNull { name = "setCurrentMediaData" }?.hook {
                         intercept {
                             val original = callOriginal()
@@ -81,22 +83,24 @@ object MediaPlayerPanel : YukiBaseHooker() {
                         }
                     }
                 }
+                return
+            }
 
             //Source OplusQsMediaControllerExImpl（C17）：取代上面的类，注册监听时会立刻回调一次当前状态
-            "com.oplus.systemui.qs.media.OplusQsMediaControllerExImpl".toClassOrNull(hostClassLoader)
-                ?.resolve()?.apply {
-                    firstMethodOrNull { name = "setMediaModeChangeListener" }?.hook {
-                        intercept {
-                            val original = callOriginal()
-                            callbackWish(firstArg().get())
-                            original
-                        }
+            //走到这里说明宿主已经没有 carousel 了（C17+），容器侧不会再被监听器正确驱动，只能自己兜
+            "com.oplus.systemui.qs.media.OplusQsMediaControllerExImpl".toClass().resolve().apply {
+                firstMethodOrNull { name = "setMediaModeChangeListener" }?.hook {
+                    intercept {
+                        val original = callOriginal()
+                        callbackWish(firstArg().get())
+                        original
                     }
                 }
+            }
 
             //容器侧的最终开关，只改参数不接管实现
             fun hookMediaPanelShown(classNames: List<String>, methodName: String) {
-                classNames.firstNotNullOfOrNull { it.toClassOrNull(hostClassLoader) }?.resolve()
+                classNames.firstNotNullOfOrNull { it.toClassOrNull() }?.resolve()
                     ?.firstMethodOrNull { name = methodName }?.hook {
                         intercept {
                             val status = wishStatus()
