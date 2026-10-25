@@ -153,14 +153,15 @@ class StatusBarClock : YukiBaseHooker() {
                 //StatClock 未开秒时把整段文本交给 paint.measureText 测量，多排文本（双排或自定义格式里带换行）的
                 //换行符会被当成普通字符，量出≈各行之和的宽度；该宽度还会经 onLayout 上报成流体云的时钟分钟区，
                 //胶囊出现时被判成相交，官方直接把整个时钟 setVisibility(INVISIBLE)。
-                //故多排时改走父类测量（TextView 按换行分行取最宽行），并同步修正上报宽度。
-                val superOnMeasure = firstMethodOrNull {
-                    name = "onMeasure"
+                //故多排时先按各行最宽算出真实宽度，走完原测量后再重设测量宽并同步修正上报宽度。
+                //不能用反射调父类 onMeasure：KavaRef 的 superclass() 是本类优先的包含式搜索，会命中本类自己造成递归。
+                val paddingEndField = firstFieldOrNull { name = "paddingEnd" }
+                val cachedMinutesWidthField = firstFieldOrNull { name = "cachedMinutesLayoutWidth" }
+                val setMeasuredDimension = firstMethodOrNull {
+                    name = "setMeasuredDimension"
                     superclass()
                     parameterCount = 2
                 }
-                val mShowSecondsField = firstFieldOrNull { name = "mShowSeconds"; superclass() }
-                val cachedMinutesWidthField = firstFieldOrNull { name = "cachedMinutesLayoutWidth" }
                 firstMethodOrNull { name = "onMeasure" }?.intercept {
                     val clockView = instanceOrNull<TextView>()
                         ?: return@intercept proceed()
@@ -176,16 +177,19 @@ class StatusBarClock : YukiBaseHooker() {
                     val isMultiRow =
                         clockView.text?.contains('\n') == true || !clockView.isSingleLine
                     if (!isMultiRow) return@intercept proceed()
-                    if (superOnMeasure == null) return@intercept proceed()
-                    //Clock.onMeasure 在开秒时按秒宽固定测量，双排会被截断，测量期间临时关掉再还原
-                    val oldShowSeconds = mShowSecondsField?.of(instance)?.get<Boolean>() ?: false
-                    if (oldShowSeconds) mShowSecondsField.of(instance).set(false)
-                    try {
-                        superOnMeasure.of(instance).invoke(arg(0), arg(1))
-                    } finally {
-                        if (oldShowSeconds) mShowSecondsField.of(instance).set(true)
-                    }
-                    cachedMinutesWidthField?.of(instance)?.set(clockView.measuredWidth)
+                    //原实现会把 paint 字号改成 stat_clock_size 再量，这里先用当前字号量出各行的真实最大宽度
+                    val paint = clockView.paint
+                    val textWidth =
+                        clockView.text.split('\n').maxOfOrNull { paint.measureText(it) }?.toInt()
+                            ?: 0
+                    val padEnd = paddingEndField?.copy()?.of(instance)?.get<Int>()
+                        ?: clockView.paddingEnd
+                    val targetWidth = textWidth + clockView.paddingStart + padEnd
+                    proceed()
+                    //resolver 的 of(instance) 只能设置一次实例，复用必须 copy()
+                    cachedMinutesWidthField?.copy()?.of(instance)?.set(targetWidth)
+                    setMeasuredDimension?.copy()?.of(instance)
+                        ?.invoke(targetWidth, clockView.measuredHeight)
                 }
                 firstMethodOrNull { name = "updateMinWidth" }?.hook {
                     before {
