@@ -437,7 +437,10 @@ object RestartMenuUtils {
                             true
                         )
                         if (result.status() != HotReloadResult.Status.SUCCEEDED) {
-                            context.toast("${target.processName}: ${result.message()}")
+                            // API 102：模块未实现 onHotReloading 时框架返回 FAILED 且 message 为空
+                            val reason = result.message()?.takeIf { it.isNotBlank() }
+                                ?: result.status().name
+                            context.toast("${target.processName}: $reason")
                         }
                     }
                 })
