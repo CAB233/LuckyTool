@@ -12,9 +12,7 @@ import com.luckyzyx.luckytool.IActivityServiceController
 import com.luckyzyx.luckytool.service.base.BaseControllerService
 import com.luckyzyx.luckytool.utils.LogUtils
 import com.topjohnwu.superuser.ipc.RootService
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 object ActivityManagerService : BaseControllerService<IActivityServiceController>() {
     override val TAG: String = "ActivityManagerService"
     override var controllerService: Class<*> = classOf<ActivityControllerService>()
@@ -35,7 +33,6 @@ object ActivityManagerService : BaseControllerService<IActivityServiceController
         return IActivityServiceController.Stub.asInterface(iBinder)
     }
 
-    @Obfuscate
     class ActivityControllerService : RootService() {
         override fun onBind(intent: Intent) = object : IActivityServiceController.Stub() {
             override fun forceStopPackage(packageName: String?, userId: Int) {

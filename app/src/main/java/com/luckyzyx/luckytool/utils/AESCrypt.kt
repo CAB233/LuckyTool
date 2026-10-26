@@ -1,7 +1,6 @@
 package com.luckyzyx.luckytool.utils
 
 import android.annotation.SuppressLint
-import org.lsposed.lsparanoid.Obfuscate
 import java.io.ByteArrayOutputStream
 import java.util.Base64
 import java.util.zip.Deflater
@@ -9,7 +8,6 @@ import java.util.zip.Inflater
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
-@Obfuscate
 object AESCrypt {
     private val cryptName = "AES"
 

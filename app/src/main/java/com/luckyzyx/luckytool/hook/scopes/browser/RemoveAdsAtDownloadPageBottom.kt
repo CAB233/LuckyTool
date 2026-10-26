@@ -6,15 +6,11 @@ import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveAdsAtDownloadPageBottom(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveAdsAtDownloadPageBottom(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         val recommendConfig = VariousClass(
             "com.heytap.browser.downloads.entity.RecommendConfig",  //v40.8.24.1

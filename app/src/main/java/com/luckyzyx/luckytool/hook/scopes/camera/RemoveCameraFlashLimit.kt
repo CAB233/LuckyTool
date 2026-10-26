@@ -2,21 +2,16 @@ package com.luckyzyx.luckytool.hook.scopes.camera
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveCameraFlashLimit(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveCameraFlashLimit(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         loadHooker(HookLowPowerFlashLimit(dexKitBridge))
     }
 
-    @Obfuscate
-    class HookLowPowerFlashLimit(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    class HookLowPowerFlashLimit(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
             //Source CameraManager
             dexKitBridge.findClass {
@@ -40,7 +35,7 @@ class RemoveCameraFlashLimit(val dexKitBridge: DexKitBridge) : YukiBaseHooker() 
                             returnType = Void.TYPE
                         }.hook {
                             before {
-                                firstArg().set(100)
+                                args().first().set(100)
                             }
                         }
                     }

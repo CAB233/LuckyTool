@@ -30,7 +30,7 @@ import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.service.GlobalFuncService
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.MainPageActivationEffect
-import com.luckyzyx.luckytool.ui.service.XposedServiceBridge
+import com.luckyzyx.luckytool.utils.XposedServiceManager
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.DeviceInfoEntry
@@ -71,7 +71,7 @@ fun HomePage(activity: MainActivity, isCurrentPage: Boolean = true) {
     val isDev by settings.booleanFlow("hidden_function", false).collectAsStateWithLifecycle()
 
     // 激活状态直接跟随框架服务绑定/断开（观察式），不再靠进入页面时问一次
-    val moduleActive by XposedServiceBridge.isModuleActive.collectAsStateWithLifecycle()
+    val moduleActive by XposedServiceManager.isModuleActive.collectAsStateWithLifecycle()
     // 用缓存做种子：切回主页时避免 systemInfo 从 null 起步（闪现「加载中」再淡入）
     var systemInfo by remember { mutableStateOf(DeviceInfoCache.info) }
     var rootVersion by remember { mutableStateOf<String?>(null) }

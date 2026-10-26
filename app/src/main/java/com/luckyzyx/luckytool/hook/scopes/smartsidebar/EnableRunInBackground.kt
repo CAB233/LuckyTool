@@ -4,19 +4,13 @@ import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
 import com.highcapable.kavaref.extension.createInstance
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.intercept
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.factory.injectModuleResources
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.utils.IntentUtils
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.startMirageWindow
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object EnableRunInBackground : YukiBaseHooker() {
+object EnableRunInBackground : Hooker {
 
     override fun onHook() {
         val osCode = getOSVersionCode
@@ -30,16 +24,16 @@ object EnableRunInBackground : YukiBaseHooker() {
         //Source BackgroundRunTool or GTModelTool
         targetTool.resolve().apply {
             if (targetTool.simpleName != "BackgroundRunTool") {
-                firstMethod { name = "getIconRes" }.intercept {
+                firstMethod { name = "getIconRes" }.replaceAny {
                     val context = firstField { type = Context::class; superclass() }.of(instance)
-                        .get<Context>() ?: return@intercept proceed()
-                    context.injectModuleResources()
+                        .get<Context>() ?: return@replaceAny callOriginal()
+                    context.injectModuleAppResources()
                     R.drawable.background_run
                 }
-                firstMethod { name = "getNameRes" }.intercept {
+                firstMethod { name = "getNameRes" }.replaceAny {
                     val context = firstField { type = Context::class; superclass() }.of(instance)
-                        .get<Context>() ?: return@intercept proceed()
-                    context.injectModuleResources()
+                        .get<Context>() ?: return@replaceAny callOriginal()
+                    context.injectModuleAppResources()
                     R.string.run_in_background
                 }
             }
@@ -56,7 +50,7 @@ object EnableRunInBackground : YukiBaseHooker() {
                 }
             }
             firstMethod { name = "isToolAvailable" }.hook {
-                intercept(true)
+                replaceTo(true)
             }
         }
 
@@ -79,18 +73,18 @@ object EnableRunInBackground : YukiBaseHooker() {
             firstMethod {
                 name = "attachBaseContext"
                 parameters(Context::class)
-            }.intercept {
-                val context = firstArg() as? Context
-                context?.injectModuleResources()
-                proceed()
+            }.replaceAny {
+                val context = args().first().any() as? Context
+                context?.injectModuleAppResources()
+                callOriginal()
             }
             firstMethod {
                 name = "getDialogContext"
                 emptyParameters()
                 returnType = Context::class
-            }.intercept {
-                val context = proceed() as? Context
-                context?.injectModuleResources()
+            }.replaceAny {
+                val context = callOriginal() as? Context
+                context?.injectModuleAppResources()
                 context
             }
         }

@@ -19,10 +19,8 @@ import com.luckyzyx.luckytool.enums.IntentType.PROCESS_TEXT
 import com.luckyzyx.luckytool.enums.IntentType.SINGLE_SHARE
 import com.luckyzyx.luckytool.enums.IntentType.UNKNOWN
 import com.topjohnwu.superuser.ShellUtils
-import org.lsposed.lsparanoid.Obfuscate
 
 
-@Obfuscate
 class IntentUtils(val context: Context) {
 
     companion object {

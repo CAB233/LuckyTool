@@ -7,19 +7,15 @@ import android.widget.CheckBox
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.A15
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
 import com.luckyzyx.luckytool.utils.formatColorAlpha
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object ControllerCenterSliderTransparency : YukiBaseHooker() {
+object ControllerCenterSliderTransparency : Hooker {
     override fun onHook() {
-        val customAlpha = preferences(ModulePrefs).getInt("custom_control_center_silder_transparency", -1)
+        val customAlpha = prefs(ModulePrefs).getInt("custom_control_center_silder_transparency", -1)
 
         //Source OplusToggleSliderView C14.0
         VariousClass(

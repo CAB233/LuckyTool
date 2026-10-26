@@ -2,16 +2,12 @@ package com.luckyzyx.luckytool.hook.scopes.filemanager
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveWordLimitForSavingFiles(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveWordLimitForSavingFiles(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
         if (osCode >= 40) loadHooker(WordLimitForSavingFiles(dexKitBridge))
@@ -19,8 +15,7 @@ class RemoveWordLimitForSavingFiles(val dexKitBridge: DexKitBridge) : YukiBaseHo
 
     }
 
-    @Obfuscate
-    class WordLimitForSavingFiles(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    class WordLimitForSavingFiles(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
             //Source PickerInputView
             dexKitBridge.findClass {
@@ -60,8 +55,7 @@ class RemoveWordLimitForSavingFiles(val dexKitBridge: DexKitBridge) : YukiBaseHo
         }
     }
 
-    @Obfuscate
-    class WordLimitForSavingFilesV16(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    class WordLimitForSavingFilesV16(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
             //Source ActionModeController（c16 及以下：限制字段在控制器，构造器 1 参）
             dexKitBridge.findClass {

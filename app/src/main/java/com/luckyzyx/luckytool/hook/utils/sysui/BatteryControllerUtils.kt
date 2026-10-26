@@ -1,5 +1,6 @@
 package com.luckyzyx.luckytool.hook.utils.sysui
 
+import com.luckyzyx.luckytool.hook.core.XLog
 import android.content.Context
 import android.os.Build
 import androidx.annotation.DeprecatedSinceApi
@@ -8,9 +9,7 @@ import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
 import com.luckyzyx.luckytool.utils.A14
 import com.luckyzyx.luckytool.utils.SDK
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 @Suppress("unused")
 class BatteryControllerUtils(val classLoader: ClassLoader?) {
 
@@ -58,7 +57,7 @@ class BatteryControllerUtils(val classLoader: ClassLoader?) {
          * 5 pps
          * 6 ufcs
          */
-//        YLog.debug("getTechnologyName -> $technology | $usbFastChgType | $ppsMode")
+//        XLog.debug("getTechnologyName -> $technology | $usbFastChgType | $ppsMode")
         return when (technology) {
             1 -> when (usbFastChgType) {
                 3 -> "PD"

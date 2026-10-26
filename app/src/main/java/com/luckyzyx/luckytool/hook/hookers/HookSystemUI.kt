@@ -1,12 +1,10 @@
 package com.luckyzyx.luckytool.hook.hookers
 
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.scopes.systemui.HookSystemUIFeature
 import com.luckyzyx.luckytool.utils.DexkitUtils
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookSystemUI : YukiBaseHooker() {
+object HookSystemUI : Hooker {
     override fun onHook() {
 
         DexkitUtils.create(appInfo.sourceDir) { dexKitBridge ->

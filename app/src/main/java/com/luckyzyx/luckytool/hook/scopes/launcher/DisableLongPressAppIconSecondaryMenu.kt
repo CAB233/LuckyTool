@@ -2,13 +2,9 @@ package com.luckyzyx.luckytool.hook.scopes.launcher
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object DisableLongPressAppIconSecondaryMenu : YukiBaseHooker() {
+object DisableLongPressAppIconSecondaryMenu : Hooker {
     override fun onHook() {
         //Source OplusPopupContainerWithArrow -> PopupDataProvider
         "com.android.launcher3.popup.PopupDataProvider".toClass().resolve().apply {
@@ -17,7 +13,7 @@ object DisableLongPressAppIconSecondaryMenu : YukiBaseHooker() {
                 returnType = List::class
             }.hook {
                 before {
-                    val itemInfo = firstArg().get() ?: return@before
+                    val itemInfo = args().first().any() ?: return@before
                     itemInfo.asResolver().firstField {
                         name = "mAddShortcutCount"; superclass()
                     }.set(0)

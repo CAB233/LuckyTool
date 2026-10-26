@@ -7,18 +7,14 @@ import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.utils.FlowUtils
 import com.luckyzyx.luckytool.utils.A13
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object MobileDataIconRelated : YukiBaseHooker() {
+object MobileDataIconRelated : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
         when (osCode) {
@@ -28,15 +24,14 @@ object MobileDataIconRelated : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object MobileDataIcon : YukiBaseHooker() {
+    object MobileDataIcon : Hooker {
         override fun onHook() {
-//            val removeIcon = preferences(ModulePrefs).getBoolean("remove_mobile_data_icon", false)
-            val removeInout = preferences(ModulePrefs).getBoolean("remove_mobile_data_inout", false)
-            val removeType = preferences(ModulePrefs).getBoolean("remove_mobile_data_type", false)
-            val hideNonNetwork = preferences(ModulePrefs).getBoolean("hide_non_network_card_icon", false)
-            var hideNoSS = preferences(ModulePrefs).getBoolean("hide_nosim_noservice", false)
-            dataChannel.wait<Boolean>("hide_nosim_noservice") { hideNoSS = it }
+//            val removeIcon = prefs(ModulePrefs).getBoolean("remove_mobile_data_icon", false)
+            val removeInout = prefs(ModulePrefs).getBoolean("remove_mobile_data_inout", false)
+            val removeType = prefs(ModulePrefs).getBoolean("remove_mobile_data_type", false)
+            val hideNonNetwork = prefs(ModulePrefs).getBoolean("hide_non_network_card_icon", false)
+            var hideNoSS = prefs(ModulePrefs).getBoolean("hide_nosim_noservice", false)
+            Channel.wait<Boolean>("hide_nosim_noservice") { hideNoSS = it }
 
             //Source OplusMobileIconViewModel
             "com.oplus.systemui.statusbar.pipeline.mobile.ui.viewmodel.OplusMobileIconViewModel".toClass()
@@ -157,7 +152,7 @@ object MobileDataIconRelated : YukiBaseHooker() {
                             if (!hideNoSS) return@before
                             val keys = args.filterIsInstance<String>()
                             if (keys.contains("nosim_all")) {
-                                arg(args.indexOfFirst { it is Int }).set(0)
+                                args(arguments.indexOfFirst { it is Int }).set(0)
                             }
                         }
                     }
@@ -165,16 +160,15 @@ object MobileDataIconRelated : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object MobileDataIconV14 : YukiBaseHooker() {
+    object MobileDataIconV14 : Hooker {
         override fun onHook() {
-            //        val removeIcon = preferences(ModulePrefs).getBoolean("remove_mobile_data_icon", false)
-            val removeInout = preferences(ModulePrefs).getBoolean("remove_mobile_data_inout", false)
-            val removeType = preferences(ModulePrefs).getBoolean("remove_mobile_data_type", false)
-            var hideNonNetwork = preferences(ModulePrefs).getBoolean("hide_non_network_card_icon", false)
-            dataChannel.wait<Boolean>("hide_non_network_card_icon") { hideNonNetwork = it }
-            var hideNoSS = preferences(ModulePrefs).getBoolean("hide_nosim_noservice", false)
-            dataChannel.wait<Boolean>("hide_nosim_noservice") { hideNoSS = it }
+            //        val removeIcon = prefs(ModulePrefs).getBoolean("remove_mobile_data_icon", false)
+            val removeInout = prefs(ModulePrefs).getBoolean("remove_mobile_data_inout", false)
+            val removeType = prefs(ModulePrefs).getBoolean("remove_mobile_data_type", false)
+            var hideNonNetwork = prefs(ModulePrefs).getBoolean("hide_non_network_card_icon", false)
+            Channel.wait<Boolean>("hide_non_network_card_icon") { hideNonNetwork = it }
+            var hideNoSS = prefs(ModulePrefs).getBoolean("hide_nosim_noservice", false)
+            Channel.wait<Boolean>("hide_nosim_noservice") { hideNoSS = it }
 
             //Source OplusStatusBarMobileViewExImpl -> initView
             VariousClass(
@@ -184,7 +178,7 @@ object MobileDataIconRelated : YukiBaseHooker() {
                 firstMethod { name = "initViewState" }.hook {
                     after {
                         if (hideNonNetwork) {
-                            val state = firstArg().get()
+                            val state = args().first().any()
                             val subId =
                                 state?.asResolver()?.firstField { name = "subId" }?.get<Int>()
                             val subId2 = SubscriptionManager.getDefaultDataSubscriptionId()
@@ -206,7 +200,7 @@ object MobileDataIconRelated : YukiBaseHooker() {
                 }.hook {
                     after {
                         if (hideNonNetwork) {
-                            val state = firstArg().get()
+                            val state = args().first().any()
                             val subId =
                                 state?.asResolver()?.firstField { name = "subId" }?.get<Int>()
                             val subId2 = SubscriptionManager.getDefaultDataSubscriptionId()
@@ -250,16 +244,15 @@ object MobileDataIconRelated : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object MobileDataIconV120 : YukiBaseHooker() {
+    object MobileDataIconV120 : Hooker {
         override fun onHook() {
-//        val removeIcon = preferences(ModulePrefs).getBoolean("remove_mobile_data_icon", false)
-            val removeInout = preferences(ModulePrefs).getBoolean("remove_mobile_data_inout", false)
-            val removeType = preferences(ModulePrefs).getBoolean("remove_mobile_data_type", false)
-            var hideNonNetwork = preferences(ModulePrefs).getBoolean("hide_non_network_card_icon", false)
-            dataChannel.wait<Boolean>("hide_non_network_card_icon") { hideNonNetwork = it }
-            var hideNoSS = preferences(ModulePrefs).getBoolean("hide_nosim_noservice", false)
-            dataChannel.wait<Boolean>("hide_nosim_noservice") { hideNoSS = it }
+//        val removeIcon = prefs(ModulePrefs).getBoolean("remove_mobile_data_icon", false)
+            val removeInout = prefs(ModulePrefs).getBoolean("remove_mobile_data_inout", false)
+            val removeType = prefs(ModulePrefs).getBoolean("remove_mobile_data_type", false)
+            var hideNonNetwork = prefs(ModulePrefs).getBoolean("hide_non_network_card_icon", false)
+            Channel.wait<Boolean>("hide_non_network_card_icon") { hideNonNetwork = it }
+            var hideNoSS = prefs(ModulePrefs).getBoolean("hide_nosim_noservice", false)
+            Channel.wait<Boolean>("hide_nosim_noservice") { hideNoSS = it }
 
             //Source StatusBarMobileView
             "com.android.systemui.statusbar.StatusBarMobileView".toClass().resolve().apply {

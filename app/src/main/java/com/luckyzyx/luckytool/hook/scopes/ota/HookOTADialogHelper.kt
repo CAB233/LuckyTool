@@ -5,18 +5,14 @@ import android.content.DialogInterface
 import android.view.Window
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class HookOTADialogHelper(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class HookOTADialogHelper(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
-        val autoDownload = preferences(ModulePrefs).getBoolean("remove_ota_auto_download_dialog", false)
+        val autoDownload = prefs(ModulePrefs).getBoolean("remove_ota_auto_download_dialog", false)
 
         //Source OTADialogHelper
         dexKitBridge.findClass {

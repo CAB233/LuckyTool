@@ -2,11 +2,9 @@ package com.luckyzyx.luckytool.service.tiles
 
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import org.lsposed.lsparanoid.Obfuscate
 import com.luckyzyx.luckytool.ITileServiceController
 import com.luckyzyx.luckytool.service.TilesService
 
-@Obfuscate
 class GoogleServiceTile : TileService() {
     private var controller: ITileServiceController? = null
 

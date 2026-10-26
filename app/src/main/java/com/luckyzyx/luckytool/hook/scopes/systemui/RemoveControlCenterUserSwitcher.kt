@@ -1,13 +1,9 @@
 package com.luckyzyx.luckytool.hook.scopes.systemui
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveControlCenterUserSwitcher : YukiBaseHooker() {
+object RemoveControlCenterUserSwitcher : Hooker {
     override fun onHook() {
         //Search Log showUserSwitcher
         "com.oplusos.systemui.qs.OplusQSFooterImpl".toClass().resolve().apply {
@@ -16,7 +12,7 @@ object RemoveControlCenterUserSwitcher : YukiBaseHooker() {
                 emptyParameters()
                 returnType = Boolean::class
             }.hook {
-                intercept(false)
+                replaceTo(false)
             }
         }
     }

@@ -1,14 +1,12 @@
 package com.luckyzyx.luckytool.hook.statusbar
 
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.scopes.systemui.StatusBarBatteryInfoNotify
 import com.luckyzyx.luckytool.hook.scopes.systemui.StatusBarBatteryView
 import com.luckyzyx.luckytool.utils.A12
 import com.luckyzyx.luckytool.utils.SDK
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object StatusBarBattery : YukiBaseHooker() {
+object StatusBarBattery : Hooker {
     override fun onHook() {
         //电池图标
         loadHooker(StatusBarBatteryView)

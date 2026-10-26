@@ -6,13 +6,9 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object DisableHeadphoneHighVolumeWarning : YukiBaseHooker() {
+object DisableHeadphoneHighVolumeWarning : Hooker {
     override fun onHook() {
         //Sourcce VolumeDialogImplEx
         VariousClass(

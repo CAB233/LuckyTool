@@ -1,6 +1,5 @@
 package com.luckyzyx.luckytool.hook.hookers
 
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.globals.HookGlobalFeatureConfig
 import com.luckyzyx.luckytool.hook.globals.HookGlobalPmsFeature
 import com.luckyzyx.luckytool.hook.globals.HookGlobalSystemConfig
@@ -44,10 +43,9 @@ import com.luckyzyx.luckytool.utils.A13
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookAndroid : YukiBaseHooker() {
+object HookAndroid : Hooker {
 
     override fun onHook() {
         val osCode = getOSVersionCode
@@ -153,17 +151,17 @@ object HookAndroid : YukiBaseHooker() {
         loadHooker(RemoveAlwaysAllowAppStartList)
 
         //禁用风险应用拦截
-        if (preferences(ModulePrefs).getBoolean("disable_malicious_app_intercept", false)) {
+        if (prefs(ModulePrefs).getBoolean("disable_malicious_app_intercept", false)) {
             if (osCode >= 38) loadHooker(DisableMaliciousAppIntercept)
         }
 
         //禁用无障碍警告对话框
-        if (preferences(ModulePrefs).getBoolean("disable_accessibility_warning_dialog", false)) {
+        if (prefs(ModulePrefs).getBoolean("disable_accessibility_warning_dialog", false)) {
             if (osCode >= 38) loadHooker(DisableAccessibilityWarningDialog)
         }
 
         //禁用音频焦点
-        if (preferences(ModulePrefs).getBoolean("disable_audio_focus", false)) {
+        if (prefs(ModulePrefs).getBoolean("disable_audio_focus", false)) {
             loadHooker(DisableAudioFocus)
         }
 
@@ -206,7 +204,7 @@ object HookAndroid : YukiBaseHooker() {
 //                        .toClassOrNull()
 //                    val isSystemDir = clazz?.field { name = "PARSE_IS_SYSTEM_DIR";type(IntType) }
 //                        ?.get()?.cast<Int>() ?: return@beforeHook
-//                    val parseFlags = lastArg().get<Int>() ?: return@beforeHook
+//                    val parseFlags = args().last().cast<Int>() ?: return@beforeHook
 //                    if ((parseFlags and isSystemDir) != 0) result = null
 //                }
 //            }
@@ -221,7 +219,7 @@ object HookAndroid : YukiBaseHooker() {
 //                        .toClassOrNull()
 //                    val jar = clazz?.field { name = "JAR";type(IntType) }?.get()?.cast<Int>()
 //                        ?: return@beforeHook
-//                    lastArg().set(jar)
+//                    args().last().set(jar)
 //                }
 //            }
 //        }

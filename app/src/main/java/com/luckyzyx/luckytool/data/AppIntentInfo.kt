@@ -2,9 +2,7 @@ package com.luckyzyx.luckytool.data
 
 import com.luckyzyx.luckytool.enums.IntentType
 import kotlinx.serialization.Serializable
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 @Serializable
 data class AppIntentInfo(
     var name: String,

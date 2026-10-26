@@ -2,19 +2,15 @@ package com.luckyzyx.luckytool.hook.scopes.gallery
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class HookFunctionManager(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class HookFunctionManager(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         //姜文电影滤镜
-        val jangWen = preferences(ModulePrefs).getBoolean("enable_gallery_jiangwen_filter", false)
+        val jangWen = prefs(ModulePrefs).getBoolean("enable_gallery_jiangwen_filter", false)
 
         //Source FunctionSwitchManager
         dexKitBridge.findClass {
@@ -43,7 +39,7 @@ class HookFunctionManager(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                     returnType(Boolean::class)
                 }.hook {
                     after {
-                        when (firstArg().get<String>() ?: "") {
+                        when (args().first().cast<String>() ?: "") {
                             //姜文电影滤镜
                             "pref_jiangwen_filter_enable" -> if (jangWen) result = true
                         }

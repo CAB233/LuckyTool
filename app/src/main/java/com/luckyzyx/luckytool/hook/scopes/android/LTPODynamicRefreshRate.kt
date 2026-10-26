@@ -2,22 +2,17 @@ package com.luckyzyx.luckytool.hook.scopes.android
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object LTPODynamicRefreshRate : YukiBaseHooker() {
+object LTPODynamicRefreshRate : Hooker {
 
     private const val BackLightBean = "com.oplus.vrr.bean.BackLightBean"
 
     override fun onHook() {
-        val ltpoMode = preferences(ModulePrefs).getString("set_ltpo_refresh_rate_mode", "0")
+        val ltpoMode = prefs(ModulePrefs).getString("set_ltpo_refresh_rate_mode", "0")
         val ltpoMinOne =
-            preferences(ModulePrefs).getBoolean("enable_full_brightness_refresh_rate_minimum_one", false)
+            prefs(ModulePrefs).getBoolean("enable_full_brightness_refresh_rate_minimum_one", false)
 
         if (ltpoMode != "1") return
 
@@ -29,7 +24,7 @@ object LTPODynamicRefreshRate : YukiBaseHooker() {
             }.hookAll {
                 before {
                     if (!ltpoMinOne) return@before
-                    val bean = firstArg().get() ?: return@before
+                    val bean = args().first().any() ?: return@before
                     val mNitsToMinFPS = bean.asResolver().firstField {
                         name = "mNitsToMinFPS"
                     }.get<HashMap<Int, ArrayList<HashMap<Float, Float>>>>()
@@ -52,7 +47,7 @@ object LTPODynamicRefreshRate : YukiBaseHooker() {
                     val bean = result<Any>() ?: return@after
 
 //                    val mPkgNames = bean.current().method { name = "getPkgNames" }.call()
-//                    YLog.info("GameEventBean ${mPkgNames.toString()}")
+//                    XLog.info("GameEventBean ${mPkgNames.toString()}")
 
                     val mBackLightBean = bean.asResolver().firstField { name = "mBackLightBean" }.get()
                     if (mBackLightBean != null) {
@@ -111,7 +106,7 @@ object LTPODynamicRefreshRate : YukiBaseHooker() {
 //        "com.oplus.vrr.OPlusExternalRefreshRateManager".toClass().apply {
 //            method { name = "setAdfrMinFpsConfig" }.hook {
 //                before {
-//                    firstArg().set(true)
+//                    args().first().set(true)
 //                }
 //            }
 //        }

@@ -4,13 +4,9 @@ import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object DisableHighVolumeWarningNotifications : YukiBaseHooker() {
+object DisableHighVolumeWarningNotifications : Hooker {
     override fun onHook() {
         val volumeReceiver = VariousClass(
             "com.oplusos.systemui.notification.receiver.VolumeReceiver", //C12 C13

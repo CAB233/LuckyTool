@@ -1,15 +1,13 @@
 package com.luckyzyx.luckytool.hook.hookers
 
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.scopes.themestore.UnlockThemeStoreVip
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookThemeStore : YukiBaseHooker() {
+object HookThemeStore : Hooker {
     override fun onHook() {
         //解锁主题商店VIP
-        if (preferences(ModulePrefs).getBoolean("unlock_themestore_vip", false)) {
+        if (prefs(ModulePrefs).getBoolean("unlock_themestore_vip", false)) {
             loadHooker(UnlockThemeStoreVip)
         }
     }

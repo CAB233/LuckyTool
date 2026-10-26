@@ -151,7 +151,7 @@ class PrefStateTest {
         val flow = state.stringFlow("str", "dft")
         assertEquals("dft", flow.first())
 
-        // 重新绑定 provider（模拟 XposedServiceBridge 绑定/解绑切换数据源）
+        // 重新绑定 provider（模拟 XposedServiceManager 绑定/解绑切换数据源）
         val switched = PrefState.ofProvider { secondRaw }
         assertEquals("in-other", switched.stringFlow("str", "dft").first())
     }

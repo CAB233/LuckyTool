@@ -14,25 +14,19 @@ import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.isSubclassOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.hook.utils.IChargerUtils
 import com.luckyzyx.luckytool.hook.utils.sysui.BatteryControllerUtils
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.createTextDrawable
 import com.luckyzyx.luckytool.utils.getIntProperty
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
 import java.io.StringReader
 import java.lang.ref.WeakReference
 import java.util.Properties
+import com.luckyzyx.luckytool.hook.core.*
 
 @Suppress("MayBeConstant")
-@Obfuscate
-object LockScreenChargingComponent : YukiBaseHooker() {
+object LockScreenChargingComponent : Hooker {
     override fun onHook() {
         when (getOSVersionCode) {
             in 34..Int.MAX_VALUE -> loadHooker(ChargingComponent)
@@ -52,9 +46,8 @@ object LockScreenChargingComponent : YukiBaseHooker() {
     val ChargeLevelAndLogoFlavorOneView =
         "com.oplus.systemui.keyguard.charginganim.siphonanim.view.ChargeLevelAndLogoFlavorOneView"
 
-    @Obfuscate
     @Suppress("LocalVariableName")
-    private object ChargingComponent : YukiBaseHooker() {
+    private object ChargingComponent : Hooker {
 
         private var oplusCharger: Any? = null
 
@@ -69,29 +62,29 @@ object LockScreenChargingComponent : YukiBaseHooker() {
 
         override fun onHook() {
             var userTypeface =
-                preferences(ModulePrefs).getBoolean("lock_screen_charging_use_user_typeface", false)
-            dataChannel.wait<Boolean>("lock_screen_charging_use_user_typeface") {
+                prefs(ModulePrefs).getBoolean("lock_screen_charging_use_user_typeface", false)
+            Channel.wait<Boolean>("lock_screen_charging_use_user_typeface") {
                 userTypeface = it
             }
             var textLogo =
-                preferences(ModulePrefs).getString("set_lock_screen_charging_text_logo_style", "0")
-            dataChannel.wait<String>("set_lock_screen_charging_text_logo_style") { textLogo = it }
-            var showRealTech = preferences(ModulePrefs).getBoolean(
+                prefs(ModulePrefs).getString("set_lock_screen_charging_text_logo_style", "0")
+            Channel.wait<String>("set_lock_screen_charging_text_logo_style") { textLogo = it }
+            var showRealTech = prefs(ModulePrefs).getBoolean(
                 "lock_screen_show_real_charging_technology", false
             )
-            dataChannel.wait<Boolean>("lock_screen_show_real_charging_technology") {
+            Channel.wait<Boolean>("lock_screen_show_real_charging_technology") {
                 showRealTech = it
             }
-            var showWattage = preferences(ModulePrefs).getBoolean(
+            var showWattage = prefs(ModulePrefs).getBoolean(
                 "force_lock_screen_charging_show_wattage", false
             )
-            dataChannel.wait<Boolean>("force_lock_screen_charging_show_wattage") {
+            Channel.wait<Boolean>("force_lock_screen_charging_show_wattage") {
                 showWattage = it
             }
-            var drawTechnology = preferences(ModulePrefs).getBoolean(
+            var drawTechnology = prefs(ModulePrefs).getBoolean(
                 "replace_charging_technology_drawing_style", false
             )
-            dataChannel.wait<Boolean>("replace_charging_technology_drawing_style") {
+            Channel.wait<Boolean>("replace_charging_technology_drawing_style") {
                 drawTechnology = it
             }
 
@@ -247,7 +240,7 @@ object LockScreenChargingComponent : YukiBaseHooker() {
                 }
                 firstMethod { name = "updateChargeAnim" }.hook {
                     after {
-                        val oplusChargeInfo = lastArg().get() ?: return@after
+                        val oplusChargeInfo = args().last().any() ?: return@after
 
                         if (showRealTech || showWattage) {
                             firstField { name = "chargeWattageLayout" }.of(instance)
@@ -310,8 +303,8 @@ object LockScreenChargingComponent : YukiBaseHooker() {
                     firstMethod { name = "getShowWattage"; parameterCount = 3 }.hook {
                         before {
                             if (!showWattage) return@before
-                            val cpaWattage = firstArg().get<Int>() ?: 0
-                            val wattage = arg(1).get<String>()?.toIntOrNull()
+                            val cpaWattage = args().first().cast<Int>() ?: 0
+                            val wattage = args(1).cast<String>()?.toIntOrNull()
                             result = resolveWattageText(cpaWattage, wattage)
                         }
                     }
@@ -323,8 +316,8 @@ object LockScreenChargingComponent : YukiBaseHooker() {
                     }?.hook {
                         before {
                             if (!showWattage) return@before
-                            val cpaWattage = firstArg().get<Int>() ?: 0
-                            val wattage = arg(1).get<String>()?.toIntOrNull()
+                            val cpaWattage = args().first().cast<Int>() ?: 0
+                            val wattage = args(1).cast<String>()?.toIntOrNull()
                             result = resolveWattageText(cpaWattage, wattage)
                         }
                     }
@@ -333,7 +326,7 @@ object LockScreenChargingComponent : YukiBaseHooker() {
                     firstMethod { name = "getTechnologyStrForFrameCharge" }.hook {
                         before {
                             if (!showRealTech) return@before
-                            val oplusChargeInfo = lastArg().get() ?: return@before
+                            val oplusChargeInfo = args().last().any() ?: return@before
                             val isWirelessCharge = oplusChargeInfo.asResolver().firstMethod {
                                 name = "isWirelessCharge"
                             }.invoke<Boolean>() ?: false
@@ -360,7 +353,7 @@ object LockScreenChargingComponent : YukiBaseHooker() {
         private fun onWattageBroadcast(intent: Intent) {
             cachedCpaWattage = intent.getIntExtra("cpa_charge_wattage", -1)
             cachedWattage = intent.getIntExtra("chargewattage", -1)
-//            YLog.debug(msg = "onWattageBroadcast -> cpa: $cachedCpaWattage | wattage: $cachedWattage")
+//            XLog.debug(msg = "onWattageBroadcast -> cpa: $cachedCpaWattage | wattage: $cachedWattage")
             currentWattageView.get()?.takeIf { it.isAttachedToWindow }?.apply {
                 val text = resolveWattageText(lastCpaWattage, lastWattage)
                 if (text.isNotEmpty()) isVisible = true
@@ -394,37 +387,36 @@ object LockScreenChargingComponent : YukiBaseHooker() {
                     if (queryChargeInfo.isNullOrBlank().not()) load(StringReader(queryChargeInfo))
                 }
             } catch (e: Exception) {
-                YLog.error("StatusBarBatteryInfoNotify -> getChargeInfo", e)
+                XLog.error("StatusBarBatteryInfoNotify -> getChargeInfo", e)
                 Properties()
             }
         }
 
     }
 
-    @Obfuscate
-    private object ChargingComponentC14 : YukiBaseHooker() {
+    private object ChargingComponentC14 : Hooker {
         override fun onHook() {
             var userTypeface =
-                preferences(ModulePrefs).getBoolean("lock_screen_charging_use_user_typeface", false)
-            dataChannel.wait<Boolean>("lock_screen_charging_use_user_typeface") {
+                prefs(ModulePrefs).getBoolean("lock_screen_charging_use_user_typeface", false)
+            Channel.wait<Boolean>("lock_screen_charging_use_user_typeface") {
                 userTypeface = it
             }
 //            var warpCharge =
-//                preferences(ModulePrefs).getString("set_lock_screen_warp_charging_style", "0")
-//            dataChannel.wait<String>("set_lock_screen_warp_charging_style") { warpCharge = it }
+//                prefs(ModulePrefs).getString("set_lock_screen_warp_charging_style", "0")
+//            Channel.wait<String>("set_lock_screen_warp_charging_style") { warpCharge = it }
             var textLogo =
-                preferences(ModulePrefs).getString("set_lock_screen_charging_text_logo_style", "0")
-            dataChannel.wait<String>("set_lock_screen_charging_text_logo_style") { textLogo = it }
-            var showRealTech = preferences(ModulePrefs).getBoolean(
+                prefs(ModulePrefs).getString("set_lock_screen_charging_text_logo_style", "0")
+            Channel.wait<String>("set_lock_screen_charging_text_logo_style") { textLogo = it }
+            var showRealTech = prefs(ModulePrefs).getBoolean(
                 "lock_screen_show_real_charging_technology", false
             )
-            dataChannel.wait<Boolean>("lock_screen_show_real_charging_technology") {
+            Channel.wait<Boolean>("lock_screen_show_real_charging_technology") {
                 showRealTech = it
             }
-            var showWattage = preferences(ModulePrefs).getBoolean(
+            var showWattage = prefs(ModulePrefs).getBoolean(
                 "force_lock_screen_charging_show_wattage", false
             )
-            dataChannel.wait<Boolean>("force_lock_screen_charging_show_wattage") {
+            Channel.wait<Boolean>("force_lock_screen_charging_show_wattage") {
                 showWattage = it
             }
 
@@ -456,7 +448,7 @@ object LockScreenChargingComponent : YukiBaseHooker() {
                 firstMethod { name = "showWattage" }.hook {
                     before {
                         if (!showWattage) return@before
-                        val chargeInfoObserver = firstArg().get() ?: return@before
+                        val chargeInfoObserver = args().first().any() ?: return@before
                         val getChargeWattage = chargeInfoObserver.asResolver().firstMethod {
                             name = "getChargeWattage"; emptyParameters()
                         }.invoke<String>()?.toIntOrNull() ?: return@before
@@ -465,13 +457,13 @@ object LockScreenChargingComponent : YukiBaseHooker() {
                 }
                 firstMethod { name = "showTechnology" }.hook {
                     if (showRealTech) {
-                        intercept(true)
+                        replaceTo(true)
                     }
                 }
                 firstMethodOrNull { name = "getTechnologyStr" }?.hook {
                     before {
                         if (!showRealTech) return@before
-                        val chargeInfoObserver = lastArg().get() ?: return@before
+                        val chargeInfoObserver = args().last().any() ?: return@before
                         val technology = chargeInfoObserver.asResolver().firstMethod {
                             name = "getmChargerTechnology"
                         }.invoke<Int>() ?: return@before
@@ -493,7 +485,7 @@ object LockScreenChargingComponent : YukiBaseHooker() {
                 firstMethodOrNull { name = "getTechnologyStr" }?.hook {
                     before {
                         if (!showRealTech) return@before
-                        val chargeInfoObserver = lastArg().get() ?: return@before
+                        val chargeInfoObserver = args().last().any() ?: return@before
                         val technology = chargeInfoObserver.asResolver().firstMethod {
                             name = "getmChargerTechnology"
                         }.invoke<Int>() ?: return@before
@@ -515,7 +507,7 @@ object LockScreenChargingComponent : YukiBaseHooker() {
                 firstMethod { name = "getTechnologyStr" }.hook {
                     before {
                         if (!showRealTech) return@before
-                        val chargeInfoObserver = firstArg().get() ?: return@before
+                        val chargeInfoObserver = args().first().any() ?: return@before
                         val technology = chargeInfoObserver.asResolver().firstMethod {
                             name = "getmChargerTechnology"
                         }.invoke<Int>() ?: return@before
@@ -557,34 +549,33 @@ object LockScreenChargingComponent : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    private object ChargingComponentC13 : YukiBaseHooker() {
+    private object ChargingComponentC13 : Hooker {
         override fun onHook() {
             var userTypeface =
-                preferences(ModulePrefs).getBoolean("lock_screen_charging_use_user_typeface", false)
-            dataChannel.wait<Boolean>("lock_screen_charging_use_user_typeface") {
+                prefs(ModulePrefs).getBoolean("lock_screen_charging_use_user_typeface", false)
+            Channel.wait<Boolean>("lock_screen_charging_use_user_typeface") {
                 userTypeface = it
             }
             var warpCharge =
-                preferences(ModulePrefs).getString("set_lock_screen_warp_charging_style", "0")
-            dataChannel.wait<String>("set_lock_screen_warp_charging_style") {
+                prefs(ModulePrefs).getString("set_lock_screen_warp_charging_style", "0")
+            Channel.wait<String>("set_lock_screen_warp_charging_style") {
                 warpCharge = it
             }
             var textLogo =
-                preferences(ModulePrefs).getString("set_lock_screen_charging_text_logo_style", "0")
-            dataChannel.wait<String>("set_lock_screen_charging_text_logo_style") {
+                prefs(ModulePrefs).getString("set_lock_screen_charging_text_logo_style", "0")
+            Channel.wait<String>("set_lock_screen_charging_text_logo_style") {
                 textLogo = it
             }
-            var showRealTech = preferences(ModulePrefs).getBoolean(
+            var showRealTech = prefs(ModulePrefs).getBoolean(
                 "lock_screen_show_real_charging_technology", false
             )
-            dataChannel.wait<Boolean>("lock_screen_show_real_charging_technology") {
+            Channel.wait<Boolean>("lock_screen_show_real_charging_technology") {
                 showRealTech = it
             }
-            var showWattage = preferences(ModulePrefs).getBoolean(
+            var showWattage = prefs(ModulePrefs).getBoolean(
                 "force_lock_screen_charging_show_wattage", false
             )
-            dataChannel.wait<Boolean>("force_lock_screen_charging_show_wattage") {
+            Channel.wait<Boolean>("force_lock_screen_charging_show_wattage") {
                 showWattage = it
             }
 
@@ -693,23 +684,22 @@ object LockScreenChargingComponent : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    private object ChargingComponentC12 : YukiBaseHooker() {
+    private object ChargingComponentC12 : Hooker {
         override fun onHook() {
             var userTypeface =
-                preferences(ModulePrefs).getBoolean("lock_screen_charging_use_user_typeface", false)
-            dataChannel.wait<Boolean>("lock_screen_charging_use_user_typeface") {
+                prefs(ModulePrefs).getBoolean("lock_screen_charging_use_user_typeface", false)
+            Channel.wait<Boolean>("lock_screen_charging_use_user_typeface") {
                 userTypeface = it
             }
             var textLogo =
-                preferences(ModulePrefs).getString("set_lock_screen_charging_text_logo_style", "0")
-            dataChannel.wait<String>("set_lock_screen_charging_text_logo_style") {
+                prefs(ModulePrefs).getString("set_lock_screen_charging_text_logo_style", "0")
+            Channel.wait<String>("set_lock_screen_charging_text_logo_style") {
                 textLogo = it
             }
-            var showWattage = preferences(ModulePrefs).getBoolean(
+            var showWattage = prefs(ModulePrefs).getBoolean(
                 "force_lock_screen_charging_show_wattage", false
             )
-            dataChannel.wait<Boolean>("force_lock_screen_charging_show_wattage") {
+            Channel.wait<Boolean>("force_lock_screen_charging_show_wattage") {
                 showWattage = it
             }
 
@@ -742,7 +732,7 @@ object LockScreenChargingComponent : YukiBaseHooker() {
                 .apply {
                     firstMethod { name = "isSupportShowWattage" }.hook {
                         if (showWattage) {
-                            intercept(true)
+                            replaceTo(true)
                         }
                     }
                 }

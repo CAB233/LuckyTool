@@ -4,9 +4,7 @@ import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
 import com.luckyzyx.luckytool.BuildConfig
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 object BiometricUtils {
 
     val TAG = "BiometricUtils"

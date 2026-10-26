@@ -6,19 +6,15 @@ import android.content.Intent
 import android.widget.Button
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.result.MethodData
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class HookUninstallerActivity(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class HookUninstallerActivity(val dexKitBridge: DexKitBridge) : Hooker {
 
-    val autoUninstall = preferences(ModulePrefs).getBoolean("auto_click_uninstall_button", false)
+    val autoUninstall = prefs(ModulePrefs).getBoolean("auto_click_uninstall_button", false)
 
     override fun onHook() {
         //Source UninstallerActivity

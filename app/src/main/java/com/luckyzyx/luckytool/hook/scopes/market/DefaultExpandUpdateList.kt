@@ -2,16 +2,11 @@ package com.luckyzyx.luckytool.hook.scopes.market
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class DefaultExpandUpdateList(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class DefaultExpandUpdateList(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         //Source UpdateListAdapter ExpUpdateListAdapter (待更新页, 由实验开关二选一)
         listOf(

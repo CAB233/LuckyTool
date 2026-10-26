@@ -1,17 +1,13 @@
 package com.luckyzyx.luckytool.hook.scopes.launcher
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-class HookLauncherFeature(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class HookLauncherFeature(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
         loadHooker(HookFeatureOption)
@@ -19,11 +15,10 @@ class HookLauncherFeature(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
         if (osCode >= 34) loadHooker(HookAppFeature)
     }
 
-    @Obfuscate
-    object HookAppFeature : YukiBaseHooker() {
+    object HookAppFeature : Hooker {
         override fun onHook() {
             val disableAutoSwitch =
-                preferences(ModulePrefs).getBoolean("disable_auto_switch_last_task", false)
+                prefs(ModulePrefs).getBoolean("disable_auto_switch_last_task", false)
             if (!disableAutoSwitch) return
 
             //Source AppFeatureUtils (all versions)
@@ -36,13 +31,13 @@ class HookLauncherFeature(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                     name = "isSupportAutoFocusToNextPageInOverviewState"
                     parameterCount = 1
                 }?.hook {
-                    intercept(false)
+                    replaceTo(false)
                 }
                 firstMethod {
                     name = "isSupportAutoFocusToNextPageInOverviewState"
                     emptyParameters()
                 }.hook {
-                    intercept(false)
+                    replaceTo(false)
                 }
             }
 
@@ -56,7 +51,7 @@ class HookLauncherFeature(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                         name = "computeNonInterruptFocusToNextPageTarget"
                         parameterCount = 1
                     }?.hook {
-                        intercept(-1)
+                        replaceTo(-1)
                     }
                 }
 
@@ -69,20 +64,19 @@ class HookLauncherFeature(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                         name = "resolveFocusPageFallback"
                         parameterCount = 2
                     }?.hook {
-                        intercept(-1)
+                        replaceTo(-1)
                     }
                 }
         }
     }
 
-    @Obfuscate
-    object HookFeatureOption : YukiBaseHooker() {
+    object HookFeatureOption : Hooker {
         override fun onHook() {
-            val appUpdateDot = preferences(ModulePrefs).getBoolean("enable_display_app_update_dot", false)
+            val appUpdateDot = prefs(ModulePrefs).getBoolean("enable_display_app_update_dot", false)
             val disableDockerMax =
-                preferences(ModulePrefs).getBoolean("remove_docker_max_number_limit", false)
+                prefs(ModulePrefs).getBoolean("remove_docker_max_number_limit", false)
             val allowWidget =
-                preferences(ModulePrefs).getBoolean("remove_widgets_add_request_whitelist", false)
+                prefs(ModulePrefs).getBoolean("remove_widgets_add_request_whitelist", false)
 
             //Source FeatureOption
             "com.android.common.config.FeatureOption".toClass().resolve().apply {
@@ -95,22 +89,21 @@ class HookLauncherFeature(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                 }
                 if (disableDockerMax) {
                     firstMethodOrNull { name = "isDockerMax5" }?.hook {
-                        intercept(false)
+                        replaceTo(false)
                     }
                 }
                 if (allowWidget) {
                     firstMethodOrNull { name = "isSupportWhiteListControl" }?.hook {
-                        intercept(true)
+                        replaceTo(true)
                     }
                 }
             }
         }
     }
 
-    @Obfuscate
-    class HookLauncherSettings(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    class HookLauncherSettings(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
-            val appUpdateDot = preferences(ModulePrefs).getBoolean("enable_display_app_update_dot", false)
+            val appUpdateDot = prefs(ModulePrefs).getBoolean("enable_display_app_update_dot", false)
 
             //Source LauncherSettingsUtils
             dexKitBridge.findClass {
@@ -123,7 +116,7 @@ class HookLauncherFeature(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                 single().name.toClass().resolve().apply {
                     if (appUpdateDot) {
                         firstMethodOrNull { name = "isSupportAppUpdateDot" }?.hook {
-                            intercept(true)
+                            replaceTo(true)
                         }
                     }
                 }

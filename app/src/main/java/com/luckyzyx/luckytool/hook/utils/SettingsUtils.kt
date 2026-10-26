@@ -2,9 +2,7 @@ package com.luckyzyx.luckytool.hook.utils
 
 import android.content.ContentResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 @Suppress("unused")
 object SettingsUtils {
     fun getIntForUser(type: Class<*>, cr: ContentResolver, key: String, userHandle: Int): Int? {

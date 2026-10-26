@@ -2,8 +2,8 @@ package org.lsposed.corepatch.hook
 
 import android.annotation.SuppressLint
 import android.os.Build
-import com.highcapable.yukihookapi.extension.kavaref.toClass
 import org.lsposed.corepatch.Config
+import com.luckyzyx.luckytool.hook.core.*
 
 object PackageManagerServiceHook : BaseHook() {
     override val name = "PackageManagerServiceHook"
@@ -25,7 +25,7 @@ object PackageManagerServiceHook : BaseHook() {
             packageManagerServiceClazz.declaredMethods.first { m -> m.name == "checkDowngrade" && m.returnType == Void.TYPE }
         //经典 before 钩子无法可靠跳过 void 方法的原始调用，改用 intercept
         checkDowngradeVoidMethod.hook {
-            intercept {
+            replaceAny {
                 if (Config.isBypassDowngradeEnabled()) {
                     if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
                         val before = args[0]!!

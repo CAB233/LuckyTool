@@ -3,15 +3,11 @@ package com.luckyzyx.luckytool.hook.scopes.beaconlink
 import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveBeaconLinkTimeLimit(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveBeaconLinkTimeLimit(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         //Source IDs.java
         dexKitBridge.findClass {
@@ -43,13 +39,13 @@ class RemoveBeaconLinkTimeLimit(val dexKitBridge: DexKitBridge) : YukiBaseHooker
                     parameters(String::class)
                     returnType = Boolean::class
                 }?.hook {
-                    intercept(true)
+                    replaceTo(true)
                 } ?: run {
                     firstConstructor {
                         parameters(String::class, Long::class)
                     }.hook {
                         before {
-                            lastArg().set(0L)
+                            args().last().set(0L)
                         }
                     }
                 }

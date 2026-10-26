@@ -4,18 +4,14 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookKsWeb : YukiBaseHooker() {
+object HookKsWeb : Hooker {
     override fun onHook() {
-        val isPro = preferences(ModulePrefs).getBoolean("ksweb_remove_check_license", false)
+        val isPro = prefs(ModulePrefs).getBoolean("ksweb_remove_check_license", false)
         if (!isPro) return
         //Source EXTEND TO PRO VERSION / CHECK SERIAL KEY / KSWEB PRO / KSWEB STANDARD
         DexkitUtils.create(appInfo.sourceDir) { dexKitBridge ->

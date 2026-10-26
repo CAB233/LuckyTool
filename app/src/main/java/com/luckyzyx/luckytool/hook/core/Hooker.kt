@@ -6,29 +6,29 @@ import com.highcapable.kavaref.extension.VariousClass
 import android.util.Log
 
 /**
- * Hooker 基接口：对应迁移前 YukiBaseHooker 的常用成员面，
+ * Hooker 基接口：对应迁移前 Hooker 的常用成员面，
  * 使既有 hook 文件只需替换基类与 import。
  */
 interface Hooker {
 
     fun onHook()
 
-    /** 同形 YukiBaseHooker.packageName：该 Hooker 分发时的宿主包名（wrapper 语义，不随共享进程漂移） */
+    /** 同形 Hooker.packageName：该 Hooker 分发时的宿主包名（wrapper 语义，不随共享进程漂移） */
     val packageName: String get() = HookRouter.contextOf(this)?.packageName ?: Env.packageName
 
     val processName: String get() = Env.processName
 
-    /** 同形 YukiBaseHooker.classLoader：该 Hooker 分发上下文的 appClassLoader */
+    /** 同形 Hooker.classLoader：该 Hooker 分发上下文的 appClassLoader */
     val classLoader: ClassLoader?
         get() = HookRouter.contextOf(this)?.appClassLoader ?: Env.activeClassLoader()
 
-    /** 同形 YukiBaseHooker.appClassLoader：非空版（legacy 中即非空） */
+    /** 同形 Hooker.appClassLoader：非空版（legacy 中即非空） */
     val appClassLoader: ClassLoader
         get() = classLoader
             ?: Env.activeClassLoader()
             ?: error("classLoader not attached")
 
-    /** 同形 YukiBaseHooker.appInfo：该 Hooker 分发时的宿主包信息（App 分组必非空） */
+    /** 同形 Hooker.appInfo：该 Hooker 分发时的宿主包信息（App 分组必非空） */
     val appInfo: ApplicationInfo
         get() = HookRouter.contextOf(this)?.appInfo
             ?: Env.appInfo
@@ -50,7 +50,7 @@ interface Hooker {
     fun VariousClass.toClassOrNull(loader: ClassLoader? = appClassLoader, initialize: Boolean = false): Class<Any>? =
         loadOrNull(loader, initialize)
 
-    /** 同形 YukiBaseHooker.dataChannel：实时配置推送的远程偏好等价物 */
+    /** 同形 Hooker.dataChannel：实时配置推送的远程偏好等价物 */
     val dataChannel: Channel get() = Channel
 
     /** 同形 prefs(ModulePrefs)：远程偏好读取（非空 getter 包装，对齐 legacy YukiHookPrefsBridge） */
@@ -68,4 +68,16 @@ interface Hooker {
             Env.log(Log.ERROR, "HookRouter", "loadHooker ${hooker::class.java.name} failed", it)
         }
     }
+
+    /** 同形 YukiHookAPI 的 hostApplication：宿主 Application（系统进程为 null） */
+    val hostApplication: android.app.Application? get() = Env.hostContext() as? android.app.Application
+
+    /** 同形 YukiHookAPI 的 hostClassLoader：该 Hooker 的宿主类加载器（可空） */
+    val hostClassLoader: ClassLoader? get() = classLoader
+
+    /** 同形 YukiHookAPI 的 isFirstApplication：本进程内首个落地的宿主包 */
+    val isFirstApplication: Boolean get() = Env.isFirstApplication
+
+    /** 同形 YukiHookAPI 的 registerAppLifecycle：宿主 Application 创建完成后执行一次 */
+    fun registerAppLifecycle(block: AppLifecycleScope.() -> Unit) = onAppLifecycle(block)
 }

@@ -4,17 +4,13 @@ import android.graphics.Typeface
 import android.text.TextPaint
 import android.view.View
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object SetAodTypefaceMode : YukiBaseHooker() {
+object SetAodTypefaceMode : Hooker {
     override fun onHook() {
-        val typefaceMode = preferences(ModulePrefs).getString("set_aod_typeface_mode", "0")
-        val applyClock = preferences(ModulePrefs).getBoolean("apply_aod_clock_typeface", false)
+        val typefaceMode = prefs(ModulePrefs).getString("set_aod_typeface_mode", "0")
+        val applyClock = prefs(ModulePrefs).getBoolean("apply_aod_clock_typeface", false)
 
         //Source AodTextView
         "com.oplus.egview.widget.AodTextView".toClass().resolve().apply {

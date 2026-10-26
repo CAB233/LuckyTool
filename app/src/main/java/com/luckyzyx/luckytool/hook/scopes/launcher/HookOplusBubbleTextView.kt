@@ -2,24 +2,20 @@ package com.luckyzyx.luckytool.hook.scopes.launcher
 
 import android.widget.TextView
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.dp
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookOplusBubbleTextView : YukiBaseHooker() {
+object HookOplusBubbleTextView : Hooker {
 
     override fun onHook() {
         val osCode = getOSVersionCode
 
         val multiLine =
-            preferences(ModulePrefs).getBoolean("allow_app_names_display_multiple_lines", false)
-        val textLineHeight = preferences(ModulePrefs).getInt("custom_app_icon_name_line_height", -1)
-        val iconSize = preferences(ModulePrefs).getInt("custom_launcher_app_icon_size", 0)
+            prefs(ModulePrefs).getBoolean("allow_app_names_display_multiple_lines", false)
+        val textLineHeight = prefs(ModulePrefs).getInt("custom_app_icon_name_line_height", -1)
+        val iconSize = prefs(ModulePrefs).getInt("custom_launcher_app_icon_size", 0)
 
         //Source OplusBubbleTextView
         "com.android.launcher3.OplusBubbleTextView".toClass().resolve().apply {

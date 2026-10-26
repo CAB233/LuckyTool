@@ -12,14 +12,11 @@ import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.intercept
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.oplus.os.ILinearmotorVibratorService
 import com.oplus.os.LinearmotorVibrator
 import com.oplus.os.WaveformEffect
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
 /**
  * 快捷键（Action Button Key）拦截
@@ -49,8 +46,7 @@ import org.lsposed.lsparanoid.Obfuscate
  * 扩展方式：新增自定义 mode 时在 takeOverType 的 when 中扩展分支并返回新的接管类型，
  * 再在对应 hook 点按接管类型执行处理逻辑
  */
-@Obfuscate
-object ActionButtonKeyInterceptor : YukiBaseHooker() {
+object ActionButtonKeyInterceptor : Hooker {
 
     private const val TAG = "LuckyTool_ActionButtonKey"
 
@@ -119,34 +115,34 @@ object ActionButtonKeyInterceptor : YukiBaseHooker() {
     private var mRingCycleMode = RING_CYCLE_ALL
 
     override fun onHook() {
-        mNothingEnable = preferences(ModulePrefs).getBoolean("action_button_nothing_enable", false)
+        mNothingEnable = prefs(ModulePrefs).getBoolean("action_button_nothing_enable", false)
         mRingCycleEnable =
-            preferences(ModulePrefs).getBoolean("action_button_ring_cycle_enable", false)
+            prefs(ModulePrefs).getBoolean("action_button_ring_cycle_enable", false)
         mRingCycleMode =
-            preferences(ModulePrefs).getString("action_button_ring_cycle_mode", RING_CYCLE_ALL)
+            prefs(ModulePrefs).getString("action_button_ring_cycle_mode", RING_CYCLE_ALL)
 
-        dataChannel.wait<Boolean>("action_button_nothing_enable") { mNothingEnable = it }
-        dataChannel.wait<Boolean>("action_button_ring_cycle_enable") { mRingCycleEnable = it }
-        dataChannel.wait<String>("action_button_ring_cycle_mode") { mRingCycleMode = it }
+        Channel.wait<Boolean>("action_button_nothing_enable") { mNothingEnable = it }
+        Channel.wait<Boolean>("action_button_ring_cycle_enable") { mRingCycleEnable = it }
+        Channel.wait<String>("action_button_ring_cycle_mode") { mRingCycleMode = it }
 
         //Source StrategyActionButtonKeyLaunchApp
         "com.android.server.policy.StrategyActionButtonKeyLaunchApp".toClass().resolve().apply {
             //选项1：无操作接管，拦截 780 物理按键事件
-            firstMethod { name = "actionInterceptKeyBeforeQueueing" }.intercept {
+            firstMethod { name = "actionInterceptKeyBeforeQueueing" }.replaceAny {
                 //取参失败一律放行官方代码（返回 0 会吞掉按键事件，导致按键失灵）
                 val instance = firstMethod { name = "getInstance" }.invoke()
-                    ?: return@intercept proceed()
+                    ?: return@replaceAny callOriginal()
                 val context = firstField { type = Context::class; superclass() }.of(instance)
-                    .get<Context>() ?: return@intercept proceed()
-                val event = arg<KeyEvent>(0) ?: return@intercept proceed()
-                val keyCode = arg<Int>(2) ?: return@intercept proceed()
-                val down = arg<Boolean>(3) ?: return@intercept proceed()
+                    .get<Context>() ?: return@replaceAny callOriginal()
+                val event = args(0).cast<KeyEvent>() ?: return@replaceAny callOriginal()
+                val keyCode = args(2).cast<Int>() ?: return@replaceAny callOriginal()
+                val down = args(3).cast<Boolean>() ?: return@replaceAny callOriginal()
                 if (keyCode != KEYCODE_ACTION_BUTTON || event.repeatCount != 0) {
-                    return@intercept proceed()
+                    return@replaceAny callOriginal()
                 }
 
                 //接管条件：无操作接管开关开启（分发见 takeOverType）
-                if (takeOverType(context) != TAKE_OVER_NOTHING) return@intercept proceed()
+                if (takeOverType(context) != TAKE_OVER_NOTHING) return@replaceAny callOriginal()
 
                 //接管：判定与日志统一在 handler 线程执行，拦截并返回 0（原方法同样吞掉 780）
                 mHandler.post { handleNothingEvent(down, SystemClock.uptimeMillis()) }
@@ -154,16 +150,16 @@ object ActionButtonKeyInterceptor : YukiBaseHooker() {
             }
 
             //选项2：自定义响铃切换，拦截原生注入的 782 长按事件（静态方法）
-            firstMethod { name = "injectActionButtonPressKeyEvent" }.intercept {
+            firstMethod { name = "injectActionButtonPressKeyEvent" }.replaceAny {
                 val instance = firstMethod { name = "getInstance" }.invoke()
-                    ?: return@intercept proceed()
+                    ?: return@replaceAny callOriginal()
                 val context = firstField { type = Context::class; superclass() }.of(instance)
-                    .get<Context>() ?: return@intercept proceed()
-                val event = firstArg<KeyEvent>() ?: return@intercept proceed()
-                if (event.keyCode != KEYCODE_ACTION_BUTTON_LONG_PRESS) return@intercept proceed()
+                    .get<Context>() ?: return@replaceAny callOriginal()
+                val event = args().first().cast<KeyEvent>() ?: return@replaceAny callOriginal()
+                if (event.keyCode != KEYCODE_ACTION_BUTTON_LONG_PRESS) return@replaceAny callOriginal()
 
                 //接管条件：自定义响铃切换开关开启（分发见 takeOverType）
-                if (takeOverType(context) != TAKE_OVER_RING_MODE) return@intercept proceed()
+                if (takeOverType(context) != TAKE_OVER_RING_MODE) return@replaceAny callOriginal()
 
                 initRingInjectService()
                 //拦截 782：不调用 proceed 即跳过原生注入，动作统一在 handler 线程执行

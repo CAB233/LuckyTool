@@ -7,25 +7,20 @@ import android.widget.LinearLayout
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.getScreenOrientation
 import com.luckyzyx.luckytool.utils.safeOfNull
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object FixTileAlignBothSides : YukiBaseHooker() {
+object FixTileAlignBothSides : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
         if (osCode <= 26) loadHooker(HookTileAlignVertical)
         loadHooker(HookTileAlignHorizontal)
     }
 
-    @Obfuscate
-    private object HookTileAlignVertical : YukiBaseHooker() {
+    private object HookTileAlignVertical : Hooker {
         @SuppressLint("DiscouragedApi")
         override fun onHook() {
             //Sourcee QuickStatusBarHeader 竖屏溢出
@@ -51,12 +46,11 @@ object FixTileAlignBothSides : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    private object HookTileAlignHorizontal : YukiBaseHooker() {
+    private object HookTileAlignHorizontal : Hooker {
         @SuppressLint("DiscouragedApi")
         override fun onHook() {
-            val isCustomTile = preferences(ModulePrefs).getBoolean("control_center_tile_enable", false)
-            val columnHorizontal = preferences(ModulePrefs).getInt("tile_columns_horizontal_c13", 4)
+            val isCustomTile = prefs(ModulePrefs).getBoolean("control_center_tile_enable", false)
+            val columnHorizontal = prefs(ModulePrefs).getInt("tile_columns_horizontal_c13", 4)
 
             val QSFragmentHelperCls = VariousClass(
                 "com.oplusos.systemui.qs.helper.QSFragmentHelper", //C13

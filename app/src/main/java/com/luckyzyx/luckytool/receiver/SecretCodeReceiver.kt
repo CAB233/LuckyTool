@@ -5,10 +5,8 @@ import android.content.Context
 import android.content.Intent
 import com.highcapable.kavaref.extension.classOf
 import com.luckyzyx.luckytool.ui.activity.MainActivity
-import org.lsposed.lsparanoid.Obfuscate
 
 @Suppress("PrivatePropertyName")
-@Obfuscate
 class SecretCodeReceiver : BroadcastReceiver() {
     private val SECRET_CODE_ACTION = "android.provider.Telephony.SECRET_CODE"
     override fun onReceive(context: Context?, intent: Intent?) {

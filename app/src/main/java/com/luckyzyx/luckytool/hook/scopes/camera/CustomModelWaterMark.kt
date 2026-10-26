@@ -4,19 +4,14 @@ import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.condition.type.VagueType
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class CustomModelWaterMark(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class CustomModelWaterMark(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
-        val waterMark = preferences(ModulePrefs).getString("custom_model_watermark", "None")
+        val waterMark = prefs(ModulePrefs).getString("custom_model_watermark", "None")
         if (waterMark.isBlank() || waterMark == "None") return
 
         //Source BaseWatermarkPresenter / BaseWatermarkCreator
@@ -73,7 +68,7 @@ class CustomModelWaterMark(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                         emptyParameters()
                         returnType = String::class
                     }.hook {
-                        intercept(waterMark)
+                        replaceTo(waterMark)
                     }
                 }
             }
@@ -92,7 +87,7 @@ class CustomModelWaterMark(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                     name = single().methodName
                     returnType = String::class
                 }.hookAll {
-                    intercept(waterMark)
+                    replaceTo(waterMark)
                 }
             }
         }

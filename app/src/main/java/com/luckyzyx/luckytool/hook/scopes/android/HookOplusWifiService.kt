@@ -7,15 +7,10 @@ import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.ArrayClass
 import com.highcapable.kavaref.extension.VariousClass
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookOplusWifiService : YukiBaseHooker() {
+object HookOplusWifiService : Hooker {
 
     //C17 起 oplus-wifi-service 被 APK 化，设备上的实际路径/后缀可能变化，
     //缓存查找按路径关键字匹配，避免与系统真实使用的 loader 分裂
@@ -40,7 +35,7 @@ object HookOplusWifiService : YukiBaseHooker() {
             "com.android.server.SystemServiceManager".toClass().resolve()
                 .firstMethod { name = "startServiceFromJar"; parameterCount(2) }.hook {
                     after {
-                        val className = firstArg().get<String>() ?: return@after
+                        val className = args().first().cast<String>() ?: return@after
                         if (!className.contains(OPLUS_WIFI_SERVICE_CLASS_FLAG)) return@after
                         val service = result<Any>() ?: return@after
                         val classLoader = service.javaClass.classLoader ?: return@after
@@ -48,7 +43,7 @@ object HookOplusWifiService : YukiBaseHooker() {
                     }
                 }
         } catch (t: Throwable) {
-            YLog.error("Hook SystemServiceManager.startServiceFromJar Error!", t)
+            XLog.error("Hook SystemServiceManager.startServiceFromJar Error!", t)
         }
     }
 
@@ -61,7 +56,7 @@ object HookOplusWifiService : YukiBaseHooker() {
                 k is String && k.contains(OPLUS_WIFI_SERVICE_PATH_FLAG)
             }?.value as? ClassLoader
         } catch (t: Throwable) {
-            YLog.debug("find oplus wifi service classloader from cache error", t)
+            XLog.debug("find oplus wifi service classloader from cache error", t)
             null
         }
     }
@@ -74,7 +69,7 @@ object HookOplusWifiService : YukiBaseHooker() {
         }
         //Source_ext oplus-wifi-service OplusTetheringNotification showSoftapEnabledDurationNotification
         //Channel DurationNotification -> Notification id -> 4
-        if (preferences(ModulePrefs).getBoolean(
+        if (prefs(ModulePrefs).getBoolean(
                 "remove_hotspot_power_consumption_notification",
                 false
             )
@@ -85,8 +80,7 @@ object HookOplusWifiService : YukiBaseHooker() {
         loadHooker(HookSlaAppList(loader))
     }
 
-    @Obfuscate
-    class HookOplusSoftAp(val classLoader: ClassLoader?) : YukiBaseHooker() {
+    class HookOplusSoftAp(override val classLoader: ClassLoader?) : Hooker {
         override fun onHook() {
             //C13-C15：startSoftapEnableTimer 触发热点启用时长统计
             try {
@@ -95,25 +89,24 @@ object HookOplusWifiService : YukiBaseHooker() {
                         intercept()
                     }
             } catch (_: Throwable) {
-//                YLog.debug("startSoftapEnableTimer not found on this version", t)
+//                XLog.debug("startSoftapEnableTimer not found on this version", t)
             }
             //C17：逻辑并入 SoftapHandler.handleMessage，what==1 时发送热点时长通知
             try {
                 "com.oplus.server.wifi.hotspot.OplusSoftapStatistics\$SoftapHandler"
                     .toClass(classLoader).resolve().firstMethod { name = "handleMessage" }.hook {
                         before {
-                            val msg = firstArg().get<Message>()
+                            val msg = args().first().cast<Message>()
                             if (msg?.what == 1) result = null
                         }
                     }
             } catch (_: Throwable) {
-//                YLog.debug("SoftapHandler.handleMessage not found on this version", t)
+//                XLog.debug("SoftapHandler.handleMessage not found on this version", t)
             }
         }
     }
 
-    @Obfuscate
-    class HookSlaAppList(val classLoader: ClassLoader?) : YukiBaseHooker() {
+    class HookSlaAppList(override val classLoader: ClassLoader?) : Hooker {
 
         private val whitelistKey = "custom_wlan_sla_whitelist"
         private val gameWhitelistKey = "custom_wlan_sla_game_whitelist"
@@ -124,37 +117,37 @@ object HookOplusWifiService : YukiBaseHooker() {
         val gameWhitelist = ArraySet<String>()
 
         private fun initData() {
-            mode = preferences(ModulePrefs).getString("set_wlan_sla_whitelist_mode", "0")
-            dataChannel.wait<String>("set_wlan_sla_whitelist_mode") {
+            mode = prefs(ModulePrefs).getString("set_wlan_sla_whitelist_mode", "0")
+            Channel.wait<String>("set_wlan_sla_whitelist_mode") {
                 mode = it
-                YLog.debug("update oplus wifi configs status -> $it")
+                XLog.debug("update oplus wifi configs status -> $it")
             }
-            rmBlack = preferences(ModulePrefs).getBoolean("remove_wlan_sla_blacklist", false)
-            dataChannel.wait<Boolean>("remove_wlan_sla_blacklist") { rmBlack = it }
+            rmBlack = prefs(ModulePrefs).getBoolean("remove_wlan_sla_blacklist", false)
+            Channel.wait<Boolean>("remove_wlan_sla_blacklist") { rmBlack = it }
 
             whitelist.clear()
-            whitelist.addAll(preferences(ModulePrefs).getStringSet(whitelistKey, ArraySet()))
-            dataChannel.wait(whitelistKey) {
-                val new = preferences(ModulePrefs).getStringSet(whitelistKey, ArraySet())
-                YLog.debug("update oplus wifi whitelist configs -> ${whitelist.size} | ${new.size}")
+            whitelist.addAll(prefs(ModulePrefs).getStringSet(whitelistKey, ArraySet()))
+            Channel.wait(whitelistKey) {
+                val new = prefs(ModulePrefs).getStringSet(whitelistKey, ArraySet())
+                XLog.debug("update oplus wifi whitelist configs -> ${whitelist.size} | ${new.size}")
                 whitelist.clear()
                 whitelist.addAll(new)
             }
 
             gameWhitelist.clear()
             gameWhitelist.addAll(
-                preferences(ModulePrefs).getStringSet(
+                prefs(ModulePrefs).getStringSet(
                     gameWhitelistKey,
                     ArraySet()
                 )
             )
-            dataChannel.wait(gameWhitelistKey) {
-                val new = preferences(ModulePrefs).getStringSet(gameWhitelistKey, ArraySet())
-                YLog.debug("update oplus wifi game whitelist configs -> ${gameWhitelist.size} | ${new.size}")
+            Channel.wait(gameWhitelistKey) {
+                val new = prefs(ModulePrefs).getStringSet(gameWhitelistKey, ArraySet())
+                XLog.debug("update oplus wifi game whitelist configs -> ${gameWhitelist.size} | ${new.size}")
                 gameWhitelist.clear()
                 gameWhitelist.addAll(new)
             }
-            YLog.debug("init oplus wifi configs success -> ${whitelist.size} | ${gameWhitelist.size}")
+            XLog.debug("init oplus wifi configs success -> ${whitelist.size} | ${gameWhitelist.size}")
         }
 
         override fun onHook() {

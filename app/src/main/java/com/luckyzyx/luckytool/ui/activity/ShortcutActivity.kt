@@ -18,9 +18,7 @@ import com.luckyzyx.luckytool.utils.A15
 import com.luckyzyx.luckytool.utils.IntentUtils
 import com.luckyzyx.luckytool.utils.SDK
 import com.topjohnwu.superuser.ShellUtils
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 @Suppress("DEPRECATION")
 class ShortcutActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {

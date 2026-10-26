@@ -2,16 +2,10 @@ package com.luckyzyx.luckytool.hook.scopes.opluskeyboard
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.interceptAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
 /**
  * 强制启用小布输入法的液态玻璃模糊。
@@ -40,8 +34,7 @@ import org.luckypray.dexkit.DexKitBridge
  * 刻意不碰 `utils.h.j()`（折叠判断被分屏键盘、悬浮工具栏复用，`b()` 拦截后已无需它）与
  * `reflect.a.v()`（版本号还喂给 appcompat、应用更新等处，改它风险大于收益）。
  */
-@Obfuscate
-class ForceEnableOplusKeyboardBlur(private val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class ForceEnableOplusKeyboardBlur(private val dexKitBridge: DexKitBridge) : Hooker {
 
     companion object {
         /** 宿主内置的模糊半径，作为自定义项的默认值 */
@@ -63,7 +56,7 @@ class ForceEnableOplusKeyboardBlur(private val dexKitBridge: DexKitBridge) : Yuk
     override fun onHook() {
         //自定义模糊强度
         val blurRadius =
-            preferences(ModulePrefs).getInt("oplus_keyboard_blur_radius", DEFAULT_BLUR_RADIUS)
+            prefs(ModulePrefs).getInt("oplus_keyboard_blur_radius", DEFAULT_BLUR_RADIUS)
 
         //Source f
         // 模糊总闸类的定位特征：
@@ -77,7 +70,7 @@ class ForceEnableOplusKeyboardBlur(private val dexKitBridge: DexKitBridge) : Yuk
                 usingStrings("key_day_night_mode")
             }
         }
-        YLog.info("ForceEnableOplusKeyboardBlur: oldGate size = ${oldGate.size}", tag = "LuckyTool")
+        XLog.info("ForceEnableOplusKeyboardBlur: oldGate size = ${oldGate.size}", tag = "LuckyTool")
         val gateClass = if (oldGate.isNotEmpty()) {
             oldGate.checkDataList("ForceEnableOplusKeyboardBlur Gate").single().className
         } else {
@@ -100,14 +93,14 @@ class ForceEnableOplusKeyboardBlur(private val dexKitBridge: DexKitBridge) : Yuk
             }.checkDataList("ForceEnableOplusKeyboardBlur Gate").single().className
         }
 
-        YLog.info("ForceEnableOplusKeyboardBlur: gateClass = $gateClass", tag = "LuckyTool")
+        XLog.info("ForceEnableOplusKeyboardBlur: gateClass = $gateClass", tag = "LuckyTool")
 
         gateClass.toClass().resolve().apply {
             // b() 与 c()：该类里只有这两个无参 boolean 方法，命中即全部返回 true
             method { emptyParameters(); returnType = Boolean::class }.interceptAll {
                 if (!gateHit) {
                     gateHit = true
-                    YLog.info(
+                    XLog.info(
                         "ForceEnableOplusKeyboardBlur: gate ${method.name} hit",
                         tag = "LuckyTool"
                     )
@@ -125,14 +118,14 @@ class ForceEnableOplusKeyboardBlur(private val dexKitBridge: DexKitBridge) : Yuk
                 usingStrings(SYSTEM_MATERIAL_BLUR, "SettingsPrefs")
             }
         }.checkDataList("ForceEnableOplusKeyboardBlur MaterialBlurSetting").single()
-        YLog.info(
+        XLog.info(
             "ForceEnableOplusKeyboardBlur: materialBlurSetting = $materialBlurSetting",
             tag = "LuckyTool"
         )
 
         materialBlurSetting.className.toClass().resolve().apply {
             firstMethod { name = materialBlurSetting.methodName; emptyParameters() }
-                .hook { intercept(true) }
+                .hook { replaceTo(true) }
         }
 
         //Source Settings
@@ -148,7 +141,7 @@ class ForceEnableOplusKeyboardBlur(private val dexKitBridge: DexKitBridge) : Yuk
                     val requested = args[0] as? Int ?: return@before
                     if (requested != lastLoggedRadius) {
                         lastLoggedRadius = requested
-                        YLog.info(
+                        XLog.info(
                             "ForceEnableOplusKeyboardBlur: setBlurRadius $requested", tag = "LuckyTool"
                         )
                     }
@@ -162,7 +155,7 @@ class ForceEnableOplusKeyboardBlur(private val dexKitBridge: DexKitBridge) : Yuk
                         val drawable = result
                         if (!loggedDrawable) {
                             loggedDrawable = true
-                            YLog.info(
+                            XLog.info(
                                 "ForceEnableOplusKeyboardBlur: blur drawable = $drawable",
                                 tag = "LuckyTool"
                             )
@@ -170,7 +163,7 @@ class ForceEnableOplusKeyboardBlur(private val dexKitBridge: DexKitBridge) : Yuk
                     }
                 }
             }.onFailure {
-                YLog.warn("ForceEnableOplusKeyboardBlur: hook drawable failed: $it", tag = "LuckyTool")
+                XLog.warn("ForceEnableOplusKeyboardBlur: hook drawable failed: $it", tag = "LuckyTool")
             }
         }
     }
@@ -194,7 +187,7 @@ class ForceEnableOplusKeyboardBlur(private val dexKitBridge: DexKitBridge) : Yuk
                 }
             }
         }.onFailure {
-            YLog.warn("ForceEnableOplusKeyboardBlur: hook $className failed: $it", tag = "LuckyTool")
+            XLog.warn("ForceEnableOplusKeyboardBlur: hook $className failed: $it", tag = "LuckyTool")
         }
     }
 }

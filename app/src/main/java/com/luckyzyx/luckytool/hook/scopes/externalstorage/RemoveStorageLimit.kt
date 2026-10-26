@@ -1,18 +1,14 @@
 package com.luckyzyx.luckytool.hook.scopes.externalstorage
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveStorageLimit : YukiBaseHooker() {
+object RemoveStorageLimit : Hooker {
     override fun onHook() {
         //Source ExternalStorageProvider
         "com.android.externalstorage.ExternalStorageProvider".toClass().resolve().apply {
             firstMethodOrNull { name = "shouldBlockDirectoryFromTree" }?.hook {
-                intercept(false)
+                replaceTo(false)
             }
         }
     }

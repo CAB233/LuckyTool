@@ -3,22 +3,17 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 import android.os.Message
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveStatusBarSecurePayment : YukiBaseHooker() {
+object RemoveStatusBarSecurePayment : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
         if (osCode >= 40) loadHooker(StatusBarSecurePayment)
         else loadHooker(StatusBarSecurePaymentV16)
     }
 
-    @Obfuscate
-    object StatusBarSecurePayment : YukiBaseHooker() {
+    object StatusBarSecurePayment : Hooker {
         override fun onHook() {
             //Source SecurePaymentRepository
             "com.oplus.systemui.statusbar.phone.dynamic.pipeline.data.securepayment.SecurePaymentRepository".toClass()
@@ -33,8 +28,7 @@ object RemoveStatusBarSecurePayment : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object StatusBarSecurePaymentV16 : YukiBaseHooker() {
+    object StatusBarSecurePaymentV16 : Hooker {
         override fun onHook() {
             //Source SecurePaymentController
             VariousClass(

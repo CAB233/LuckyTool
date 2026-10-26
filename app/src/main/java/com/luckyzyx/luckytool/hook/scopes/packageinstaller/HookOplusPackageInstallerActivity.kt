@@ -9,21 +9,17 @@ import android.view.View
 import android.widget.Button
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.result.MethodData
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class HookOplusPackageInstallerActivity(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class HookOplusPackageInstallerActivity(val dexKitBridge: DexKitBridge) : Hooker {
 
-    val disableScan = preferences(ModulePrefs).getBoolean("skip_apk_scan", false)
-    val allowReplace = preferences(ModulePrefs).getBoolean("allow_downgrade_install", false)
-    val autoInstall = preferences(ModulePrefs).getBoolean("auto_click_install_button", false)
+    val disableScan = prefs(ModulePrefs).getBoolean("skip_apk_scan", false)
+    val allowReplace = prefs(ModulePrefs).getBoolean("allow_downgrade_install", false)
+    val autoInstall = prefs(ModulePrefs).getBoolean("auto_click_install_button", false)
 
     override fun onHook() {
         //Source OPlusPackageInstallerActivity

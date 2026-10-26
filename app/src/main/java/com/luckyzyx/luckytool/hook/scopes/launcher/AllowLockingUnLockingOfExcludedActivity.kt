@@ -2,13 +2,9 @@ package com.luckyzyx.luckytool.hook.scopes.launcher
 
 import android.content.Intent
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object AllowLockingUnLockingOfExcludedActivity : YukiBaseHooker() {
+object AllowLockingUnLockingOfExcludedActivity : Hooker {
     override fun onHook() {
         //Search OplusTaskShortcutsFactory -> showLock / showUnlock C13
         //Search OplusLockManager -> isTaskAllowLock / isTaskAllowUnlock C14
@@ -17,7 +13,7 @@ object AllowLockingUnLockingOfExcludedActivity : YukiBaseHooker() {
             (firstMethodOrNull { name = "isAppLockable" }
                 ?: firstMethod { name = "isAppSupportLock" }).hook {
                 before {
-                    val intent = lastArg().get<Intent>() ?: return@before
+                    val intent = args().last().cast<Intent>() ?: return@before
                     val flag = intent.flags
                     if (flag and Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS == Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS) {
                         intent.removeFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)

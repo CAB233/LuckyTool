@@ -1,21 +1,17 @@
 package com.luckyzyx.luckytool.hook.scopes.systemui
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveAodMusicWhitelist : YukiBaseHooker() {
+object RemoveAodMusicWhitelist : Hooker {
     override fun onHook() {
         //Source AodMediaDataListener
         "com.oplusos.systemui.aod.mediapanel.AodMediaDataListener\$Companion".toClass().resolve().apply {
             firstMethod { name = "isAodMediaSupport" }.hook {
-                intercept(true)
+                replaceTo(true)
             }
             firstMethod { name = "isAodMediaSupportWithoutFeature" }.hook {
-                intercept(true)
+                replaceTo(true)
             }
         }
     }

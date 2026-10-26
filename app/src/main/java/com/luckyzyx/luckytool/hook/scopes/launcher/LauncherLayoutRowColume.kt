@@ -5,17 +5,13 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.ArrayClass
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class LauncherLayoutRowColume(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class LauncherLayoutRowColume(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
         if (osCode >= 40) loadHooker(LayoutRowColume(dexKitBridge))
@@ -23,11 +19,10 @@ class LauncherLayoutRowColume(val dexKitBridge: DexKitBridge) : YukiBaseHooker()
         else loadHooker(LayoutRowColumeV15)
     }
 
-    @Obfuscate
-    class LayoutRowColume(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    class LayoutRowColume(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
-            val maxRows = preferences(ModulePrefs).getInt("launcher_layout_max_rows", 6)
-            val maxColumns = preferences(ModulePrefs).getInt("launcher_layout_max_columns", 4)
+            val maxRows = prefs(ModulePrefs).getInt("launcher_layout_max_rows", 6)
+            val maxColumns = prefs(ModulePrefs).getInt("launcher_layout_max_columns", 4)
 
             //Source UiConfig (混淆类名逐版本变化, 用源文件名做锚点)
             //isSupportLayout(II)Z 校验行列数组合, getSupportLayout() 返回支持的组合列表
@@ -79,7 +74,7 @@ class LauncherLayoutRowColume(val dexKitBridge: DexKitBridge) : YukiBaseHooker()
                 parameters(Int::class, Int::class)
                 returnType = Boolean::class
             }.hook {
-                intercept(true)
+                replaceTo(true)
             }
 
             //Source InvariantDeviceProfile
@@ -144,16 +139,15 @@ class LauncherLayoutRowColume(val dexKitBridge: DexKitBridge) : YukiBaseHooker()
         }
     }
 
-    @Obfuscate
-    object LayoutRowColumeV16 : YukiBaseHooker() {
+    object LayoutRowColumeV16 : Hooker {
         override fun onHook() {
-            val maxRows = preferences(ModulePrefs).getInt("launcher_layout_max_rows", 6)
-            val maxColumns = preferences(ModulePrefs).getInt("launcher_layout_max_columns", 4)
+            val maxRows = prefs(ModulePrefs).getInt("launcher_layout_max_rows", 6)
+            val maxColumns = prefs(ModulePrefs).getInt("launcher_layout_max_columns", 4)
 
             //Source UiConfig
             "com.android.launcher.UiConfig".toClass().resolve().apply {
                 firstMethod { name = "isSupportLayout" }.hook {
-                    intercept(true)
+                    replaceTo(true)
                 }
                 firstMethod { name = "getSupportLayout" }.hook {
                     before {
@@ -183,17 +177,16 @@ class LauncherLayoutRowColume(val dexKitBridge: DexKitBridge) : YukiBaseHooker()
         }
     }
 
-    @Obfuscate
-    object LayoutRowColumeV15 : YukiBaseHooker() {
+    object LayoutRowColumeV15 : Hooker {
         override fun onHook() {
             //Source UiConfig
             "com.android.launcher.UiConfig".toClass().resolve().apply {
                 firstMethod { name = "isSupportLayout" }.hook {
-                    intercept(true)
+                    replaceTo(true)
                 }
             }
-            val maxRows = preferences(ModulePrefs).getInt("launcher_layout_max_rows", 6)
-            val maxColumns = preferences(ModulePrefs).getInt("launcher_layout_max_columns", 4)
+            val maxRows = prefs(ModulePrefs).getInt("launcher_layout_max_rows", 6)
+            val maxColumns = prefs(ModulePrefs).getInt("launcher_layout_max_columns", 4)
             //Source ToggleBarLayoutAdapter
             "com.android.launcher.togglebar.adapter.ToggleBarLayoutAdapter".toClass().resolve()
                 .apply {

@@ -1,14 +1,10 @@
 package com.luckyzyx.luckytool.hook.scopes.systemui
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.oplus.media.OplusMediaControlManager
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object DisableMediaMusicFluidCloudBlacklist : YukiBaseHooker() {
+object DisableMediaMusicFluidCloudBlacklist : Hooker {
     override fun onHook() {
         //Source OplusMediaDataModelImpl
         "com.oplus.systemui.media.model.OplusMediaDataModelImpl".toClass().resolve().apply {

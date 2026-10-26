@@ -15,7 +15,7 @@ fun Hooker.onAppLifecycle(block: AppLifecycleScope.() -> Unit) {
     val context = HookRouter.contextOf(this)
     fun initialize(app: Context) {
         runCatching { HookRouter.withContext(context) { AppLifecycleScope(app, context).block() } }
-            .onFailure { XLog.e("Application lifecycle initialization failed", t = it) }
+            .onFailure { XLog.e("Application lifecycle initialization failed", e = it) }
     }
     Env.hostContext()?.let { initialize(it); return }
     val initialized = AtomicBoolean()
@@ -40,14 +40,14 @@ class AppLifecycleScope internal constructor(
 
     fun onCreate(block: Context.() -> Unit) {
         runCatching { block(context) }
-            .onFailure { XLog.e("Application onCreate callback failed", t = it) }
+            .onFailure { XLog.e("Application onCreate callback failed", e = it) }
     }
 
     fun registerReceiver(action: String, block: (Context, Intent) -> Unit) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context, intent: Intent) {
                 runCatching { HookRouter.withContext(host) { block(ctx, intent) } }
-                    .onFailure { XLog.e("Broadcast callback failed: $action", t = it) }
+                    .onFailure { XLog.e("Broadcast callback failed: $action", e = it) }
             }
         }
         receivers += receiver
@@ -57,6 +57,6 @@ class AppLifecycleScope internal constructor(
             } else {
                 context.registerReceiver(receiver, IntentFilter(action))
             }
-        }.onFailure { XLog.e("Broadcast registration failed: $action", t = it) }
+        }.onFailure { XLog.e("Broadcast registration failed: $action", e = it) }
     }
 }

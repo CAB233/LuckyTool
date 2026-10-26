@@ -23,12 +23,10 @@ import com.oplus.miragewindow.OplusMirageWindowManager
 import com.topjohnwu.superuser.ShellUtils
 import com.topjohnwu.superuser.ipc.RootService
 import okhttp3.internal.toHexString
-import org.lsposed.lsparanoid.Obfuscate
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 
-@Obfuscate
 object TilesService : BaseControllerService<ITileServiceController>() {
     override val TAG = "TileService"
 
@@ -38,7 +36,6 @@ object TilesService : BaseControllerService<ITileServiceController>() {
         return ITileServiceController.Stub.asInterface(iBinder)
     }
 
-    @Obfuscate
     @Suppress("ConstPropertyName", "PrivatePropertyName")
     class TileControllerService : RootService() {
 

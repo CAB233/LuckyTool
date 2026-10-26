@@ -4,14 +4,10 @@ import android.annotation.SuppressLint
 import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 @Suppress("unused", "ConstPropertyName")
-object ForceDisplayClockStyleOptionsV14 : YukiBaseHooker() {
+object ForceDisplayClockStyleOptionsV14 : Hooker {
     private const val searchItemBuilder =
         "com.oplus.keyguard.settingsearch.KeyguardSettingsSearchProvider\$SearchItem\$Builder"
     private const val providerClient = "com.oplus.keyguard.common.KeyguardSettingProviderClient"
@@ -34,7 +30,7 @@ object ForceDisplayClockStyleOptionsV14 : YukiBaseHooker() {
                         }.get<Boolean>() ?: false
                         if (!isFlavorTwoDevice) return@before
 
-                        val list = firstArg().get<ArrayList<Any>>()
+                        val list = args().first().cast<ArrayList<Any>>()
                         val context = firstMethod { name = "getContext";superclass() }.of(instance)
                             .invoke<Context>()
                         val clockTitle = context?.getString(
@@ -71,7 +67,7 @@ object ForceDisplayClockStyleOptionsV14 : YukiBaseHooker() {
 //                    }.get().boolean()
 //                    if (!isFlavorTwoDevice) return@after
 //
-//                    val context = firstArg().get<Context>() ?: return@after
+//                    val context = args().first().cast<Context>() ?: return@after
 //                    val subTitle = context.resources.getIdentifier(
 //                        "settings_search_sub_title",
 //                        "string",

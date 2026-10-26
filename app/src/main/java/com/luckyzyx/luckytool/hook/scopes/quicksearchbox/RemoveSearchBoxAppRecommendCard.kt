@@ -3,13 +3,9 @@ package com.luckyzyx.luckytool.hook.scopes.quicksearchbox
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveSearchBoxAppRecommendCard : YukiBaseHooker() {
+object RemoveSearchBoxAppRecommendCard : Hooker {
     override fun onHook() {
         //Source AliveAppRecommendView -> view_alive_app
         VariousClass(
@@ -21,7 +17,7 @@ object RemoveSearchBoxAppRecommendCard : YukiBaseHooker() {
                 parameterCount { it in 2..4 }
             }.hook {
                 before {
-                    firstArg().get<ArrayList<Any>>()?.clear()
+                    args().first().cast<ArrayList<Any>>()?.clear()
                 }
             }
         }

@@ -7,7 +7,7 @@ import android.util.ArrayMap
 import android.util.ArraySet
 import androidx.collection.arrayMapOf
 import androidx.collection.arraySetOf
-import com.luckyzyx.luckytool.ui.service.XposedServiceBridge
+import com.luckyzyx.luckytool.utils.XposedServiceManager
 import org.json.JSONObject
 
 const val ModulePrefs: String = "ModulePrefs"
@@ -37,7 +37,7 @@ enum class PrefsTarget(val key: String) {
 
 /** 当前实际落点：remote 只在该 prefs 不在 [LocalOnlyPrefs] 且框架 service 可用时成立 */
 internal fun Context.prefsTarget(prefsName: String): PrefsTarget =
-    if (prefsName in LocalOnlyPrefs || XposedServiceBridge.preferences(prefsName) == null)
+    if (prefsName in LocalOnlyPrefs || XposedServiceManager.preferences(prefsName) == null)
         PrefsTarget.LOCAL else PrefsTarget.REMOTE
 
 /**
@@ -48,7 +48,7 @@ internal fun Context.prefsForTarget(
     prefsName: String, target: PrefsTarget
 ): android.content.SharedPreferences? = when (target) {
     PrefsTarget.LOCAL -> getSharedPreferences(prefsName, Context.MODE_PRIVATE)
-    PrefsTarget.REMOTE -> XposedServiceBridge.preferences(prefsName)
+    PrefsTarget.REMOTE -> XposedServiceManager.preferences(prefsName)
 }
 
 /** 备份里记录的落点：新格式 `{ "target": ..., "data": {...} }`；旧备份直接是键值对象，返回 null */

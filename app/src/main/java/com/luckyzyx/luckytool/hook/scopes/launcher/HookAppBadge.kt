@@ -4,36 +4,31 @@ import android.graphics.drawable.Drawable
 import android.os.UserHandle
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class HookAppBadge(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class HookAppBadge(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
         if (osCode >= 30) loadHooker(AppBadge(dexKitBridge))
         else loadHooker(AppBadgeC13)
     }
 
-    @Obfuscate
-    class AppBadge(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    class AppBadge(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
             val osCode = getOSVersionCode
-            val isShortcut = preferences(ModulePrefs).getBoolean("remove_app_shortcut_badge", false)
-            val isWork = preferences(ModulePrefs).getBoolean("remove_app_work_badge", false)
-            val isClone = preferences(ModulePrefs).getBoolean("remove_app_clone_badge", false)
+            val isShortcut = prefs(ModulePrefs).getBoolean("remove_app_shortcut_badge", false)
+            val isWork = prefs(ModulePrefs).getBoolean("remove_app_work_badge", false)
+            val isClone = prefs(ModulePrefs).getBoolean("remove_app_clone_badge", false)
 
             //Source BitmapInfo
             "com.android.launcher3.icons.BitmapInfo".toClass().resolve().apply {
                 firstMethod { name = "applyFlags" }.hook {
                     before {
-                        val drawableCreationFlags = arg(args.indexOfFirst { it is Int }).get<Int>() ?: 0
+                        val drawableCreationFlags = args(arguments.indexOfFirst { it is Int }).cast<Int>() ?: 0
                         val badgeInfo = firstField { name = "badgeInfo" }.of(instance).get()
                         val flag = firstField { name = "flags" }.of(instance).get<Int>()
                             ?: return@before
@@ -99,18 +94,17 @@ class HookAppBadge(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object AppBadgeC13 : YukiBaseHooker() {
+    object AppBadgeC13 : Hooker {
         override fun onHook() {
-            val isShortcut = preferences(ModulePrefs).getBoolean("remove_app_shortcut_badge", false)
-            val isWork = preferences(ModulePrefs).getBoolean("remove_app_work_badge", false)
-            val isClone = preferences(ModulePrefs).getBoolean("remove_app_clone_badge", false)
+            val isShortcut = prefs(ModulePrefs).getBoolean("remove_app_shortcut_badge", false)
+            val isWork = prefs(ModulePrefs).getBoolean("remove_app_work_badge", false)
+            val isClone = prefs(ModulePrefs).getBoolean("remove_app_clone_badge", false)
 
             //Source BitmapInfo
             "com.android.launcher3.icons.BitmapInfo".toClass().resolve().apply {
                 firstMethod { name = "applyFlags"; parameterCount = 3 }.hook {
                     before {
-                        val drawableCreationFlags = lastArg().get<Int>() ?: 0
+                        val drawableCreationFlags = args().last().cast<Int>() ?: 0
                         val badgeInfo = firstField { name = "badgeInfo" }.of(instance).get()
                         val flag = firstField { name = "flags" }.of(instance).get<Int>()
                             ?: return@before

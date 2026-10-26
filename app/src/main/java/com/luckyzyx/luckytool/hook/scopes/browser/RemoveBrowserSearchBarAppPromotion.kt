@@ -2,16 +2,11 @@ package com.luckyzyx.luckytool.hook.scopes.browser
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveBrowserSearchBarAppPromotion(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveBrowserSearchBarAppPromotion(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         val appHostCls = "com.heytap.browser.platform.app.AppHost"
         if (appHostCls.toClassOrNull() == null) return
@@ -89,9 +84,9 @@ class RemoveBrowserSearchBarAppPromotion(val dexKitBridge: DexKitBridge) : YukiB
                         parameters(List::class)
                     }.hook {
                         before {
-                            val list = firstArg().get<ArrayList<Any>>() ?: return@before
+                            val list = args().first().cast<ArrayList<Any>>() ?: return@before
                             list.removeIf {
-//                                YLog.debug("${list.indexOf(it)} -> $it")
+//                                XLog.debug("${list.indexOf(it)} -> $it")
                                 it.javaClass.name == app.singleOrNull()?.name || it.javaClass.name == ads.singleOrNull()?.name
                             }
                         }

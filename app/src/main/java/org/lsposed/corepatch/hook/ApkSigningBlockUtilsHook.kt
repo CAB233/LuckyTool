@@ -1,8 +1,8 @@
 package org.lsposed.corepatch.hook
 
 import android.annotation.SuppressLint
-import com.highcapable.yukihookapi.extension.kavaref.toClass
 import org.lsposed.corepatch.Config
+import com.luckyzyx.luckytool.hook.core.*
 
 object ApkSigningBlockUtilsHook : BaseHook() {
     override val name = "ApkSigningBlockUtilsHook"
@@ -26,7 +26,7 @@ object ApkSigningBlockUtilsHook : BaseHook() {
             apkSigningBlockUtilsClazz.declaredMethods.first { m -> m.name == "verifyIntegrityForVerityBasedAlgorithm" }
         verifyIntegrityForVerityBasedAlgorithmMethod.hook {
             //经典 before 钩子无法可靠跳过 void 方法的原始调用，改用 intercept
-            intercept {
+            replaceAny {
                 if (Config.isBypassVerificationEnabled()) {
                     null
                 } else callOriginal()

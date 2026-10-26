@@ -1,16 +1,12 @@
 package com.luckyzyx.luckytool.hook.scopes.launcher
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookLauncherFeatureFlags : YukiBaseHooker() {
+object HookLauncherFeatureFlags : Hooker {
     override fun onHook() {
-        val twoLine = preferences(ModulePrefs).getBoolean("enable_drawer_layout_double_line_names", false)
+        val twoLine = prefs(ModulePrefs).getBoolean("enable_drawer_layout_double_line_names", false)
 
         //Source FeatureFlags
         "com.android.launcher3.config.FeatureFlags".toClass().resolve().apply {
@@ -19,11 +15,11 @@ object HookLauncherFeatureFlags : YukiBaseHooker() {
                 parameterCount = 3
             }.hook {
                 before {
-                    val key = firstArg().get<String>() ?: ""
-//                    val defValue = arg(1).get<Boolean>() ?: false
-//                    val description = lastArg().get<String>() ?: ""
+                    val key = args().first().cast<String>() ?: ""
+//                    val defValue = args(1).cast<Boolean>() ?: false
+//                    val description = args().last().cast<String>() ?: ""
                     when (key) {
-                        "ENABLE_TWOLINE_ALLAPPS" -> if (twoLine) arg(1).set(true)
+                        "ENABLE_TWOLINE_ALLAPPS" -> if (twoLine) args(1).set(true)
                     }
                 }
             }

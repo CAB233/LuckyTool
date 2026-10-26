@@ -1,11 +1,9 @@
 package com.luckyzyx.luckytool.service.tiles
 
 import android.service.quicksettings.TileService
-import org.lsposed.lsparanoid.Obfuscate
 import com.luckyzyx.luckytool.utils.IntentUtils
 import com.luckyzyx.luckytool.utils.closeCollapse
 
-@Obfuscate
 class ProcessManagerTile : TileService() {
     override fun onClick() {
         closeCollapse()

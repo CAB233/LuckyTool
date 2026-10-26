@@ -4,19 +4,15 @@ import android.view.View
 import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveTopLockScreenIcon : YukiBaseHooker() {
+object RemoveTopLockScreenIcon : Hooker {
     override fun onHook() {
         //Source LockIcon (C12 C13唯一实现)
         "com.android.systemui.statusbar.phone.LockIcon".toClassOrNull()?.resolve()?.apply {
             firstMethod { name = "updateIconVisibility" }.hook {
                 before {
-                    firstArg().set(false)
+                    args().first().set(false)
                 }
             }
         }
@@ -43,7 +39,7 @@ object RemoveTopLockScreenIcon : YukiBaseHooker() {
                 superclass()
             }.hook {
                 before {
-                    if (instance<View>().javaClass == lockIconView) firstArg().set(4)
+                    if (instance<View>().javaClass == lockIconView) args().first().set(4)
                 }
             }
         }

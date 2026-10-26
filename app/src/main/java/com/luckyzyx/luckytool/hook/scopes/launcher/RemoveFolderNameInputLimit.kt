@@ -3,13 +3,9 @@ package com.luckyzyx.luckytool.hook.scopes.launcher
 import android.text.Editable
 import android.text.TextWatcher
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveFolderNameInputLimit : YukiBaseHooker() {
+object RemoveFolderNameInputLimit : Hooker {
     override fun onHook() {
         //Source OplusFolder
         "com.android.launcher3.folder.OplusFolder".toClass().resolve().apply {

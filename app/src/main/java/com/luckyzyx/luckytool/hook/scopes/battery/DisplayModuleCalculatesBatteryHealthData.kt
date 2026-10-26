@@ -6,33 +6,28 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.factory.injectModuleResources
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.utils.DeviceUtils.calcLocalHealth
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.filterNumber
 import com.luckyzyx.luckytool.utils.safeOf
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object DisplayModuleCalculatesBatteryHealthData : YukiBaseHooker() {
+object DisplayModuleCalculatesBatteryHealthData : Hooker {
     @SuppressLint("SetTextI18n", "DiscouragedApi")
     override fun onHook() {
         val customCalcData =
-            preferences(ModulePrefs).getString("customize_battery_health_data_percentage", "None")
+            prefs(ModulePrefs).getString("customize_battery_health_data_percentage", "None")
         val showCalcData =
-            preferences(ModulePrefs).getBoolean("display_module_calculates_battery_health_data", false)
+            prefs(ModulePrefs).getBoolean("display_module_calculates_battery_health_data", false)
 
         //Source BatteryHealthDataPreference
         "com.oplus.powermanager.fuelgaue.BatteryHealthDataPreference".toClass().resolve().apply {
             firstMethod { parameters(View::class) }.hook {
                 after {
-                    val view = firstArg().get<View>() ?: return@after
+                    val view = args().first().cast<View>() ?: return@after
                     val context = view.context
-                    context.injectModuleResources()
+                    context.injectModuleAppResources()
                     val contentView = view.findViewById<TextView>(
                         view.resources.getIdentifier(
                             "max_capacity_content",

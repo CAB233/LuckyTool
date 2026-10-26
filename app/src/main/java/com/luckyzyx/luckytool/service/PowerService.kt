@@ -11,9 +11,7 @@ import com.luckyzyx.luckytool.IPowerServiceController
 import com.luckyzyx.luckytool.service.base.BaseControllerService
 import com.luckyzyx.luckytool.utils.LogUtils
 import com.topjohnwu.superuser.ipc.RootService
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 object PowerService : BaseControllerService<IPowerServiceController>() {
     override val TAG: String = "PowerService"
     override var controllerService: Class<*> = classOf<PowerControllerService>()
@@ -34,7 +32,6 @@ object PowerService : BaseControllerService<IPowerServiceController>() {
         return IPowerServiceController.Stub.asInterface(iBinder)
     }
 
-    @Obfuscate
     class PowerControllerService : RootService() {
         override fun onBind(intent: Intent) = object : IPowerServiceController.Stub() {
             override fun reboot(confirm: Boolean, reason: String?, wait: Boolean) {

@@ -2,18 +2,14 @@ package com.luckyzyx.luckytool.hook.scopes.otherapp
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookFakeGpsJoyStick : YukiBaseHooker() {
+object HookFakeGpsJoyStick : Hooker {
     override fun onHook() {
-        if (!preferences(ModulePrefs).getBoolean("gps_joystick_unlock_pro", false)) return
+        if (!prefs(ModulePrefs).getBoolean("gps_joystick_unlock_pro", false)) return
 
         //Source
         DexkitUtils.create(appInfo.sourceDir) { dexKitBridge ->
@@ -41,7 +37,7 @@ object HookFakeGpsJoyStick : YukiBaseHooker() {
                             emptyParameters()
                             returnType = Int::class
                         }.hook {
-                            intercept(3)
+                            replaceTo(3)
                         }
                     }
                 }

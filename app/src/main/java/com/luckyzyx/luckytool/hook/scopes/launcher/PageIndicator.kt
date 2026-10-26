@@ -5,24 +5,19 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.A13
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
 import com.luckyzyx.luckytool.utils.safeOfNull
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object PageIndicator : YukiBaseHooker() {
+object PageIndicator : Hooker {
     override fun onHook() {
-        val removeDesktop = preferences(ModulePrefs).getBoolean("remove_pagination_component", false)
+        val removeDesktop = prefs(ModulePrefs).getBoolean("remove_pagination_component", false)
         val removeFolder =
-            preferences(ModulePrefs).getBoolean("remove_folder_pagination_component", false)
+            prefs(ModulePrefs).getBoolean("remove_folder_pagination_component", false)
         val disableSliding =
-            preferences(ModulePrefs).getBoolean("disable_pagination_component_sliding", false)
+            prefs(ModulePrefs).getBoolean("disable_pagination_component_sliding", false)
 
         //Source OplusPageIndicator
         "com.android.launcher.pageindicators.OplusPageIndicator".toClass().resolve().apply {
@@ -62,7 +57,7 @@ object PageIndicator : YukiBaseHooker() {
                 parameters(MotionEvent::class)
             }.hook {
                 if (disableSliding) {
-                    intercept(-1)
+                    replaceTo(-1)
                 }
             }
         }

@@ -17,20 +17,15 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.factory.injectModuleResources
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.hook.utils.FlowUtils
 import com.luckyzyx.luckytool.hook.utils.sysui.AbsSettingsValueProxyUtils
 import com.luckyzyx.luckytool.hook.utils.sysui.WifiUtils
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object WiFiDataIconRelated : YukiBaseHooker() {
+object WiFiDataIconRelated : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
         when (osCode) {
@@ -39,16 +34,15 @@ object WiFiDataIconRelated : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object WiFiDataIcon : YukiBaseHooker() {
+    object WiFiDataIcon : Hooker {
 
         private val hasRegisterCallback = false
         private var wifiInfo: WifiInfo? = null
 
         @SuppressLint("MissingPermission", "DiscouragedApi")
         override fun onHook() {
-            val removeInout = preferences(ModulePrefs).getBoolean("remove_wifi_data_inout", false)
-            val wifiStandard = preferences(ModulePrefs).getBoolean("force_display_wifi_standard", false)
+            val removeInout = prefs(ModulePrefs).getBoolean("remove_wifi_data_inout", false)
+            val wifiStandard = prefs(ModulePrefs).getBoolean("force_display_wifi_standard", false)
 
             val mNetworkRequest = NetworkRequest.Builder().apply {
                 addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
@@ -143,7 +137,7 @@ object WiFiDataIconRelated : YukiBaseHooker() {
         }
 
         fun getSignalDrawable(classLoader: ClassLoader?, context: Context, standard: Int): Int {
-            context.injectModuleResources()
+            context.injectModuleAppResources()
             val isDual = WifiUtils(classLoader).isDualWifiConnected(context)
             val isAp = WifiUtils(classLoader).isPassPointAp(context)
             if (isDual || isAp) return -1
@@ -169,10 +163,9 @@ object WiFiDataIconRelated : YukiBaseHooker() {
 
     }
 
-    @Obfuscate
-    object WiFiDataIconV14 : YukiBaseHooker() {
+    object WiFiDataIconV14 : Hooker {
         override fun onHook() {
-            val removeInout = preferences(ModulePrefs).getBoolean("remove_wifi_data_inout", false)
+            val removeInout = prefs(ModulePrefs).getBoolean("remove_wifi_data_inout", false)
 
             //Source OplusStatusBarWifiView
             VariousClass(

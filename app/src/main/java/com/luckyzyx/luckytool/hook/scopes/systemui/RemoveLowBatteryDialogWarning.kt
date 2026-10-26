@@ -2,13 +2,9 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveLowBatteryDialogWarning : YukiBaseHooker() {
+object RemoveLowBatteryDialogWarning : Hooker {
     override fun onHook() {
         //Source OplusPowerNotificationWarnings
         VariousClass(
@@ -22,7 +18,7 @@ object RemoveLowBatteryDialogWarning : YukiBaseHooker() {
                 intercept()
             }
             firstMethodOrNull { name = "showLowBatteryWarning" }?.hook {
-                intercept(false)
+                replaceTo(false)
             }
         }
     }

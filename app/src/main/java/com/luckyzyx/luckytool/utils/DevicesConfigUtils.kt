@@ -1,11 +1,9 @@
 package com.luckyzyx.luckytool.utils
 
-import org.lsposed.lsparanoid.Obfuscate
 import org.json.JSONObject
 import java.io.File
 
 @Suppress("unused")
-@Obfuscate
 object DevicesConfigUtils {
     private val configName = "/odm/etc/devices_config/devices_config.json"
     private var configFile = File(configName)

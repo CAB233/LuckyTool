@@ -3,13 +3,9 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 import android.view.OplusWindowManager
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object AutoWakeUpFaceUnlockNotification : YukiBaseHooker() {
+object AutoWakeUpFaceUnlockNotification : Hooker {
     override fun onHook() {
         //Source WakeupScreenHelper
         VariousClass(

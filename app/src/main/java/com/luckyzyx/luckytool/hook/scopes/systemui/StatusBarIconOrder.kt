@@ -10,14 +10,10 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.makeAccessible
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import java.lang.reflect.Field
 import java.lang.reflect.Method
+import com.luckyzyx.luckytool.hook.core.*
 
 /**
  * 状态栏图标位置排序（左 / 右两区域，区域内可排序、可跨区搬运）。
@@ -73,8 +69,7 @@ import java.lang.reflect.Method
  * 运行期改动由 dataChannel 推送，重排后调用 `refreshStatusBarIconList()` 重建图标 view 立即生效。
  */
 @SuppressLint("StaticFieldLeak")
-@Obfuscate
-object StatusBarIconOrder : YukiBaseHooker() {
+object StatusBarIconOrder : Hooker {
 
     /** 右区顺序（逗号分隔的槽位名；空 = 宿主默认顺序） */
     private const val RIGHT_KEY = "statusbar_icon_order_right"
@@ -205,28 +200,28 @@ object StatusBarIconOrder : YukiBaseHooker() {
 
     override fun onHook() {
         // 需要重启作用域才会装载/卸载本 hooker
-        if (!preferences(ModulePrefs).getBoolean(ENABLE_KEY, false)) return
+        if (!prefs(ModulePrefs).getBoolean(ENABLE_KEY, false)) return
         // 装载时先把偏好读进来：**重启作用域后不需要任何 dataChannel 推送，按存好的顺序生效**
         //（dataChannel 只负责「运行期改一次就实时生效」，不是唯一入口）
         val initial = normalizeOrders(
-            parseOrder(preferences(ModulePrefs).getString(LEFT_KEY, "")),
-            parseOrder(preferences(ModulePrefs).getString(RIGHT_KEY, "")),
+            parseOrder(prefs(ModulePrefs).getString(LEFT_KEY, "")),
+            parseOrder(prefs(ModulePrefs).getString(RIGHT_KEY, "")),
         )
         leftOrder = initial.first
         rightOrder = initial.second
-//        YLog.debug("StatusBarIconOrder: loaded left=${leftOrder} right=${rightOrder}")
+//        XLog.debug("StatusBarIconOrder: loaded left=${leftOrder} right=${rightOrder}")
         hookIconList()
         hookIconController()
         hookIconManager()
         hookStatusBarView()
         // 重排 + refreshStatusBarIconList 都要在主线程做
-        dataChannel.wait<String>(RIGHT_KEY) { value ->
+        Channel.wait<String>(RIGHT_KEY) { value ->
             val orders = normalizeOrders(leftOrder, parseOrder(value), PushSide.RIGHT)
             leftOrder = orders.first
             rightOrder = orders.second
             Handler(Looper.getMainLooper()).post { applyZones(refresh = true) }
         }
-        dataChannel.wait<String>(LEFT_KEY) { value ->
+        Channel.wait<String>(LEFT_KEY) { value ->
             val orders = normalizeOrders(parseOrder(value), rightOrder, PushSide.LEFT)
             leftOrder = orders.first
             rightOrder = orders.second
@@ -296,20 +291,20 @@ object StatusBarIconOrder : YukiBaseHooker() {
                     val view = instance<View>()
                     statusBarView = view
                     runCatching { applyZones(refresh = false) }
-                        .onFailure { YLog.debug("StatusBarIconOrder: layout apply failed -> $it") }
+                        .onFailure { XLog.debug("StatusBarIconOrder: layout apply failed -> $it") }
                     // 布局装好后再按偏好重建一次图标：**重启作用域后不需要任何推送**，
                     // 直接按存好的左右区顺序生效（与 dataChannel 运行期推送走同一条 applyZones）
                     Handler(Looper.getMainLooper()).post {
                         // 再读一次偏好：装载到 inflate 之间若又改过，以最新偏好为准（prefs 是唯一真相）
                         val orders = normalizeOrders(
-                            parseOrder(preferences(ModulePrefs).getString(LEFT_KEY, "")),
-                            parseOrder(preferences(ModulePrefs).getString(RIGHT_KEY, "")),
+                            parseOrder(prefs(ModulePrefs).getString(LEFT_KEY, "")),
+                            parseOrder(prefs(ModulePrefs).getString(RIGHT_KEY, "")),
                         )
                         leftOrder = orders.first
                         rightOrder = orders.second
-                        YLog.debug("StatusBarIconOrder: startup apply left=${leftOrder} right=${rightOrder}")
+                        XLog.debug("StatusBarIconOrder: startup apply left=${leftOrder} right=${rightOrder}")
                         runCatching { applyZones(refresh = true) }
-                            .onFailure { YLog.debug("StatusBarIconOrder: startup apply failed -> $it") }
+                            .onFailure { XLog.debug("StatusBarIconOrder: startup apply failed -> $it") }
                     }
                 }
             }
@@ -330,7 +325,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
             if (refresh) refreshIcons()
             // 布局跑完再打结构日志：这时 statusIcons 的宽度才是真实值
             statusIconsView?.post { dumpStructure("applied(refresh=$refresh)") }
-        }.onFailure { YLog.debug("StatusBarIconOrder: applyZones failed -> $it") }
+        }.onFailure { XLog.debug("StatusBarIconOrder: applyZones failed -> $it") }
     }
 
     /** 解析状态栏自己的 `statusIcons`，并准备分区容器（按需才会挂到布局上） */
@@ -470,13 +465,13 @@ object StatusBarIconOrder : YukiBaseHooker() {
                         runCatching {
                             parent.removeView(view)
                             parent.addView(view, index.coerceIn(0, parent.childCount))
-                        }.onFailure { YLog.debug("StatusBarIconOrder: move child failed -> $it") }
+                        }.onFailure { XLog.debug("StatusBarIconOrder: move child failed -> $it") }
                     }
                 } else {
                     currentParent?.let { detachQuietly(it, view) }
                     runCatching {
                         parent.addView(view, index.coerceIn(0, parent.childCount))
-                    }.onFailure { YLog.debug("StatusBarIconOrder: attach child failed -> $it") }
+                    }.onFailure { XLog.debug("StatusBarIconOrder: attach child failed -> $it") }
                 }
             }
             index = parent.indexOfChild(view).let { if (it >= 0) it + 1 else index + 1 }
@@ -496,7 +491,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
         if (detach != null) {
             runCatching { detach.invoke(parent, view) }
                 .onSuccess { return }
-                .onFailure { YLog.debug("StatusBarIconOrder: detachQuietly failed -> $it") }
+                .onFailure { XLog.debug("StatusBarIconOrder: detachQuietly failed -> $it") }
         }
         runCatching { parent.removeView(view) }
     }
@@ -526,7 +521,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
         view.requestLayout()
         true
     }.getOrElse {
-        YLog.debug("StatusBarIconOrder: moveChildInPlace failed -> $it")
+        XLog.debug("StatusBarIconOrder: moveChildInPlace failed -> $it")
         false
     }
 
@@ -649,7 +644,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
                                 index.coerceIn(0, container.childCount),
                                 child.layoutParams,
                             )
-                        }.onFailure { YLog.debug("StatusBarIconOrder: reorder move failed -> $it") }
+                        }.onFailure { XLog.debug("StatusBarIconOrder: reorder move failed -> $it") }
                     }
                 } else {
                     // 换容器：安静摘掉再 attach（普通 removeView 会触发 detach 回调，
@@ -661,7 +656,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
                             index.coerceIn(0, container.childCount),
                             child.layoutParams,
                         )
-                    }.onFailure { YLog.debug("StatusBarIconOrder: reorder add failed -> $it") }
+                    }.onFailure { XLog.debug("StatusBarIconOrder: reorder add failed -> $it") }
                 }
                 // 搬进我们自己的段容器后，宿主留下的位移必须清掉（理由见 resetHostIconTransform）
                 resetHostIconTransform(group, child, container)
@@ -682,7 +677,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
             )
             resetHostIconTransform(group, child, target)
         }.onFailure {
-            YLog.debug("StatusBarIconOrder: attach icon failed -> $it")
+            XLog.debug("StatusBarIconOrder: attach icon failed -> $it")
             runCatching { group.rightGroup.addView(child, params ?: child.layoutParams) }
         }
     }
@@ -724,7 +719,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
             val systemIcons = root.findViewById<ViewGroup>(idOf(root, "system_icons"))
             val startSide = root.findViewById<ViewGroup>(idOf(root, "status_bar_start_side_except_heads_up"))
             val slots = (0 until icons.childCount).joinToString(",") { slotOf(icons.getChildAt(it)) ?: "?" }
-            YLog.debug(
+            XLog.debug(
                 "StatusBarIconOrder: $note zonesActive=$zonesActive" +
                     " left=$leftOrder placedL=$placedLeftAnchors" +
                     " right=$rightOrder placedR=$placedRightAnchors" +
@@ -732,7 +727,7 @@ object StatusBarIconOrder : YukiBaseHooker() {
                     " systemIcons=[${childSummary(systemIcons)}]" +
                     " statusIcons(w=${icons.width},n=${icons.childCount})=[$slots]"
             )
-        }.onFailure { YLog.debug("StatusBarIconOrder: dumpStructure failed -> $it") }
+        }.onFailure { XLog.debug("StatusBarIconOrder: dumpStructure failed -> $it") }
     }
 
     /** 宿主资源 id 只能按名字取（模块里没有 com.android.systemui 的 R） */
@@ -787,11 +782,11 @@ object StatusBarIconOrder : YukiBaseHooker() {
         val controller = iconController ?: return
         val method = findMethod(controller.javaClass, "refreshStatusBarIconList")
         if (method == null) {
-            YLog.debug("StatusBarIconOrder: refreshStatusBarIconList not found, restart SystemUI to apply")
+            XLog.debug("StatusBarIconOrder: refreshStatusBarIconList not found, restart SystemUI to apply")
             return
         }
         runCatching { method.invoke(controller) }
-            .onFailure { YLog.debug("StatusBarIconOrder: refreshStatusBarIconList failed -> $it") }
+            .onFailure { XLog.debug("StatusBarIconOrder: refreshStatusBarIconList failed -> $it") }
     }
 
     /**

@@ -8,41 +8,37 @@ import com.highcapable.betterandroid.ui.extension.view.textToString
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.utils.sysui.LunarHelperUtils
 import com.luckyzyx.luckytool.hook.utils.sysui.WeatherInfoParseHelper
 import com.luckyzyx.luckytool.utils.A13
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
 import com.luckyzyx.luckytool.utils.getScreenOrientation
-import org.lsposed.lsparanoid.Obfuscate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 @Suppress("LocalVariableName", "DiscouragedApi")
-object ControlCenterDateStyle : YukiBaseHooker() {
+object ControlCenterDateStyle : Hooker {
     override fun onHook() {
-        var removeComma = preferences(ModulePrefs).getBoolean("remove_control_center_date_comma", false)
-        dataChannel.wait<Boolean>("remove_control_center_date_comma") { removeComma = it }
+        var removeComma = prefs(ModulePrefs).getBoolean("remove_control_center_date_comma", false)
+        Channel.wait<Boolean>("remove_control_center_date_comma") { removeComma = it }
         var showLunar =
-            preferences(ModulePrefs).getBoolean("statusbar_control_center_date_show_lunar", false)
-        dataChannel.wait<Boolean>("statusbar_control_center_date_show_lunar") { showLunar = it }
-        var disableScroll = preferences(ModulePrefs).getBoolean(
+            prefs(ModulePrefs).getBoolean("statusbar_control_center_date_show_lunar", false)
+        Channel.wait<Boolean>("statusbar_control_center_date_show_lunar") { showLunar = it }
+        var disableScroll = prefs(ModulePrefs).getBoolean(
             "statusbar_control_center_date_disable_text_scroll", false
         )
-        dataChannel.wait<Boolean>("statusbar_control_center_date_disable_text_scroll") {
+        Channel.wait<Boolean>("statusbar_control_center_date_disable_text_scroll") {
             disableScroll = it
         }
-        var displayMode = preferences(ModulePrefs).getString(
+        var displayMode = prefs(ModulePrefs).getString(
             "statusbar_control_center_date_set_display_mode_horizontal",
             "0"
         )
-        dataChannel.wait<String>("statusbar_control_center_date_set_display_mode_horizontal") {
+        Channel.wait<String>("statusbar_control_center_date_set_display_mode_horizontal") {
             displayMode = it
         }
 

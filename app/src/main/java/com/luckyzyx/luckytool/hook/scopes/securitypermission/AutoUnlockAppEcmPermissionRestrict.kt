@@ -2,14 +2,10 @@ package com.luckyzyx.luckytool.hook.scopes.securitypermission
 
 import android.app.Activity
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.EcmUtils
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object AutoUnlockAppEcmPermissionRestrict : YukiBaseHooker() {
+object AutoUnlockAppEcmPermissionRestrict : Hooker {
     override fun onHook() {
         //Source PermissionGroupsActivity
         "com.oplusos.securitypermission.permission.PermissionGroupsActivity".toClass().resolve()

@@ -9,30 +9,23 @@ import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
 import com.highcapable.kavaref.extension.classOf
 import com.highcapable.kavaref.extension.createInstance
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.A13
 import com.luckyzyx.luckytool.utils.A14
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
-import org.lsposed.lsparanoid.Obfuscate
 import java.util.function.Supplier
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object LockScreenComponentStyle : YukiBaseHooker() {
+object LockScreenComponentStyle : Hooker {
     override fun onHook() {
         if (SDK == A14) loadHooker(LockScreenComponentStyleV14)
         if (SDK < A14) loadHooker(LockScreenComponentStyleV13)
-        if (preferences(ModulePrefs).getBoolean("force_display_clock_style_options", false)) {
+        if (prefs(ModulePrefs).getBoolean("force_display_clock_style_options", false)) {
             if (SDK == A13) loadHooker(ForceDisplayClockStyleOptionsV13)
         }
     }
 
-    @Obfuscate
-    object LockScreenComponentStyleV14 : YukiBaseHooker() {
+    object LockScreenComponentStyleV14 : Hooker {
         private const val singleClockProvider =
             "com.oplus.systemui.shared.clocks.SingleClockProvider" //C14
         private const val dualClockProvider =
@@ -49,7 +42,7 @@ object LockScreenComponentStyle : YukiBaseHooker() {
         )
 
         override fun onHook() {
-            val mode = preferences(ModulePrefs).getString("lock_screen_custom_clock_component_style", "0")
+            val mode = prefs(ModulePrefs).getString("lock_screen_custom_clock_component_style", "0")
 
             //Source ClockRegistry lock_screen_custom_clock_face
             "com.android.systemui.shared.clocks.ClockRegistry".toClass().resolve().apply {
@@ -82,7 +75,7 @@ object LockScreenComponentStyle : YukiBaseHooker() {
                         val context = firstField { name = "mContext" }.of(instance).get<Context>()
                             ?: return@before
                         val layoutInflater = context.layoutInflater
-                        val colorExtractor = firstArg().get() ?: return@before
+                        val colorExtractor = args().first().any() ?: return@before
                         val singleClock = singleClockProvider.toClassOrNull()
                             ?.createInstance(
                                 context,
@@ -118,7 +111,7 @@ object LockScreenComponentStyle : YukiBaseHooker() {
                         ).apply {
                             removeIf { it == null }
                             if (isEmpty()) {
-                                YLog.error("Clock Providers is empty!")
+                                XLog.error("Clock Providers is empty!")
                                 return@before
                             }
                         }
@@ -129,8 +122,7 @@ object LockScreenComponentStyle : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object LockScreenComponentStyleV13 : YukiBaseHooker() {
+    object LockScreenComponentStyleV13 : Hooker {
         private const val singleClockController =
             "com.oplusos.systemui.keyguard.clock.SingleClockController"
         private const val dualClockController =
@@ -143,7 +135,7 @@ object LockScreenComponentStyle : YukiBaseHooker() {
             "com.android.systemui.colorextraction.SysuiColorExtractor"
 
         override fun onHook() {
-            val mode = preferences(ModulePrefs).getString("lock_screen_custom_clock_component_style", "0")
+            val mode = prefs(ModulePrefs).getString("lock_screen_custom_clock_component_style", "0")
 
             //Source SettingsWrapper lock_screen_custom_clock_face
             "com.android.keyguard.clock.SettingsWrapper".toClass().resolve().apply {
@@ -171,9 +163,9 @@ object LockScreenComponentStyle : YukiBaseHooker() {
                 firstConstructor { parameterCount = 8 }.hook {
                     after {
                         if (mode == "0") return@after
-                        val context = firstArg().get<Context>() ?: return@after
+                        val context = args().first().cast<Context>() ?: return@after
                         val layoutInflater = context.layoutInflater
-                        val colorExtractor = arg(3).get() ?: return@after
+                        val colorExtractor = args(3).any() ?: return@after
                         val opKeyguardClock = Supplier {
                             firstMethod { name = "loadClockByName" }.of(instance).invoke(
                                 "com.oplusos.keyguard.OpKeyguardClockController",
@@ -213,7 +205,7 @@ object LockScreenComponentStyle : YukiBaseHooker() {
                             redHorizontalSingleClock, redHorizontalDualClock
                         ).apply {
                             if (isEmpty()) {
-                                YLog.error("Clock Providers is empty!")
+                                XLog.error("Clock Providers is empty!")
                                 return@after
                             }
                             forEach {

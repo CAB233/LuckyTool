@@ -3,15 +3,11 @@ package com.luckyzyx.luckytool.hook.scopes.games
 import android.os.Bundle
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveRootCheck(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveRootCheck(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         //Source COSASDKManager
         //Search getSupportCoolEx new Bundle -> Class

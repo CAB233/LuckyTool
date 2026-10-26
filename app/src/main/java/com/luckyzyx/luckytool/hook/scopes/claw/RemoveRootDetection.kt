@@ -4,21 +4,15 @@ import android.content.Context
 import android.os.SystemProperties
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.intercept
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.DexkitUtils
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveRootDetection(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveRootDetection(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
-        var isEnable = preferences(ModulePrefs).getBoolean("remove_root_detection", false)
-        dataChannel.wait<Boolean>("remove_root_detection") { isEnable = it }
+        var isEnable = prefs(ModulePrefs).getBoolean("remove_root_detection", false)
+        Channel.wait<Boolean>("remove_root_detection") { isEnable = it }
 
         //各版本 Root 检测共用的三条 boot 属性
         val bootProps = arrayOf(
@@ -54,8 +48,8 @@ class RemoveRootDetection(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                 name = modern.methodName
                 parameters(Context::class)
                 returnType = Boolean::class
-            }?.intercept {
-                if (!isEnable) return@intercept proceed()
+            }?.replaceAny {
+                if (!isEnable) return@replaceAny callOriginal()
                 false
             }
 
@@ -79,7 +73,7 @@ class RemoveRootDetection(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                 }
             }
 
-            else -> YLog.error("RemoveRootDetection -> findMethod isNullOrEmpty", tag = DexkitUtils.tag)
+            else -> XLog.error("RemoveRootDetection -> findMethod isNullOrEmpty", tag = DexkitUtils.tag)
         }
     }
 }

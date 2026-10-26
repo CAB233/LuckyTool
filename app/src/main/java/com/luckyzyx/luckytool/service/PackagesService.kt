@@ -13,10 +13,8 @@ import com.luckyzyx.luckytool.IPackageServiceController
 import com.luckyzyx.luckytool.service.base.BaseControllerService
 import com.luckyzyx.luckytool.utils.LogUtils
 import com.topjohnwu.superuser.ipc.RootService
-import org.lsposed.lsparanoid.Obfuscate
 import java.io.IOException
 
-@Obfuscate
 object PackagesService : BaseControllerService<IPackageServiceController>() {
     override val TAG = "PackageService"
     override var controllerService: Class<*> = classOf<PackageControllerService>()
@@ -42,7 +40,6 @@ object PackagesService : BaseControllerService<IPackageServiceController>() {
         super.get(context, result)
     }
 
-    @Obfuscate
     class PackageControllerService : RootService() {
         override fun onBind(intent: Intent) = object : IPackageServiceController.Stub() {
             override fun clearApplicationProfileData(packageName: String) {

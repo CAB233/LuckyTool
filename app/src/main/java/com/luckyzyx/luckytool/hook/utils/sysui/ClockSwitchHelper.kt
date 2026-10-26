@@ -3,9 +3,7 @@ package com.luckyzyx.luckytool.hook.utils.sysui
 import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 @Suppress("unused")
 class ClockSwitchHelper(val classLoader: ClassLoader?) {
 

@@ -1,18 +1,14 @@
 package com.luckyzyx.luckytool.hook.scopes.smartsidebar
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookFeatureOption : YukiBaseHooker() {
+object HookFeatureOption : Hooker {
     override fun onHook() {
-        val transferDock = preferences(ModulePrefs).getBoolean("unlock_transfer_dock", false)
-        val recentFiles = preferences(ModulePrefs).getBoolean("unlock_recent_files", false)
-        val fluidCloud = preferences(ModulePrefs).getBoolean("unlock_fluid_cloud", false)
+        val transferDock = prefs(ModulePrefs).getBoolean("unlock_transfer_dock", false)
+        val recentFiles = prefs(ModulePrefs).getBoolean("unlock_recent_files", false)
+        val fluidCloud = prefs(ModulePrefs).getBoolean("unlock_fluid_cloud", false)
 
         //Source EdgePanelFeatureOption
         "com.coloros.edgepanel.utils.EdgePanelFeatureOption".toClass().resolve().apply {

@@ -22,7 +22,7 @@ fun String.toClassOrNull(loader: ClassLoader? = Env.activeClassLoader(), initial
     runCatching { toClass(loader, initialize) }.getOrNull()
 
 /**
- * 同形 legacy YukiBaseHooker 成员扩展的 VariousClass.toClass()：委托 KavaRef load()。
+ * 同形 legacy Hooker 成员扩展的 VariousClass.toClass()：委托 KavaRef load()。
  * legacy 里 VariousClass 没有 toClass 扩展，由 PackageParam 成员扩展提供。
  * 返回 Class<Any>（非 *），保持 resolve() 结果不变性，.of(instance) 调用点才能匹配。
  */
@@ -53,5 +53,12 @@ fun Context.injectModuleAppResources() {
             .getDeclaredMethod("addAssetPath", classOf<String>())
             .apply { makeAccessible() }
             .invoke(assets, modulePath)
-    }.onFailure { XLog.w("injectModuleAppResources failed", t = it) }
+    }.onFailure { XLog.w("injectModuleAppResources failed", e = it) }
 }
+
+/** 同形 YukiHookAPI 的 Executable.deoptimize()：返回是否成功 */
+fun java.lang.reflect.Executable.deoptimize(): Boolean = Env.requireBase().deoptimize(this)
+
+/** 同形 YukiHookAPI 的 Method.invokeOriginal(instance, vararg args)：跳过 Hook 调用原方法 */
+fun java.lang.reflect.Method.invokeOriginal(instance: Any?, vararg args: Any?): Any? =
+    Env.requireBase().getInvoker(this).invoke(instance, *args)

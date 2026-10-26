@@ -3,15 +3,11 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 import android.view.MotionEvent
 import android.view.ViewGroup
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.closeScreen
-import org.lsposed.lsparanoid.Obfuscate
 import kotlin.math.abs
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object DoubleClickLockScreen : YukiBaseHooker() {
+object DoubleClickLockScreen : Hooker {
     override fun onHook() {
         var curTouchTime = 0L
         var curTouchX = 0F

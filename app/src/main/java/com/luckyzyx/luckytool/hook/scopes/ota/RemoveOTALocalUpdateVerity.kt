@@ -5,24 +5,19 @@ import android.os.PowerManager
 import android.os.SystemProperties
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
 import java.io.File
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveOTALocalUpdateVerity(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveOTALocalUpdateVerity(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         loadHooker(HookABUpdateUtils(dexKitBridge))
         loadHooker(HookLocalPcakgeInfoUtil(dexKitBridge))
         loadHooker(HookPayloadProperties(dexKitBridge))
     }
 
-    @Obfuscate
-    class HookABUpdateUtils(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    class HookABUpdateUtils(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
             //Source ABUpdateUtils
             dexKitBridge.findClass {
@@ -39,7 +34,7 @@ class RemoveOTALocalUpdateVerity(val dexKitBridge: DexKitBridge) : YukiBaseHooke
                 single().name.toClass().resolve().apply {
                     firstMethod { parameters(File::class, String::class) }.hook {
                         after {
-                            val file = firstArg().get<File>() ?: return@after
+                            val file = args().first().cast<File>() ?: return@after
                             val list = result<java.util.ArrayList<String>>() ?: return@after
 
                             if (file.exists() && file.name.contains("downgrade")) {
@@ -62,8 +57,7 @@ class RemoveOTALocalUpdateVerity(val dexKitBridge: DexKitBridge) : YukiBaseHooke
         }
     }
 
-    @Obfuscate
-    class HookLocalPcakgeInfoUtil(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    class HookLocalPcakgeInfoUtil(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
             //Source LocalPcakgeInfoUtil
             dexKitBridge.findClass {
@@ -91,7 +85,7 @@ class RemoveOTALocalUpdateVerity(val dexKitBridge: DexKitBridge) : YukiBaseHooke
                         returnType { it == classOf<List<*>>() || it == classOf<ArrayList<*>>() }
                     }.hook {
                         after {
-                            val filePath = arg(args.indexOfFirst { it is String }).get<String>() ?: ""
+                            val filePath = args(arguments.indexOfFirst { it is String }).cast<String>() ?: ""
                             val list = result<java.util.ArrayList<String>>() ?: return@after
 
                             if (filePath.contains("downgrade")) {
@@ -114,8 +108,7 @@ class RemoveOTALocalUpdateVerity(val dexKitBridge: DexKitBridge) : YukiBaseHooke
         }
     }
 
-    @Obfuscate
-    class HookPayloadProperties(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    class HookPayloadProperties(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
             //Source ABUpdateManager
             dexKitBridge.findClass {
@@ -160,7 +153,7 @@ class RemoveOTALocalUpdateVerity(val dexKitBridge: DexKitBridge) : YukiBaseHooke
                             returnType(Void.TYPE)
                         }.hook {
                             before {
-                                val headers = lastArg().get<Array<String>>() ?: emptyArray()
+                                val headers = args().last().cast<Array<String>>() ?: emptyArray()
                                 headers.toMutableList().apply {
                                     removeIf { it.contains("forbid_ota_local_update") }
                                     removeIf { it.contains("ota_root_or_debug") }

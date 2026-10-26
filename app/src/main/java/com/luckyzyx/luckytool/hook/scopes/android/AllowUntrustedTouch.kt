@@ -1,24 +1,20 @@
 package com.luckyzyx.luckytool.hook.scopes.android
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.A14
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object AllowUntrustedTouch : YukiBaseHooker() {
+object AllowUntrustedTouch : Hooker {
     override fun onHook() {
-        val isEnable = preferences(ModulePrefs).getBoolean("allow_untrusted_touch", false)
+        val isEnable = prefs(ModulePrefs).getBoolean("allow_untrusted_touch", false)
 
         //Source UntrustedTouchController
         "com.android.server.input.UntrustedTouchController".toClass().resolve().apply {
             firstMethod { name = "isOplusTrustedApp" }.hook {
                 if (isEnable) {
-                    intercept(true)
+                    replaceTo(true)
                 }
             }
             firstMethod { name = "showTipsDialog" }.hook {
@@ -29,7 +25,7 @@ object AllowUntrustedTouch : YukiBaseHooker() {
         "com.android.server.wm.WindowStateExtImpl".toClass().resolve().apply {
             firstMethod { name = "isOplusTrustedWindow" }.hook {
                 if (isEnable) {
-                    intercept(true)
+                    replaceTo(true)
                 }
             }
         }
@@ -38,7 +34,7 @@ object AllowUntrustedTouch : YukiBaseHooker() {
         "android.hardware.input.InputManager".toClass().resolve().apply {
             firstMethod { name = "getBlockUntrustedTouchesMode" }.hook {
                 if (isEnable) {
-                    intercept(0)
+                    replaceTo(0)
                 }
             }
         }

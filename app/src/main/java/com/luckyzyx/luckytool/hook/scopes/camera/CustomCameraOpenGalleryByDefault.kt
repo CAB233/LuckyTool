@@ -3,18 +3,14 @@ package com.luckyzyx.luckytool.hook.scopes.camera
 import android.net.Uri
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class CustomCameraOpenGalleryByDefault(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class CustomCameraOpenGalleryByDefault(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
-        val gallery = preferences(ModulePrefs).getString("custom_camera_open_gallery_by_default", "")
+        val gallery = prefs(ModulePrefs).getString("custom_camera_open_gallery_by_default", "")
         if (gallery.isBlank()) return
 
         //Source GalleryUtil

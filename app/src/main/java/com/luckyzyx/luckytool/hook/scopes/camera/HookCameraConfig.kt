@@ -3,29 +3,24 @@ package com.luckyzyx.luckytool.hook.scopes.camera
 import android.util.ArrayMap
 import android.util.ArraySet
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.core.YukiHookCreator
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookCameraConfig : YukiBaseHooker() {
+object HookCameraConfig : Hooker {
     override fun onHook() {
         val list = ArrayMap<String, Any>().apply {
             //10亿色影像
-            if (preferences(ModulePrefs).getBoolean("enable_10_bit_image_support", false)) {
+            if (prefs(ModulePrefs).getBoolean("enable_10_bit_image_support", false)) {
                 put("com.oplus.10bits.heic.encode.support", true)
                 put("com.oplus.feature.video.10bit.support", true)
             }
             //画框水印
-            if (preferences(ModulePrefs).getBoolean("enable_frame_watermark_style", false)) {
+            if (prefs(ModulePrefs).getBoolean("enable_frame_watermark_style", false)) {
                 put("com.oplus.camera.support.frame.watermark", true)
             }
 
             //AI大师水印
-            if (preferences(ModulePrefs).getBoolean("enable_ai_master_watermark", false)) {
+            if (prefs(ModulePrefs).getBoolean("enable_ai_master_watermark", false)) {
                 put("com.oplus.camera.support.ai.master.watermark", true)
             }
 
@@ -34,7 +29,7 @@ object HookCameraConfig : YukiBaseHooker() {
 //            put("com.oplus.camera.support.color.extraction", true)
 
             //哈苏水印
-            if (preferences(ModulePrefs).getBoolean("enable_hasselblad_watermark_style", false)) {
+            if (prefs(ModulePrefs).getBoolean("enable_hasselblad_watermark_style", false)) {
                 //禁用画框水印
                 put("com.oplus.camera.support.frame.watermark", false)
 
@@ -53,7 +48,7 @@ object HookCameraConfig : YukiBaseHooker() {
 
             //Filter FilterGroupManager 通用滤镜
             val universalFilters =
-                preferences(ModulePrefs).getStringSet("camera_universal_filter_settings", ArraySet())
+                prefs(ModulePrefs).getStringSet("camera_universal_filter_settings", ArraySet())
             //大师滤镜
             if (universalFilters.contains("master_filter")) {
                 put(
@@ -108,7 +103,7 @@ object HookCameraConfig : YukiBaseHooker() {
 
             //Filter Portrait
             val portraitFilters =
-                preferences(ModulePrefs).getStringSet("camera_portrait_filter_settings", ArraySet())
+                prefs(ModulePrefs).getStringSet("camera_portrait_filter_settings", ArraySet())
 
             //人像留色
             if (portraitFilters.contains("retention")) {
@@ -124,7 +119,7 @@ object HookCameraConfig : YukiBaseHooker() {
 
             //Filter Video
             val videoFilters =
-                preferences(ModulePrefs).getStringSet("camera_video_filter_settings", ArraySet())
+                prefs(ModulePrefs).getStringSet("camera_video_filter_settings", ArraySet())
 
             //赤红/森绿/天蓝
             if (videoFilters.contains("color_extraction")) {
@@ -141,24 +136,23 @@ object HookCameraConfig : YukiBaseHooker() {
             }
 
             //夜景30倍变焦
-            if (preferences(ModulePrefs).getBoolean("enable_camera_night_zoom_30x", false)) {
+            if (prefs(ModulePrefs).getBoolean("enable_camera_night_zoom_30x", false)) {
                 put("com.oplus.night.mode.max.zoom.support", true)
                 put("com.oplus.night.zoom.max.value.default", 30)
             }
             //视频录制轮盘变焦
-            if (preferences(ModulePrefs).getBoolean("enable_video_capture_roulette_zoom", false)) {
+            if (prefs(ModulePrefs).getBoolean("enable_video_capture_roulette_zoom", false)) {
                 put("com.oplus.video.inertial.zoom.support", false)
             }
             //移除闪光灯使用限制
-            if (preferences(ModulePrefs).getBoolean("remove_camera_flash_limit", false)) {
+            if (prefs(ModulePrefs).getBoolean("remove_camera_flash_limit", false)) {
                 put("com.oplus.feature.temperature.protection.support", false)
             }
         }
         loadHooker(HookCameraVendorTag(list))
     }
 
-    @Obfuscate
-    private class HookCameraVendorTag(val tags: Map<String, Any>) : YukiBaseHooker() {
+    private class HookCameraVendorTag(val tags: Map<String, Any>) : Hooker {
         override fun onHook() {
             //Source CameraAdapterUtils
             "com.oplus.ocs.camera.appinterface.adapter.CameraAdapterUtils".toClassOrNull()
@@ -177,12 +171,12 @@ object HookCameraConfig : YukiBaseHooker() {
         }
 
         companion object {
-            private fun YukiHookCreator.ClassicMemberHooker.hookVendorTag(tags: Map<String, Any>) {
+            private fun HookAction.hookVendorTag(tags: Map<String, Any>) {
                 after {
-                    val key = firstArg().get<String>() ?: ""
+                    val key = args().first().cast<String>() ?: ""
                     if (key.isBlank()) return@after
                     val value = tags[key] ?: return@after
-//                    YLog.debug("$key -> $value")
+//                    XLog.debug("$key -> $value")
                     result = when (value) {
                         is Boolean -> if (value) "1" else "0"
                         is Int -> value.toString()

@@ -1,17 +1,13 @@
 package com.luckyzyx.luckytool.hook.scopes.keyguardpersonality
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object KeyGuardPersonalityRedMode : YukiBaseHooker() {
+object KeyGuardPersonalityRedMode : Hooker {
     override fun onHook() {
-        var redMode = preferences(ModulePrefs).getString("lock_screen_clock_redone_mode", "0")
-        dataChannel.wait<String>("lock_screen_clock_redone_mode") { redMode = it }
+        var redMode = prefs(ModulePrefs).getString("lock_screen_clock_redone_mode", "0")
+        Channel.wait<String>("lock_screen_clock_redone_mode") { redMode = it }
 
         // ColorOS 17 将经典/数字时钟移入 personality APK，并提供独立红色 1 开关。
         //Source ClockViewRootModel
@@ -25,8 +21,8 @@ object KeyGuardPersonalityRedMode : YukiBaseHooker() {
             }.hook {
                 before {
                     when (redMode) {
-                        "1" -> arg(0).set(true)
-                        "2" -> arg(0).set(false)
+                        "1" -> args(0).set(true)
+                        "2" -> args(0).set(false)
                     }
                 }
             }

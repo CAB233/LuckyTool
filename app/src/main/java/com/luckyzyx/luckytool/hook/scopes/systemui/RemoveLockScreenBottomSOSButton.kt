@@ -4,13 +4,9 @@ import android.view.View
 import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveLockScreenBottomSOSButton : YukiBaseHooker() {
+object RemoveLockScreenBottomSOSButton : Hooker {
     override fun onHook() {
         //Source OplusEmergencyButtonControllExImpl
         VariousClass(
@@ -18,7 +14,7 @@ object RemoveLockScreenBottomSOSButton : YukiBaseHooker() {
             "com.oplus.keyguard.OplusEmergencyButtonExImpl" //C14 C15
         ).toClass().resolve().apply {
             firstMethodOrNull { name = "disableShowEmergencyButton" }?.hook {
-                intercept(true)
+                replaceTo(true)
             } ?: firstMethodOrNull { name = "shouldUpdateEmergencyCallButton" }?.hook {
                 before {
                     firstField { name = "mEmergencyButton" }.of(instance).get<View>()
@@ -27,7 +23,7 @@ object RemoveLockScreenBottomSOSButton : YukiBaseHooker() {
                 }
             } ?: firstMethod { name = "updateEmergencyCallButton" }.hook {
                 before {
-                    lastArg().set(false)
+                    args().last().set(false)
                 }
             }
         }

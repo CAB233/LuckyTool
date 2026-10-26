@@ -9,19 +9,14 @@ import androidx.core.content.edit
 import com.highcapable.betterandroid.ui.extension.view.toast
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.FileUtils
 import com.luckyzyx.luckytool.utils.showToast
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
 import java.io.File
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class EnableOpexLocalInstall(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class EnableOpexLocalInstall(val dexKitBridge: DexKitBridge) : Hooker {
 
     companion object {
         val packageListInfo = "com.oplus.ota.db.PackageListInfo"
@@ -60,7 +55,7 @@ class EnableOpexLocalInstall(val dexKitBridge: DexKitBridge) : YukiBaseHooker() 
             }.hook {
                 after {
                     val activity = instance<Activity>()
-                    val menu = firstArg().get<Menu>() ?: return@after
+                    val menu = args().first().cast<Menu>() ?: return@after
                     menu.add(0, OpexMenuItemCode, 0, "Opex")
                     menu.findItem(OpexMenuItemCode)?.setOnMenuItemClickListener {
                         val intent = Intent("android.intent.action.OPEN_DOCUMENT")
@@ -79,9 +74,9 @@ class EnableOpexLocalInstall(val dexKitBridge: DexKitBridge) : YukiBaseHooker() 
             }.hook {
                 before {
                     val activity = instance<Activity>()
-                    val requestCode = firstArg().get<Int>() ?: 0
-                    val resultCode = arg(1).get<Int>() ?: 0
-                    val intent = lastArg().get<Intent>() ?: return@before
+                    val requestCode = args().first().cast<Int>() ?: 0
+                    val resultCode = args(1).cast<Int>() ?: 0
+                    val intent = args().last().cast<Intent>() ?: return@before
                     if (requestCode == OpexMenuItemCode && resultCode == Activity.RESULT_OK) {
                         try {
                             val sp =
@@ -93,7 +88,7 @@ class EnableOpexLocalInstall(val dexKitBridge: DexKitBridge) : YukiBaseHooker() 
                                 )
                             }
                         } catch (t: Throwable) {
-                            YLog.debug("prefs state_info error: ${t.message}")
+                            XLog.debug("prefs state_info error: ${t.message}")
                         }
 
                         val uri = intent.data ?: return@before
@@ -102,7 +97,7 @@ class EnableOpexLocalInstall(val dexKitBridge: DexKitBridge) : YukiBaseHooker() 
                                 uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
                             )
                         } catch (t: Throwable) {
-                            YLog.debug("takePersistableUriPermission error: ${t.message}")
+                            XLog.debug("takePersistableUriPermission error: ${t.message}")
                         }
 
                         val name = uri.path?.substringAfterLast("/") ?: return@before
@@ -145,7 +140,7 @@ class EnableOpexLocalInstall(val dexKitBridge: DexKitBridge) : YukiBaseHooker() 
                             } else {
                                 copy.invoke(activity, info, index, false)
                             }
-                            YLog.debug("$name -> $code")
+                            XLog.debug("$name -> $code")
                             activity.showToast("$name -> $code")
                         }
 

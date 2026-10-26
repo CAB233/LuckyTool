@@ -7,13 +7,9 @@ import android.webkit.WebView
 import androidx.core.view.isVisible
 import com.highcapable.betterandroid.ui.extension.view.removeSelf
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveHoroscopePageInformationFlow : YukiBaseHooker() {
+object RemoveHoroscopePageInformationFlow : Hooker {
     @SuppressLint("DiscouragedApi")
     override fun onHook() {
         //Source HoroscopeFragment -> H5InterfaceHelper getHoroscopeUrl
@@ -21,7 +17,7 @@ object RemoveHoroscopePageInformationFlow : YukiBaseHooker() {
             .apply {
                 firstMethod { name = "onViewCreated"; parameterCount = 2 }.hook {
                     after {
-                        val viewGroup = firstArg().get<ViewGroup>() ?: return@after
+                        val viewGroup = args().first().cast<ViewGroup>() ?: return@after
                         val res = viewGroup.resources
                         viewGroup.findViewById<View>(
                             res.getIdentifier(

@@ -5,35 +5,29 @@ import android.util.TypedValue
 import android.widget.TextView
 import com.highcapable.betterandroid.ui.extension.view.textToString
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.safeOfNull
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object StatusBarBatteryView : YukiBaseHooker() {
+object StatusBarBatteryView : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
         if (osCode >= 30) loadHooker(StatusBarPowerStyle)
         else loadHooker(StatusBarPowerStyleC13)
     }
 
-    @Obfuscate
-    object StatusBarPowerStyle : YukiBaseHooker() {
+    object StatusBarPowerStyle : Hooker {
         override fun onHook() {
             val removePercent =
-                preferences(ModulePrefs).getBoolean("remove_statusbar_battery_percent", false)
+                prefs(ModulePrefs).getBoolean("remove_statusbar_battery_percent", false)
             val userTypeface =
-                preferences(ModulePrefs).getBoolean("statusbar_power_user_typeface", false)
+                prefs(ModulePrefs).getBoolean("statusbar_power_user_typeface", false)
             val useBoldFont =
-                preferences(ModulePrefs).getBoolean("statusbar_power_use_bold_font_style", false)
-            val customFontSize = preferences(ModulePrefs).getInt("statusbar_power_font_size", 0)
+                prefs(ModulePrefs).getBoolean("statusbar_power_use_bold_font_style", false)
+            val customFontSize = prefs(ModulePrefs).getInt("statusbar_power_font_size", 0)
             val applyToIcon =
-                preferences(ModulePrefs).getBoolean("statusbar_power_apply_to_battery_icon", false)
+                prefs(ModulePrefs).getBoolean("statusbar_power_apply_to_battery_icon", false)
 
             //Source BatteryViewBinder
             "com.oplus.systemui.statusbar.pipeline.battery.ui.binder.BatteryViewBinder".toClass()
@@ -75,18 +69,17 @@ object StatusBarBatteryView : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object StatusBarPowerStyleC13 : YukiBaseHooker() {
+    object StatusBarPowerStyleC13 : Hooker {
         override fun onHook() {
             val removePercent =
-                preferences(ModulePrefs).getBoolean("remove_statusbar_battery_percent", false)
+                prefs(ModulePrefs).getBoolean("remove_statusbar_battery_percent", false)
             val userTypeface =
-                preferences(ModulePrefs).getBoolean("statusbar_power_user_typeface", false)
+                prefs(ModulePrefs).getBoolean("statusbar_power_user_typeface", false)
             val useBoldFont =
-                preferences(ModulePrefs).getBoolean("statusbar_power_use_bold_font_style", false)
-            val customFontSize = preferences(ModulePrefs).getInt("statusbar_power_font_size", 0)
+                prefs(ModulePrefs).getBoolean("statusbar_power_use_bold_font_style", false)
+            val customFontSize = prefs(ModulePrefs).getInt("statusbar_power_font_size", 0)
             val applyToIcon =
-                preferences(ModulePrefs).getBoolean("statusbar_power_apply_to_battery_icon", false)
+                prefs(ModulePrefs).getBoolean("statusbar_power_apply_to_battery_icon", false)
 
             //Source StatBatteryMeterView
             "com.oplusos.systemui.statusbar.widget.StatBatteryMeterView".toClass().resolve().apply {

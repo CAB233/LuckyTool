@@ -1,22 +1,18 @@
 package com.luckyzyx.luckytool.hook.scopes.android
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object ForceEnable32BitSupport : YukiBaseHooker() {
+object ForceEnable32BitSupport : Hooker {
     override fun onHook() {
-        val isEnable = preferences(ModulePrefs).getBoolean("force_enable_32_bit_support", false)
+        val isEnable = prefs(ModulePrefs).getBoolean("force_enable_32_bit_support", false)
         if (!isEnable) return
 
         //Source OplusPackageManagerHelper
         "com.android.server.pm.OplusPackageManagerHelper".toClass().resolve().apply {
             firstMethod { name = "allowInstall32BitApp" }.hook {
-                intercept(true)
+                replaceTo(true)
             }
         }
     }

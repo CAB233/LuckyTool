@@ -2,9 +2,8 @@ package org.lsposed.corepatch.hook
 
 import android.annotation.SuppressLint
 import android.os.Build
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.log.YLog
 import org.lsposed.corepatch.Config
+import com.luckyzyx.luckytool.hook.core.*
 
 object PackageManagerServiceUtilsHook : BaseHook() {
     override val name = "PackageManagerServiceUtilsHook"
@@ -31,7 +30,7 @@ object PackageManagerServiceUtilsHook : BaseHook() {
         //     boolean isRollback)
         val verifySignaturesMethod =
             packageManagerServiceUtilsClazz.declaredMethods.first { m -> m.name == "verifySignatures" && m.returnType == Boolean::class.java }
-        if (!verifySignaturesMethod.deoptimize()) YLog.debug("failed to deoptimize verifySignatures")
+        if (!verifySignaturesMethod.deoptimize()) XLog.debug("failed to deoptimize verifySignatures")
         verifySignaturesMethod.hook {
             before {
                 if (Config.isBypassVerificationEnabled()) {
@@ -55,7 +54,7 @@ object PackageManagerServiceUtilsHook : BaseHook() {
                 .forEach { checkDowngradeMethod ->
                     //经典 before 钩子无法可靠跳过 void 方法的原始调用，改用 intercept
                     checkDowngradeMethod.hook {
-                        intercept {
+                        replaceAny {
                             if (Config.isBypassDowngradeEnabled()) null else callOriginal()
                         }
                     }
@@ -67,7 +66,7 @@ object PackageManagerServiceUtilsHook : BaseHook() {
             // https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/pm/PackageManagerServiceUtils.java;l=621
             val canJoinSharedUserIdMethod =
                 packageManagerServiceUtilsClazz.declaredMethods.first { m -> m.name == "canJoinSharedUserId" }
-            if (!canJoinSharedUserIdMethod.deoptimize()) YLog.debug("failed to deoptimize canJoinSharedUserId")
+            if (!canJoinSharedUserIdMethod.deoptimize()) XLog.debug("failed to deoptimize canJoinSharedUserId")
         }
     }
 }

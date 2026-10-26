@@ -1,13 +1,9 @@
 package com.luckyzyx.luckytool.hook.scopes.games
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveToolRecommendationCard : YukiBaseHooker() {
+object RemoveToolRecommendationCard : Hooker {
     override fun onHook() {
         //Source ToolsRecommendCardLayout
         "business.module.toolsrecommend.ToolsRecommendCardLayout".toClassOrNull()?.resolve()
@@ -17,7 +13,7 @@ object RemoveToolRecommendationCard : YukiBaseHooker() {
                     returnType = Void.TYPE
                 }.hook {
                     before {
-                        firstArg().set(ArrayList<Any>())
+                        args().first().set(ArrayList<Any>())
                     }
                 }
             }
@@ -26,8 +22,8 @@ object RemoveToolRecommendationCard : YukiBaseHooker() {
 //        "business.toolpanel.adapter.GameToolTileAdapter".toClassOrNull()?.apply {
 //            method { name = "onCreateViewHolder" }.hook {
 //                after {
-//                    val parent = firstArg().get<ViewGroup>() ?: return@after
-//                    val id = lastArg().get<Int>() ?: 0
+//                    val parent = args().first().cast<ViewGroup>() ?: return@after
+//                    val id = args().last().cast<Int>() ?: 0
 //                    if (id == 10005) result<ViewHolder>()?.itemView?.isVisible = false
 //                }
 //            }

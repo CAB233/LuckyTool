@@ -12,7 +12,6 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
         maven("https://jitpack.io")
-        maven("https://api.xposed.info")
         // 详情请前往：https://github.com/HighCapable/maven-repository
         // 中国大陆用户请将下方的 "raw.githubusercontent.com" 修改为 "raw.gitmirror.com"
         maven("https://raw.githubusercontent.com/HighCapable/maven-repository/main/repository/releases")
@@ -48,13 +47,9 @@ gropify {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        mavenLocal {
-            content { includeGroup("com.highcapable.kavaref") }
-        }
         google()
         mavenCentral()
         maven("https://jitpack.io")
-        maven("https://api.xposed.info")
         // 详情请前往：https://github.com/HighCapable/maven-repository
         // 中国大陆用户请将下方的 "raw.githubusercontent.com" 修改为 "raw.gitmirror.com"
         maven("https://raw.githubusercontent.com/HighCapable/maven-repository/main/repository/releases")

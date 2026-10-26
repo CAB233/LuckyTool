@@ -12,10 +12,8 @@ import android.content.pm.PackageManager.ResolveInfoFlags
 import android.content.pm.ResolveInfo
 import android.graphics.drawable.Drawable
 import com.luckyzyx.luckytool.data.AppInfo
-import org.lsposed.lsparanoid.Obfuscate
 import java.io.File
 
-@Obfuscate
 class PackageUtils(private val packageManager: PackageManager) {
 
     /**

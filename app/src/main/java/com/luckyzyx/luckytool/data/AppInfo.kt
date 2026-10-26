@@ -1,10 +1,8 @@
 package com.luckyzyx.luckytool.data
 
 import android.graphics.drawable.Drawable
-import org.lsposed.lsparanoid.Obfuscate
 import java.io.Serializable
 
-@Obfuscate
 data class AppInfo(
     val name: String,
     val packageName: String,

@@ -1,18 +1,14 @@
 package com.luckyzyx.luckytool.hook.scopes.settings
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookSettingsPreferenceFragment : YukiBaseHooker() {
+object HookSettingsPreferenceFragment : Hooker {
     override fun onHook() {
         //启用应用专属媒体音量
         val specificMediaVolume =
-            preferences(ModulePrefs).getBoolean("enable_app_specific_media_volume", false)
+            prefs(ModulePrefs).getBoolean("enable_app_specific_media_volume", false)
 
         //Source SettingsPreferenceFragment
         "com.android.settings.SettingsPreferenceFragment".toClass().resolve().apply {
@@ -21,7 +17,7 @@ object HookSettingsPreferenceFragment : YukiBaseHooker() {
                 parameters(String::class)
             }.hook {
                 before {
-                    when (firstArg().get<String>() ?: "") {
+                    when (args().first().cast<String>() ?: "") {
                         "voice_mode_category" -> if (specificMediaVolume) result = true
                     }
                 }

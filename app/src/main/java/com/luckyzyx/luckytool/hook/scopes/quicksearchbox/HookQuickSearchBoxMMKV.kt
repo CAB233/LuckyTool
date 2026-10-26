@@ -3,20 +3,16 @@ package com.luckyzyx.luckytool.hook.scopes.quicksearchbox
 import android.util.ArrayMap
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class HookQuickSearchBoxMMKV(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class HookQuickSearchBoxMMKV(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         val map = ArrayMap<String, Any>().apply {
             if (
-                preferences(ModulePrefs)
+                prefs(ModulePrefs)
                     .getBoolean("remove_searchbox_uninstalled_app_suggestions", false)
             ) {
                 put("new_suggest_app_card", false)
@@ -25,8 +21,7 @@ class HookQuickSearchBoxMMKV(val dexKitBridge: DexKitBridge) : YukiBaseHooker() 
         loadHooker(HookMMKVManager(dexKitBridge, map))
     }
 
-    @Obfuscate
-    class HookMMKVManager(val dexKitBridge: DexKitBridge, val map: ArrayMap<String, Any>)  : YukiBaseHooker() {
+    class HookMMKVManager(val dexKitBridge: DexKitBridge, val map: ArrayMap<String, Any>)  : Hooker {
         override fun onHook() {
             //Source MMKVManager
             dexKitBridge.findClass {
@@ -50,7 +45,7 @@ class HookQuickSearchBoxMMKV(val dexKitBridge: DexKitBridge) : YukiBaseHooker() 
                             returnType = String::class
                         }.hook {
                             before {
-                                val key = firstArg().get<String>()
+                                val key = args().first().cast<String>()
                                 if (key.isNullOrBlank()) return@before
                                 when (val value = map[key]) {
                                     null -> return@before
@@ -77,7 +72,7 @@ class HookQuickSearchBoxMMKV(val dexKitBridge: DexKitBridge) : YukiBaseHooker() 
                             returnType = Boolean::class
                         }.hook {
                             before {
-                                val key = firstArg().get<String>()
+                                val key = args().first().cast<String>()
                                 if (key.isNullOrBlank()) return@before
                                 when (val value = map[key]) {
                                     null -> return@before

@@ -1,19 +1,15 @@
 package com.luckyzyx.luckytool.hook.scopes.android
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.A13
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object MediaVolumeLevel : YukiBaseHooker() {
+object MediaVolumeLevel : Hooker {
     override fun onHook() {
-        val mediaVolumeLevel = preferences(ModulePrefs).getInt("media_volume_level", 0)
-        val minVolumeZero = preferences(ModulePrefs).getBoolean("minimum_volume_level_can_be_zero", false)
+        val mediaVolumeLevel = prefs(ModulePrefs).getInt("media_volume_level", 0)
+        val minVolumeZero = prefs(ModulePrefs).getBoolean("minimum_volume_level_can_be_zero", false)
 
         //Source AudioServiceExtImpl
         "com.android.server.audio.AudioServiceExtImpl".toClass().resolve().apply {

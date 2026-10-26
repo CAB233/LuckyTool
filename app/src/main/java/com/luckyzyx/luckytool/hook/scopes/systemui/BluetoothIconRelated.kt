@@ -3,24 +3,20 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.A14
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object BluetoothIconRelated : YukiBaseHooker() {
+object BluetoothIconRelated : Hooker {
 
     private val BluetoothController = "com.android.systemui.statusbar.policy.BluetoothController"
     private val StatusBarIconController =
         "com.android.systemui.statusbar.phone.ui.StatusBarIconController"
 
     override fun onHook() {
-        var isHide = preferences(ModulePrefs).getBoolean("hide_icon_when_bluetooth_not_connected", false)
-        dataChannel.wait<Boolean>("hide_icon_when_bluetooth_not_connected") { isHide = it }
+        var isHide = prefs(ModulePrefs).getBoolean("hide_icon_when_bluetooth_not_connected", false)
+        Channel.wait<Boolean>("hide_icon_when_bluetooth_not_connected") { isHide = it }
 
         //Source PhoneStatusBarPolicyEx
         VariousClass(
@@ -30,7 +26,7 @@ object BluetoothIconRelated : YukiBaseHooker() {
             firstMethodOrNull { name = "updateBluetoothIcon";parameterCount = 4 }?.hook {
                 before {
                     if (!isHide) return@before
-                    val isBluetoothEnabled = lastArg().get<Boolean>() ?: false
+                    val isBluetoothEnabled = args().last().cast<Boolean>() ?: false
                     val controller = firstField {
                         type = BluetoothController
                         if (SDK < A14) superclass()
@@ -38,7 +34,7 @@ object BluetoothIconRelated : YukiBaseHooker() {
                     val isBluetoothConnected = controller.asResolver().firstMethod {
                         name = "isBluetoothConnected"
                     }.invoke<Boolean>() ?: return@before
-                    lastArg().set(isBluetoothEnabled && isBluetoothConnected)
+                    args().last().set(isBluetoothEnabled && isBluetoothConnected)
                 }
             } ?: run {
                 (firstMethodOrNull {

@@ -2,18 +2,14 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 
 import android.util.ArraySet
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object CustomMusicFluidCloudWhitelist : YukiBaseHooker() {
+object CustomMusicFluidCloudWhitelist : Hooker {
     override fun onHook() {
-        val disabled = preferences(ModulePrefs).getBoolean("disable_music_fluid_cloud_display", false)
+        val disabled = prefs(ModulePrefs).getBoolean("disable_music_fluid_cloud_display", false)
         val set =
-            preferences(ModulePrefs).getStringSet("set_custom_music_fluid_cloud_whitelist", ArraySet())
+            prefs(ModulePrefs).getStringSet("set_custom_music_fluid_cloud_whitelist", ArraySet())
 
         //Source OplusMediaRusUpdateManager
         "com.oplus.systemui.media.seedling.rus.OplusMediaRusUpdateManager".toClass().resolve()

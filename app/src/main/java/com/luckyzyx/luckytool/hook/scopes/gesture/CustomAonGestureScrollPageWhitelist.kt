@@ -5,22 +5,17 @@ import android.util.ArrayMap
 import android.util.ArraySet
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class CustomAonGestureScrollPageWhitelist(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class CustomAonGestureScrollPageWhitelist(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
-        val pageSet = preferences(ModulePrefs).getStringSet(
+        val pageSet = prefs(ModulePrefs).getStringSet(
             "custom_aon_gesture_scroll_page_whitelist_list", ArraySet()
         )
-//        val videoSet = preferences(ModulePrefs).getStringSet(
+//        val videoSet = prefs(ModulePrefs).getStringSet(
 //            "custom_aon_gesture_video_whitelist_list", ArraySet()
 //        )
         if (pageSet.isEmpty()) return

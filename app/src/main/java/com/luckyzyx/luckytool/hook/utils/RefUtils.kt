@@ -5,10 +5,8 @@ package com.luckyzyx.luckytool.hook.utils
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.classOf
 import com.highcapable.kavaref.extension.createInstance
-import com.highcapable.kavaref.extension.toClass
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 class RefUtils(val classLoader: ClassLoader?) {
 
     val BooleanRefCls = "kotlin.jvm.internal.Ref\$BooleanRef"

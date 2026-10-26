@@ -2,15 +2,11 @@ package com.luckyzyx.luckytool.hook.scopes.gallery
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveAIGCEliminationLimit(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveAIGCEliminationLimit(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         //Source EliminateDetectInfo / PanoramicSegmentationInfo
         dexKitBridge.findClass {
@@ -28,8 +24,8 @@ class RemoveAIGCEliminationLimit(val dexKitBridge: DexKitBridge) : YukiBaseHooke
                 firstConstructor { parameters { it.contains(classOf<Boolean>()) } }.hook {
                     before {
                         args.forEachIndexed { index, it ->
-                            if (it is Boolean) arg(index).set(false)
-                            if (it?.javaClass?.isEnum == true) arg(index).set(null)
+                            if (it is Boolean) args(index).set(false)
+                            if (it?.javaClass?.isEnum == true) args(index).set(null)
                         }
                     }
                 }
@@ -54,10 +50,10 @@ class RemoveAIGCEliminationLimit(val dexKitBridge: DexKitBridge) : YukiBaseHooke
                 firstConstructor { parameters { it.contains(classOf<Boolean>()) } }.hook {
                     before {
                         args.forEachIndexed { index, it ->
-                            if (it is Boolean) arg(index).set(false)
-                            if (it?.javaClass?.isEnum == true) arg(index).set(null)
+                            if (it is Boolean) args(index).set(false)
+                            if (it?.javaClass?.isEnum == true) args(index).set(null)
                         }
-                        if (lastArg().get() is Boolean) lastArg().set(true)
+                        if (args().last().any() is Boolean) args().last().set(true)
                     }
                 }
             }

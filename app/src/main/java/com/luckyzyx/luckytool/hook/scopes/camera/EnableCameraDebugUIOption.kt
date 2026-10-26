@@ -5,16 +5,12 @@ import android.content.Context
 import androidx.core.content.edit
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
 import java.util.concurrent.ExecutorService
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class EnableCameraDebugUIOption(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class EnableCameraDebugUIOption(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         //Source ConfigSetUtils
         dexKitBridge.findMethod {
@@ -38,7 +34,7 @@ class EnableCameraDebugUIOption(val dexKitBridge: DexKitBridge) : YukiBaseHooker
                     emptyParameters()
                     returnType = Boolean::class
                 }.hook {
-                    intercept(true)
+                    replaceTo(true)
                 }
             }
         }
@@ -71,7 +67,7 @@ class EnableCameraDebugUIOption(val dexKitBridge: DexKitBridge) : YukiBaseHooker
                     parameters(Long::class)
                     returnType = Boolean::class
                 }.hook {
-                    intercept(false)
+                    replaceTo(false)
                 }
             }
         }

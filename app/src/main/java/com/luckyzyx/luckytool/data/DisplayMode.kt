@@ -1,9 +1,7 @@
 package com.luckyzyx.luckytool.data
 
-import org.lsposed.lsparanoid.Obfuscate
 import java.io.Serializable
 
-@Obfuscate
 data class DisplayMode(
     var id: Int,
     var width: Int? = null,

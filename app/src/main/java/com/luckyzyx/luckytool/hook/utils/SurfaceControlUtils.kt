@@ -2,10 +2,8 @@ package com.luckyzyx.luckytool.hook.utils
 
 import android.os.IBinder
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.kavaref.extension.toClass
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 class SurfaceControlUtils(val classLoader: ClassLoader?) {
 
     val clazz = "android.view.SurfaceControl".toClass(classLoader)

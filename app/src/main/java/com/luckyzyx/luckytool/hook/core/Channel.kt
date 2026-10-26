@@ -34,7 +34,7 @@ object Channel {
             // 框架从 Binder 线程通知，原通道的控件更新在宿主主线程执行。
             dispatch {
                 runCatching { HookRouter.withContext(context) { block(value) } }
-                    .onFailure { XLog.e("Preference callback failed: $key", t = it) }
+                    .onFailure { XLog.e("Preference callback failed: $key", e = it) }
             }
         }
         // 同时监听全部配置组，覆盖用户首次设置、键尚未存在的情况。
@@ -56,7 +56,7 @@ object Channel {
                             deliver(event.value)
                         }
                     }
-                    .onFailure { XLog.e("Invalid preference event: $key", t = it) }
+                    .onFailure { XLog.e("Invalid preference event: $key", e = it) }
             }
         }
         listeners += listener

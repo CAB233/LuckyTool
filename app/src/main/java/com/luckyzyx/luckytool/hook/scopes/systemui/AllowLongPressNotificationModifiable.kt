@@ -3,13 +3,9 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object AllowLongPressNotificationModifiable : YukiBaseHooker() {
+object AllowLongPressNotificationModifiable : Hooker {
     override fun onHook() {
         //Source NotificationSettingsModel
         VariousClass(
@@ -23,7 +19,7 @@ object AllowLongPressNotificationModifiable : YukiBaseHooker() {
             }.hook {
                 before {
                     firstFieldOrNull { name = "isAppModifiable" }?.of(instance)?.set(true) ?: run {
-                        firstArg().get()?.asResolver()?.firstField { name = "isAppModifiable" }
+                        args().first().any()?.asResolver()?.firstField { name = "isAppModifiable" }
                             ?.set(true)
                     }
                 }

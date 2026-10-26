@@ -37,7 +37,7 @@ import com.luckyzyx.luckytool.ui.compose.components.PrefRow
 import com.luckyzyx.luckytool.ui.compose.components.PrefRowInset
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefDefaults
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
-import com.luckyzyx.luckytool.ui.service.XposedServiceBridge
+import com.luckyzyx.luckytool.utils.XposedServiceManager
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.AppPermission
@@ -160,7 +160,7 @@ fun AppPermissionContent(
             )
         }
     }
-    val moduleActive by XposedServiceBridge.isModuleActive.collectAsStateWithLifecycle()
+    val moduleActive by XposedServiceManager.isModuleActive.collectAsStateWithLifecycle()
 
     // selfInset：阻塞态独立成屏、宿主列表不在场，行级水平内缩由本页补（否则内容贴边）；
     // 设置页入口由宿主列表提供，保持不叠加

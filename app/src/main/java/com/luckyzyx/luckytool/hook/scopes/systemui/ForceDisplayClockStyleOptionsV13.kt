@@ -5,13 +5,9 @@ import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object ForceDisplayClockStyleOptionsV13 : YukiBaseHooker() {
+object ForceDisplayClockStyleOptionsV13 : Hooker {
     private const val flavorTwoFeatureOption =
         "com.oplusos.systemui.common.feature.FlavorTwoFeatureOption"
     private const val type = "TYPE_PREFRENCE_JUMP"
@@ -32,7 +28,7 @@ object ForceDisplayClockStyleOptionsV13 : YukiBaseHooker() {
                     }.invoke<Boolean>() ?: false
                     if (!isFlavorTwoDevice) return@before
 
-                    val list = firstArg().get<ArrayList<Any>>()
+                    val list = args().first().cast<ArrayList<Any>>()
                     val context = firstMethod { name = "getContext";superclass() }.of(instance)
                         .invoke<Context>()
                     val clockTitle = context?.getString(

@@ -1,16 +1,12 @@
 package com.luckyzyx.luckytool.hook.scopes.android
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveSystemScreenshotDelay : YukiBaseHooker() {
+object RemoveSystemScreenshotDelay : Hooker {
     override fun onHook() {
-        val isEnable = preferences(ModulePrefs).getBoolean("remove_system_screenshot_delay", false)
+        val isEnable = prefs(ModulePrefs).getBoolean("remove_system_screenshot_delay", false)
 
         //Source PhoneWindowManager
         "com.android.server.policy.PhoneWindowManager".toClass().resolve().apply {
@@ -19,7 +15,7 @@ object RemoveSystemScreenshotDelay : YukiBaseHooker() {
                 returnType = Long::class
             }.hook {
                 if (isEnable) {
-                    intercept(0L)
+                    replaceTo(0L)
                 }
             }
         }

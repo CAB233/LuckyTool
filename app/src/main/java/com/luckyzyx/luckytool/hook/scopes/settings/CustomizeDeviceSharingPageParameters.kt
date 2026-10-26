@@ -7,15 +7,11 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.core.view.allViews
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.utils.appcompat.dialog.COUIAlertDialogBuilder
 import com.luckyzyx.luckytool.utils.safeOfNull
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object CustomizeDeviceSharingPageParameters : YukiBaseHooker() {
+object CustomizeDeviceSharingPageParameters : Hooker {
 
     @SuppressLint("DiscouragedApi")
     override fun onHook() {

@@ -3,13 +3,9 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 import android.view.View
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HideLockScreenStatusBarDisplay : YukiBaseHooker() {
+object HideLockScreenStatusBarDisplay : Hooker {
     override fun onHook() {
         //Source KeyguardStatusBarView
         VariousClass(
@@ -18,7 +14,7 @@ object HideLockScreenStatusBarDisplay : YukiBaseHooker() {
         ).toClass().resolve().apply {
             firstMethod { name = "setVisibility" }.hook {
                 before {
-                    firstArg().set(View.INVISIBLE)
+                    args().first().set(View.INVISIBLE)
                 }
             }
         }

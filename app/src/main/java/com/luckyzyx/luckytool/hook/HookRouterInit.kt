@@ -1,7 +1,9 @@
 package com.luckyzyx.luckytool.hook
 
 import com.luckyzyx.luckytool.hook.core.HookRouter
+import com.luckyzyx.luckytool.hook.scopes.otherapp.HookADM
 import com.luckyzyx.luckytool.hook.hookers.HookAlarmClock
+import com.luckyzyx.luckytool.hook.scopes.otherapp.HookAlphaBackupPro
 import com.luckyzyx.luckytool.hook.hookers.HookAndroid
 import com.luckyzyx.luckytool.hook.hookers.HookAudioEffectCenter
 import com.luckyzyx.luckytool.hook.hookers.HookAudioMonitor
@@ -12,15 +14,20 @@ import com.luckyzyx.luckytool.hook.hookers.HookCalendar
 import com.luckyzyx.luckytool.hook.hookers.HookCamera
 import com.luckyzyx.luckytool.hook.hookers.HookClaw
 import com.luckyzyx.luckytool.hook.hookers.HookCloudService
+import com.luckyzyx.luckytool.hook.hookers.HookCorePatch
 import com.luckyzyx.luckytool.hook.hookers.HookDirectUI
+import com.luckyzyx.luckytool.hook.hookers.HookDisableFlagSecure
+import com.luckyzyx.luckytool.hook.hookers.HookDisableFlagSecureApp
 import com.luckyzyx.luckytool.hook.hookers.HookEngineerMode
 import com.luckyzyx.luckytool.hook.hookers.HookExternalStorage
+import com.luckyzyx.luckytool.hook.scopes.otherapp.HookFakeGpsJoyStick
 import com.luckyzyx.luckytool.hook.hookers.HookFileManager
 import com.luckyzyx.luckytool.hook.hookers.HookGallery
 import com.luckyzyx.luckytool.hook.hookers.HookGesture
 import com.luckyzyx.luckytool.hook.hookers.HookHealth
 import com.luckyzyx.luckytool.hook.hookers.HookKeyguardClock
 import com.luckyzyx.luckytool.hook.hookers.HookKeyguardPersonality
+import com.luckyzyx.luckytool.hook.scopes.otherapp.HookKsWeb
 import com.luckyzyx.luckytool.hook.hookers.HookLauncher
 import com.luckyzyx.luckytool.hook.hookers.HookMarket
 import com.luckyzyx.luckytool.hook.hookers.HookMediaController
@@ -30,6 +37,7 @@ import com.luckyzyx.luckytool.hook.hookers.HookNotificationManager
 import com.luckyzyx.luckytool.hook.hookers.HookOShare
 import com.luckyzyx.luckytool.hook.hookers.HookOplusCosa
 import com.luckyzyx.luckytool.hook.hookers.HookOplusGames
+import com.luckyzyx.luckytool.hook.hookers.HookOplusKeyboard
 import com.luckyzyx.luckytool.hook.hookers.HookOplusMMS
 import com.luckyzyx.luckytool.hook.hookers.HookOplusOta
 import com.luckyzyx.luckytool.hook.hookers.HookPackageInstaller
@@ -50,18 +58,27 @@ import com.luckyzyx.luckytool.hook.hookers.HookThemeStore
 import com.luckyzyx.luckytool.hook.hookers.HookUIEngine
 import com.luckyzyx.luckytool.hook.hookers.HookWeather
 import com.luckyzyx.luckytool.hook.hookers.HookWirelessSettings
-import com.luckyzyx.luckytool.hook.scopes.otherapp.HookADM
-import com.luckyzyx.luckytool.hook.scopes.otherapp.HookAlphaBackupPro
-import com.luckyzyx.luckytool.hook.scopes.otherapp.HookFakeGpsJoyStick
-import com.luckyzyx.luckytool.hook.scopes.otherapp.HookKsWeb
 
+/**
+ * 组合层入口：把 [MainHook] 收到的包回调路由到各 Hooker。
+ *
+ * 迁移自上游 MainHook.onHook() 的 loadSystem / loadApp 静态注册表，
+ * 由 [MainHook.onModuleLoaded] 调用一次。
+ */
 object HookRouterInit {
+
     fun register() {
+
         //系统框架
         HookRouter.system { HookAndroid }
+        //核心破解（上游 CorePatch）
+        HookRouter.system { HookCorePatch }
+        //禁用安全标记（上游 DisableFlagSecure，system_server 侧）
+        HookRouter.system { HookDisableFlagSecure }
 
         //系统界面
         HookRouter.app("com.android.systemui") { HookSystemUI }
+        HookRouter.app("com.android.systemui") { HookDisableFlagSecureApp }
 
         //经典主题 Clock
         HookRouter.app("com.oplus.keyguard.clock.base") { HookKeyguardClock }
@@ -82,6 +99,9 @@ object HookRouterInit {
 
         //截屏
         HookRouter.app("com.oplus.screenshot") { HookScreenshot }
+        HookRouter.app("com.oplus.screenshot") { HookDisableFlagSecureApp }
+        //应用平台服务（截图安全标记）
+        HookRouter.app("com.oplus.appplatform") { HookDisableFlagSecureApp }
 
         //安全中心
         HookRouter.app("com.oplus.safecenter") { HookSafeCenter }
@@ -143,6 +163,9 @@ object HookRouterInit {
         //小布助手
         HookRouter.app("com.heytap.speechassist") { HookSpeechAssist }
 
+        //小布输入法
+        HookRouter.app("com.oplus.keyboard") { HookOplusKeyboard }
+
         //小布识屏
         HookRouter.app("com.coloros.directui") { HookDirectUI }
 
@@ -203,6 +226,7 @@ object HookRouterInit {
         //工程模式
         HookRouter.app("com.oplus.engineermode") { HookEngineerMode }
 
+        //小布Next
         HookRouter.app("com.oplus.claw") { HookClaw }
 
         //其他APP

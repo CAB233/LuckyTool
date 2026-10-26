@@ -1,14 +1,9 @@
 package com.luckyzyx.luckytool.hook.scopes.launcher
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveWidgetsAddRequestWhitelist : YukiBaseHooker() {
+object RemoveWidgetsAddRequestWhitelist : Hooker {
     override fun onHook() {
         //Source WidgetControlHelper
         "com.android.launcher3.widget.WidgetControlHelper".toClassOrNull() ?: return
@@ -18,7 +13,7 @@ object RemoveWidgetsAddRequestWhitelist : YukiBaseHooker() {
                 name = "isAllowedAddWidget"
                 parameterCount { it in 1..2 }
             }?.hook {
-                intercept(true)
+                replaceTo(true)
             }
         }
     }

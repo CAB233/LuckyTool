@@ -1,19 +1,15 @@
 package com.luckyzyx.luckytool.hook.scopes.mediacontroller
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import org.json.JSONObject
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object ForceEnableMediaMusicFluidCloudRipple : YukiBaseHooker() {
+object ForceEnableMediaMusicFluidCloudRipple : Hooker {
     override fun onHook() {
         var isEnable =
-            preferences(ModulePrefs).getBoolean("force_enable_media_music_fluid_cloud_ripple", false)
-        dataChannel.wait<Boolean>("force_enable_media_music_fluid_cloud_ripple") { isEnable = it }
+            prefs(ModulePrefs).getBoolean("force_enable_media_music_fluid_cloud_ripple", false)
+        Channel.wait<Boolean>("force_enable_media_music_fluid_cloud_ripple") { isEnable = it }
 
         //Source SeedlingTool
         "com.oplus.pantanal.seedling.util.SeedlingTool".toClass().resolve().apply {
@@ -22,7 +18,7 @@ object ForceEnableMediaMusicFluidCloudRipple : YukiBaseHooker() {
             }.hookAll {
                 before {
                     if (!isEnable) return@before
-                    val json = arg(1).get() ?: return@before
+                    val json = args(1).any() ?: return@before
                     if (json is JSONObject) {
                         val staticVoicePrintShow = json.optBoolean("staticVoicePrintShow", true)
                         if (staticVoicePrintShow) {

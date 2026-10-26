@@ -1,4 +1,4 @@
-package com.luckyzyx.luckytool.ui.service
+package com.luckyzyx.luckytool.utils
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +14,7 @@ import org.junit.Test
  * 三点必须成立：已激活立即返回、绑定迟到但未超时算激活、一直未激活则超时返回 false。
  * 超时之后仍继续观察、激活迟到时撤掉阻塞门的那部分在 Activity 里，本测试不覆盖。
  */
-class XposedServiceBridgeActivationTest {
+class XposedServiceManagerActivationTest {
 
     @Test
     fun `already active returns without waiting`() = runBlocking {

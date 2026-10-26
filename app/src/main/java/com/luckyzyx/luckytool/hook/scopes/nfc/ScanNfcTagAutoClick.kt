@@ -4,26 +4,21 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object ScanNfcTagAutoClick : YukiBaseHooker() {
+object ScanNfcTagAutoClick : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
         if (osCode >= 40) loadHooker(NfcTagAutoClick)
         else loadHooker(NfcTagAutoClickV16)
     }
 
-    @Obfuscate
-    object NfcTagAutoClick : YukiBaseHooker() {
+    object NfcTagAutoClick : Hooker {
         override fun onHook() {
-            var isEnable = preferences(ModulePrefs).getBoolean("scan_nfc_tag_auto_click", false)
-            dataChannel.wait<Boolean>("scan_nfc_tag_auto_click") { isEnable = it }
+            var isEnable = prefs(ModulePrefs).getBoolean("scan_nfc_tag_auto_click", false)
+            Channel.wait<Boolean>("scan_nfc_tag_auto_click") { isEnable = it }
 
             //Source OplusNotificationManager
             "com.oplus.nfc.dispatch.OplusNotificationManager".toClass().resolve().apply {
@@ -32,7 +27,7 @@ object ScanNfcTagAutoClick : YukiBaseHooker() {
                         if (!isEnable || result != true) return@after
                         val context = firstField { name = "mContext" }.of(instance).get<Context>()
                             ?: return@after
-                        val intent = arg(3).get<Intent>() ?: return@after
+                        val intent = args(3).cast<Intent>() ?: return@after
                         sendProcessTagBroadcast(context, intent)
                     }
                 }
@@ -40,21 +35,20 @@ object ScanNfcTagAutoClick : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object NfcTagAutoClickV16 : YukiBaseHooker() {
+    object NfcTagAutoClickV16 : Hooker {
         override fun onHook() {
-            var isEnable = preferences(ModulePrefs).getBoolean("scan_nfc_tag_auto_click", false)
-            dataChannel.wait<Boolean>("scan_nfc_tag_auto_click") { isEnable = it }
+            var isEnable = prefs(ModulePrefs).getBoolean("scan_nfc_tag_auto_click", false)
+            Channel.wait<Boolean>("scan_nfc_tag_auto_click") { isEnable = it }
 
             //Source TagDetectedNotification
             "com.oplus.nfc.dispatch.TagDetectedNotification".toClass().resolve().apply {
                 firstMethod { name = "show" }.hook {
                     before {
                         if (!isEnable) return@before
-                        val context = firstArg().get<Context>() ?: return@before
-                        val intent = arg(1).get<Intent>() ?: return@before
-                        val type = arg(2).get<Int>() ?: 0
-//                    val bundle = lastArg().get<Bundle>()
+                        val context = args().first().cast<Context>() ?: return@before
+                        val intent = args(1).cast<Intent>() ?: return@before
+                        val type = args(2).cast<Int>() ?: 0
+//                    val bundle = args().last().cast<Bundle>()
 
                         sendProcessTagBroadcast(context, intent, type)
                     }

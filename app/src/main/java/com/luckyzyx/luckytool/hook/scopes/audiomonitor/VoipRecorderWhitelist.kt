@@ -8,10 +8,6 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.ArrayClass
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.data.VoipRecorder
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.GlobalKeyValue.dyPackName
@@ -21,11 +17,10 @@ import com.luckyzyx.luckytool.utils.GlobalKeyValue.qywxPackName
 import com.luckyzyx.luckytool.utils.GlobalKeyValue.timPackName
 import com.luckyzyx.luckytool.utils.GlobalKeyValue.wxPackName
 import com.luckyzyx.luckytool.utils.safeOfNull
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class VoipRecorderWhitelist(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class VoipRecorderWhitelist(val dexKitBridge: DexKitBridge) : Hooker {
 
     private val audioApplication = "com.oplus.audiomonitor.AudioApplication"
     private val oplusVoipRecorderService =

@@ -2,16 +2,11 @@ package com.luckyzyx.luckytool.hook.scopes.audioeffectcenter
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object FixRecordCallsOnThirdPartyAppsError : YukiBaseHooker() {
+object FixRecordCallsOnThirdPartyAppsError : Hooker {
     private const val SpatializerDefine = "com.oplus.audio.effectcenter.manager.SpatializerDefine"
     override fun onHook() {
         //Source com.oplus.audio.effectcenter.manager.SpatializerManager
@@ -19,7 +14,7 @@ object FixRecordCallsOnThirdPartyAppsError : YukiBaseHooker() {
             ?.apply {
                 firstMethod { name = "setSpkVolParam" }.hook {
                     before {
-                        val level = firstArg().get<Int>() ?: 0
+                        val level = args().first().cast<Int>() ?: 0
                         val mSpatializerMode = firstField {
                             name = "mSpatializerMode"
                         }.of(instance).get<AtomicBoolean>() ?: return@before

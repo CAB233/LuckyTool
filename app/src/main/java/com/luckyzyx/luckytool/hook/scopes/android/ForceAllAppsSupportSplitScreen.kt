@@ -2,19 +2,14 @@ package com.luckyzyx.luckytool.hook.scopes.android
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object ForceAllAppsSupportSplitScreen : YukiBaseHooker() {
+object ForceAllAppsSupportSplitScreen : Hooker {
     override fun onHook() {
         var isEnable =
-            preferences(ModulePrefs).getBoolean("force_all_apps_support_split_screen", false)
-        dataChannel.wait<Boolean>("force_all_apps_support_split_screen") { isEnable = it }
+            prefs(ModulePrefs).getBoolean("force_all_apps_support_split_screen", false)
+        Channel.wait<Boolean>("force_all_apps_support_split_screen") { isEnable = it }
 
         //Source OplusSplitScreenManagerService
         "com.android.server.wm.OplusSplitScreenManagerService".toClass().resolve().apply {
@@ -25,9 +20,9 @@ object ForceAllAppsSupportSplitScreen : YukiBaseHooker() {
             }.hookAll {
                 before {
                     if (!isEnable) return@before
-                    val packageName = firstArg().get<String>() ?: ""
-                    val activityName = arg(1).get<String>() ?: ""
-//                    val candidate = arg(2).get<Boolean>() ?: false
+                    val packageName = args().first().cast<String>() ?: ""
+                    val activityName = args(1).cast<String>() ?: ""
+//                    val candidate = args(2).cast<Boolean>() ?: false
 
                     if (packageName.isBlank()) return@before
 
@@ -38,7 +33,7 @@ object ForceAllAppsSupportSplitScreen : YukiBaseHooker() {
                     if (isSafeSenterUI) return@before
 
                     if (method.parameterCount == 4) {
-                        val userId = lastArg().get<Int>() ?: 0
+                        val userId = args().last().cast<Int>() ?: 0
                         val isHidenPackage = firstMethod {
                             name = "isHidenPackage"
                             parameterCount = 2
@@ -51,12 +46,12 @@ object ForceAllAppsSupportSplitScreen : YukiBaseHooker() {
             }
             firstMethod { name = "isInForbidActivityList" }.hook {
                 if (isEnable) {
-                    intercept(false)
+                    replaceTo(false)
                 }
             }
             firstMethod { name = "supportsSplitScreenWindowingMode" }.hook {
                 if (isEnable) {
-                    intercept(true)
+                    replaceTo(true)
                 }
             }
         }

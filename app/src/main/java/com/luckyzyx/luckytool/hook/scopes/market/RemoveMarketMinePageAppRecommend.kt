@@ -5,15 +5,11 @@ import android.os.Bundle
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveMarketMinePageAppRecommend(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveMarketMinePageAppRecommend(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         val viewLayerWrapDto = "com.heytap.cdo.card.domain.dto.ViewLayerWrapDto"
         val mineActionBarView = "com.heytap.market.mine.view.MineActionBarView"
@@ -56,7 +52,7 @@ class RemoveMarketMinePageAppRecommend(val dexKitBridge: DexKitBridge) : YukiBas
                     returnType(Void.TYPE)
                 }.hook {
                     before {
-                        val dto = firstArg().get() ?: return@before
+                        val dto = args().first().any() ?: return@before
                         val cards = dto.asResolver().firstMethod {
                             name = "getCards"
                         }.invoke<List<Any>>()?.toMutableList()?.apply {

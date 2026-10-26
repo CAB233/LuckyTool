@@ -2,9 +2,7 @@ package com.luckyzyx.luckytool.hook.utils
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.luckyzyx.luckytool.data.DisplayMode
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 class DynamicDisplayInfoUtils(private val dynamicInfo: Any) {
 
     fun getSupportedDisplayModes(): Array<Any> {

@@ -1,9 +1,7 @@
 package com.luckyzyx.luckytool.data
 
-import org.lsposed.lsparanoid.Obfuscate
 import java.io.Serializable
 
-@Obfuscate
 data class DonateInfo(
     val name: String,
     val money: Double,
@@ -11,7 +9,6 @@ data class DonateInfo(
     val unit: String = "RMB"
 ) : Serializable
 
-@Obfuscate
 data class DonateDetailInfo(
     val name: String,
     val time: String,

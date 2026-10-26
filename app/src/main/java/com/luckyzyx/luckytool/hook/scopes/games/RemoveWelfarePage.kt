@@ -5,23 +5,18 @@ import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.condition.type.VagueType
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveWelfarePage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveWelfarePage(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         val mainPanelView = "business.mainpanel.MainPanelView".toClassOrNull()
         if (mainPanelView == null) {
             "business.mainpanel.main.MainPanelFragment".toClass().resolve().apply {
                 firstMethod { name = "addRadioButton" }.hook {
                     before {
-                        if ((firstArg().get<String>() ?: "") == "welfare") result = null
+                        if ((args().first().cast<String>() ?: "") == "welfare") result = null
                     }
                 }
                 firstMethod { name = "initView" }.hook {
@@ -73,9 +68,9 @@ class RemoveWelfarePage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                 returnType = Void.TYPE
             }.hook {
                 before {
-                    val list = firstArg().get<List<Any>>() ?: emptyList()
+                    val list = args().first().cast<List<Any>>() ?: emptyList()
                     val first = list.getOrNull(0) ?: return@before
-                    firstArg().set(ArrayList(arrayListOf(first)))
+                    args().first().set(ArrayList(arrayListOf(first)))
                 }
             }
         }

@@ -4,21 +4,16 @@ import android.content.Context
 import android.provider.Settings
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.A14
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookWindowManagerService : YukiBaseHooker() {
+object HookWindowManagerService : Hooker {
     override fun onHook() {
         //移除DPI重启恢复
-        var isDpi = preferences(ModulePrefs).getBoolean("remove_dpi_restart_recovery", false)
-        dataChannel.wait<Boolean>("remove_dpi_restart_recovery") { isDpi = it }
+        var isDpi = prefs(ModulePrefs).getBoolean("remove_dpi_restart_recovery", false)
+        Channel.wait<Boolean>("remove_dpi_restart_recovery") { isDpi = it }
 
         val windowManagerService = "com.android.server.wm.WindowManagerService"
 
@@ -32,9 +27,9 @@ object HookWindowManagerService : YukiBaseHooker() {
                 }.hookAll {
                     before {
                         if (!isDpi) return@before
-                        val density = arg(1).get<Int>() ?: 0
-//                    val userId = if (method.parameterCount == 3) lastArg().get<Int>() ?: 0 else null
-//                    YLog.debug("${method.name} is call -> $density | $userId")
+                        val density = args(1).cast<Int>() ?: 0
+//                    val userId = if (method.parameterCount == 3) args().last().cast<Int>() ?: 0 else null
+//                    XLog.debug("${method.name} is call -> $density | $userId")
 
                         val service = firstField { type = windowManagerService }.of(instance).get()
                             ?: return@before
@@ -44,7 +39,7 @@ object HookWindowManagerService : YukiBaseHooker() {
                         val forcedDensity = Settings.Secure.getString(
                             resolver, "display_density_forced"
                         )?.toIntOrNull() ?: return@before
-                        if (density == 0) arg(1).set(forcedDensity)
+                        if (density == 0) args(1).set(forcedDensity)
                     }
                 }
             }
@@ -59,12 +54,12 @@ object HookWindowManagerService : YukiBaseHooker() {
                 }.hook {
                     before {
                         if (!isDpi) return@before
-//                    val width = firstArg().get<Int>() ?: 0
-//                    val height = arg(1).get<Int>() ?: 0
-//                    val density = arg(2).get<Int>() ?: 0
-//                    val userId = arg(3).get<Int>() ?: 0
-                        val service = lastArg().get() ?: return@before
-//                    YLog.debug("${method.name} is call -> $width | $height | $density | $userId")
+//                    val width = args().first().cast<Int>() ?: 0
+//                    val height = args(1).cast<Int>() ?: 0
+//                    val density = args(2).cast<Int>() ?: 0
+//                    val userId = args(3).cast<Int>() ?: 0
+                        val service = args().last().any() ?: return@before
+//                    XLog.debug("${method.name} is call -> $width | $height | $density | $userId")
 
                         val context = service.asResolver().firstField { type = Context::class }
                             .get<Context>() ?: return@before
@@ -72,7 +67,7 @@ object HookWindowManagerService : YukiBaseHooker() {
                         val forcedDensity = Settings.Secure.getString(
                             resolver, "display_density_forced"
                         )?.toIntOrNull() ?: return@before
-                        arg(2).set(forcedDensity)
+                        args(2).set(forcedDensity)
                     }
                 }
             }
@@ -87,7 +82,7 @@ object HookWindowManagerService : YukiBaseHooker() {
             } ?: run {
                 firstMethod { name = "onResolutionSettingsChange"; parameterCount = 1 }.hook {
                     before {
-                        if (isDpi) firstArg().set(false)
+                        if (isDpi) args().first().set(false)
                     }
                 }
                 firstMethodOrNull {
@@ -95,7 +90,7 @@ object HookWindowManagerService : YukiBaseHooker() {
                     parameterCount = 1
                 }?.hook {
                     before {
-                        if (isDpi) firstArg().set(false)
+                        if (isDpi) args().first().set(false)
                     }
                 }
             }

@@ -2,7 +2,6 @@ package com.luckyzyx.luckytool.service.tiles
 
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import org.lsposed.lsparanoid.Obfuscate
 import com.luckyzyx.luckytool.ITileServiceController
 import com.luckyzyx.luckytool.service.TilesService
 import com.luckyzyx.luckytool.utils.GlobalKeyValue.keyTouchSamplingRate
@@ -11,7 +10,6 @@ import com.luckyzyx.luckytool.utils.SettingsPrefs
 import com.luckyzyx.luckytool.utils.getString
 import com.luckyzyx.luckytool.utils.putBoolean
 
-@Obfuscate
 class TouchSamplingRateTile : TileService() {
     private var controller: ITileServiceController? = null
 

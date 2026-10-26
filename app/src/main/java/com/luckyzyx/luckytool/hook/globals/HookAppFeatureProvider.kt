@@ -5,18 +5,13 @@ import android.database.Cursor
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.condition.type.VagueType
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 class HookAppFeatureProvider(
     val dexKitBridge: DexKitBridge, private val features: Map<String, Any>
-) : YukiBaseHooker() {
+) : Hooker {
 
     private var isFeatureSupport = false
     private var isGetBoolean = false
@@ -59,7 +54,7 @@ class HookAppFeatureProvider(
                             returnType = Boolean::class
                         }.hook {
                             before {
-                                val key = lastArg().get<String>()
+                                val key = args().last().cast<String>()
                                 if (key.isNullOrBlank()) return@before
                                 val value = features[key]
                                 if (value != null && value is Boolean) result = value
@@ -84,7 +79,7 @@ class HookAppFeatureProvider(
                             returnType = Boolean::class
                         }.hook {
                             before {
-                                val key = lastArg().get<String>()
+                                val key = args().last().cast<String>()
                                 if (key.isNullOrBlank()) return@before
                                 val value = features[key]
                                 if (value != null && value is Boolean) result = value
@@ -94,7 +89,7 @@ class HookAppFeatureProvider(
                 }
             }
             if (!isFeatureSupport) {
-                YLog.debug("AppFeatureProviderUtils [$packageName] -> isFeatureSupport is null")
+                XLog.debug("AppFeatureProviderUtils [$packageName] -> isFeatureSupport is null")
             }
 
             findMethod {
@@ -117,7 +112,7 @@ class HookAppFeatureProvider(
                             returnType = Boolean::class
                         }.hook {
                             before {
-                                val key = arg(1).get<String>()
+                                val key = args(1).cast<String>()
                                 if (key.isNullOrBlank()) return@before
                                 val value = features[key]
                                 if (value != null && value is Boolean) result = value
@@ -147,7 +142,7 @@ class HookAppFeatureProvider(
                             returnType = String::class
                         }.hook {
                             before {
-                                val key = arg(1).get<String>()
+                                val key = args(1).cast<String>()
                                 if (key.isNullOrBlank()) return@before
                                 val value = features[key]
                                 if (value != null && value is String) result = value
@@ -177,7 +172,7 @@ class HookAppFeatureProvider(
                             returnType = Int::class
                         }.hook {
                             before {
-                                val key = arg(1).get<String>()
+                                val key = args(1).cast<String>()
                                 if (key.isNullOrBlank()) return@before
                                 val value = features[key]
                                 if (value != null && value is Int) result = value

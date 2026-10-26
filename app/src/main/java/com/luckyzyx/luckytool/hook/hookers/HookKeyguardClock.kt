@@ -1,13 +1,11 @@
 package com.luckyzyx.luckytool.hook.hookers
 
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.scopes.keyguardclock.KeyGuardcLockRedMode
 import com.luckyzyx.luckytool.utils.DexkitUtils
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookKeyguardClock : YukiBaseHooker() {
+object HookKeyguardClock : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
 

@@ -8,10 +8,8 @@ import com.luckyzyx.luckytool.utils.LogUtils
 import com.luckyzyx.luckytool.utils.formatDate
 import com.luckyzyx.luckytool.utils.safeOf
 import com.oplus.util.OplusChineseDateAndSolarDate
-import org.lsposed.lsparanoid.Obfuscate
 import java.util.Date
 
-@Obfuscate
 @Suppress("unused")
 class LunarHelperUtils(val classLoader: ClassLoader?) {
     private val tags = "LunarHelperUtils"

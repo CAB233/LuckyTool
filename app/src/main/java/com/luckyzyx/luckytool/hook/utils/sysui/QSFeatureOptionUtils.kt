@@ -1,10 +1,8 @@
 package com.luckyzyx.luckytool.hook.utils.sysui
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.kavaref.extension.toClassOrNull
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 class QSFeatureOptionUtils(val classLoader: ClassLoader?) {
 
     val clazz = "com.oplusos.systemui.common.feature.QSFeatureOption".toClassOrNull(classLoader)

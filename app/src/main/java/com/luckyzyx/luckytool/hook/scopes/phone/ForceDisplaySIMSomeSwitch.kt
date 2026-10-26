@@ -4,21 +4,17 @@ import android.content.Context
 import android.view.View
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.enums.StringMatchType
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class ForceDisplaySIMSomeSwitch(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class ForceDisplaySIMSomeSwitch(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
-        val volteCall = preferences(ModulePrefs).getBoolean("force_display_volte_calls", false)
+        val volteCall = prefs(ModulePrefs).getBoolean("force_display_volte_calls", false)
         val preferredNetwork =
-            preferences(ModulePrefs).getBoolean("force_display_preferred_network_type", false)
+            prefs(ModulePrefs).getBoolean("force_display_preferred_network_type", false)
 
         //Source OplusSimInfoActivity
         dexKitBridge.findClass {
@@ -60,10 +56,10 @@ class ForceDisplaySIMSomeSwitch(val dexKitBridge: DexKitBridge) : YukiBaseHooker
                     }.hook {
                         before {
                             if (!volteCall) return@before
-                            val type = firstArg().get<Int>() ?: 0
-                            val bool = args.find { it is Boolean } ?: return@before
+                            val type = args().first().cast<Int>() ?: 0
+                            val bool = arguments.find { it is Boolean } ?: return@before
                             val index = args.indexOf(bool).takeIf { it != -1 } ?: return@before
-                            if (type == 1) arg(index).set(true)
+                            if (type == 1) args(index).set(true)
                         }
                     }
                 }
@@ -94,10 +90,10 @@ class ForceDisplaySIMSomeSwitch(val dexKitBridge: DexKitBridge) : YukiBaseHooker
                     }.hook {
                         before {
                             if (!preferredNetwork) return@before
-                            val type = firstArg().get<Int>() ?: 0
-                            val bool = args.find { it is Boolean } ?: return@before
+                            val type = args().first().cast<Int>() ?: 0
+                            val bool = arguments.find { it is Boolean } ?: return@before
                             val index = args.indexOf(bool).takeIf { it != -1 } ?: return@before
-                            if (type == 1) arg(index).set(true)
+                            if (type == 1) args(index).set(true)
                         }
                     }
                 }

@@ -2,20 +2,15 @@ package com.luckyzyx.luckytool.hook.scopes.games
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.data.AppVerInfo
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 class CloudConditionFeature(
     private val appVer: AppVerInfo?, val dexKitBridge: DexKitBridge
-) : YukiBaseHooker() {
+) : Hooker {
     override fun onHook() {
         val versionCode = appVer?.versionCode?.takeIf { it > 80130000 } ?: 0
 
@@ -24,23 +19,22 @@ class CloudConditionFeature(
         if (versionCode > 80130000) loadHooker(HookCloudApiImpl(dexKitBridge))
     }
 
-    @Obfuscate
-    private object HookOplusFeature : YukiBaseHooker() {
+    private object HookOplusFeature : Hooker {
         override fun onHook() {
             //Source GpuSettingHelper
-            val gpuControl = preferences(ModulePrefs).getBoolean("enable_adreno_gpu_controller", false)
+            val gpuControl = prefs(ModulePrefs).getBoolean("enable_adreno_gpu_controller", false)
             //Source GameFrameInsertInfo
             val pickleFeature =
-                preferences(ModulePrefs).getBoolean("enable_increase_fps_limit_feature", false)
-            val fpsFeature = preferences(ModulePrefs).getBoolean("enable_increase_fps_feature", false)
-            val powerFeature = preferences(ModulePrefs).getBoolean("enable_optimise_power_feature", false)
+                prefs(ModulePrefs).getBoolean("enable_increase_fps_limit_feature", false)
+            val fpsFeature = prefs(ModulePrefs).getBoolean("enable_increase_fps_feature", false)
+            val powerFeature = prefs(ModulePrefs).getBoolean("enable_optimise_power_feature", false)
             //Source Feats
-            val gtMode = preferences(ModulePrefs).getBoolean("enable_gt_mode_feature", false)
+            val gtMode = prefs(ModulePrefs).getBoolean("enable_gt_mode_feature", false)
             //Source SuperResolutionHelper
             val superResolution =
-                preferences(ModulePrefs).getBoolean("enable_super_resolution_feature", false)
+                prefs(ModulePrefs).getBoolean("enable_super_resolution_feature", false)
             //Source CoolingBackClipHelper
-            val xMode = preferences(ModulePrefs).getBoolean("enable_x_mode_feature", false)
+            val xMode = prefs(ModulePrefs).getBoolean("enable_x_mode_feature", false)
 
             val companion = "com.oplus.addon.OplusFeatureHelper\$Companion".toClassOrNull()
             if (companion == null) {
@@ -51,7 +45,7 @@ class CloudConditionFeature(
                         returnType = Boolean::class
                     }.hook {
                         after {
-                            when (firstArg().get<String>() ?: "") {
+                            when (args().first().cast<String>() ?: "") {
                                 //feature -> isSupportFrameInsert
                                 "oplus.software.display.game.memc_enable" -> if (pickleFeature || fpsFeature || powerFeature) result = true
                                 //插帧pickleFeature -> isSupportUniqueFrameInsert
@@ -91,7 +85,7 @@ class CloudConditionFeature(
                     returnType = Boolean::class
                 }.hook {
                     after {
-                        when (firstArg().get<String>() ?: "") {
+                        when (args().first().cast<String>() ?: "") {
                             //feature -> isSupportFrameInsert
                             "oplus.software.display.game.memc_enable" -> if (pickleFeature || fpsFeature || powerFeature) result = true
                             //插帧pickleFeature -> isSupportUniqueFrameInsert
@@ -125,29 +119,28 @@ class CloudConditionFeature(
         }
     }
 
-    @Obfuscate
-    private object HookCloudCondition : YukiBaseHooker() {
+    private object HookCloudCondition : Hooker {
         override fun onHook() {
             //Source GpuSettingHelper
-            val gpuControl = preferences(ModulePrefs).getBoolean("enable_adreno_gpu_controller", false)
+            val gpuControl = prefs(ModulePrefs).getBoolean("enable_adreno_gpu_controller", false)
             //Source GameFrameInsertInfo
             val pickleFeature =
-                preferences(ModulePrefs).getBoolean("enable_increase_fps_limit_feature", false)
-            val fpsFeature = preferences(ModulePrefs).getBoolean("enable_increase_fps_feature", false)
-            val powerFeature = preferences(ModulePrefs).getBoolean("enable_optimise_power_feature", false)
+                prefs(ModulePrefs).getBoolean("enable_increase_fps_limit_feature", false)
+            val fpsFeature = prefs(ModulePrefs).getBoolean("enable_increase_fps_feature", false)
+            val powerFeature = prefs(ModulePrefs).getBoolean("enable_optimise_power_feature", false)
             //Source CoolingBackClipHelper
-            val xMode = preferences(ModulePrefs).getBoolean("enable_x_mode_feature", false)
+            val xMode = prefs(ModulePrefs).getBoolean("enable_x_mode_feature", false)
             //Source SuperResolutionHelper
             val superResolution =
-                preferences(ModulePrefs).getBoolean("enable_super_resolution_feature", false)
+                prefs(ModulePrefs).getBoolean("enable_super_resolution_feature", false)
             //Source CloudConditionUtil
             val oneplusCharacteristic =
-                preferences(ModulePrefs).getBoolean("enable_one_plus_characteristic", false)
+                prefs(ModulePrefs).getBoolean("enable_one_plus_characteristic", false)
             //Search magic_voice_config
             val magicVoice =
-                preferences(ModulePrefs).getBoolean("remove_game_voice_changer_whitelist", false)
+                prefs(ModulePrefs).getBoolean("remove_game_voice_changer_whitelist", false)
             //Source AIPlayFeature
-            val aiPlay = preferences(ModulePrefs).getBoolean("enable_game_ai_play", false)
+            val aiPlay = prefs(ModulePrefs).getBoolean("enable_game_ai_play", false)
 
             //Source CloudConditionUtil
             "com.coloros.gamespaceui.config.cloud.CloudConditionUtil".toClass().resolve().apply {
@@ -156,7 +149,7 @@ class CloudConditionFeature(
                     returnType = Boolean::class
                 }.hook {
                     before {
-                        when (firstArg().get<String>() ?: "") {
+                        when (args().first().cast<String>() ?: "") {
                             //pickle插帧云控 -> cloudFrameInsertEnable
                             "frame_insert" -> if (pickleFeature) result = true
                             //提升帧率云控 -> cloudIncreaseFpsEnable
@@ -181,7 +174,7 @@ class CloudConditionFeature(
                     returnType = Boolean::class
                 }.hook {
                     before {
-                        when (firstArg().get<String>() ?: "") {
+                        when (args().first().cast<String>() ?: "") {
                             //超级分辨率云控 -> cloudSRSupport
                             "super_resolution_config" -> if (superResolution) result = true
                         }
@@ -192,7 +185,7 @@ class CloudConditionFeature(
                     parameterCount = 3
                 }.hook {
                     after {
-                        when (firstArg().get<String>() ?: "") {
+                        when (args().first().cast<String>() ?: "") {
                             //游戏变声
                             "magic_voice_config" -> if (magicVoice) result = true
                         }
@@ -202,17 +195,16 @@ class CloudConditionFeature(
         }
     }
 
-    @Obfuscate
-    private class HookCloudApiImpl(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    private class HookCloudApiImpl(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
             //Source GpuSettingHelper
-            val gpuControl = preferences(ModulePrefs).getBoolean("enable_adreno_gpu_controller", false)
+            val gpuControl = prefs(ModulePrefs).getBoolean("enable_adreno_gpu_controller", false)
             //Source SuperResolutionHelper
             val superResolution =
-                preferences(ModulePrefs).getBoolean("enable_super_resolution_feature", false)
+                prefs(ModulePrefs).getBoolean("enable_super_resolution_feature", false)
             //Source CloudConditionUtil
             val oneplusCharacteristic =
-                preferences(ModulePrefs).getBoolean("enable_one_plus_characteristic", false)
+                prefs(ModulePrefs).getBoolean("enable_one_plus_characteristic", false)
 
             //Source CloudApiImpl
             dexKitBridge.findClass {
@@ -232,7 +224,7 @@ class CloudConditionFeature(
                         parameterCount = 2
                     }.hook {
                         before {
-                            when (firstArg().get<String>() ?: "") {
+                            when (args().first().cast<String>() ?: "") {
                                 //GPU控制器云控 -> isCloudSupportGpuControlPanel
                                 "gpu_control_panel" -> if (gpuControl) result = true
                                 //OnePlus特性

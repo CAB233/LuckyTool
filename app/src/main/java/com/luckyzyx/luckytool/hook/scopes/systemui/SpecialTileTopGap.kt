@@ -6,28 +6,24 @@ import android.view.View
 import android.widget.LinearLayout
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.utils.sysui.QSFeatureOptionUtils
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.dp
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.getScreenOrientation
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object SpecialTileTopGap : YukiBaseHooker() {
+object SpecialTileTopGap : Hooker {
     @SuppressLint("DiscouragedApi")
     override fun onHook() {
         val osCode = getOSVersionCode
-        var top = preferences(ModulePrefs).getInt("control_center_special_tile_top_gap", 10)
-        dataChannel.wait<Int>("control_center_special_tile_top_gap") { top = it }
-        var bottom = preferences(ModulePrefs).getInt("control_center_special_tile_bottom_gap", 0)
-        dataChannel.wait<Int>("control_center_special_tile_bottom_gap") { bottom = it }
+        var top = prefs(ModulePrefs).getInt("control_center_special_tile_top_gap", 10)
+        Channel.wait<Int>("control_center_special_tile_top_gap") { top = it }
+        var bottom = prefs(ModulePrefs).getInt("control_center_special_tile_bottom_gap", 0)
+        Channel.wait<Int>("control_center_special_tile_bottom_gap") { bottom = it }
         var smallBrightness =
-            preferences(ModulePrefs).getBoolean("decrease_horizontal_brightness_bar_top_gap", false)
-        dataChannel.wait<Boolean>("decrease_horizontal_brightness_bar_top_gap") {
+            prefs(ModulePrefs).getBoolean("decrease_horizontal_brightness_bar_top_gap", false)
+        Channel.wait<Boolean>("decrease_horizontal_brightness_bar_top_gap") {
             smallBrightness = it
         }
 

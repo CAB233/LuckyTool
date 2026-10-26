@@ -5,14 +5,10 @@ import android.provider.Settings
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.utils.SettingsUtils
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object ForceEnableScreenOffMusicSupport : YukiBaseHooker() {
+object ForceEnableScreenOffMusicSupport : Hooker {
     override fun onHook() {
         val statisticUtil = VariousClass(
             "com.oplusos.systemui.notification.util.NotificationStatisticUtil",  //C13

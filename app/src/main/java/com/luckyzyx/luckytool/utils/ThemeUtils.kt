@@ -7,9 +7,7 @@ import android.content.res.Configuration
 import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import com.luckyzyx.luckytool.ui.theme.ColorMode
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 object ThemeUtils {
 
     fun isDynamicColorsEnabled(context: Context): Boolean {

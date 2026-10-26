@@ -2,9 +2,8 @@ package org.lsposed.corepatch.hook
 
 import android.annotation.SuppressLint
 import android.os.Build
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.log.YLog
 import org.lsposed.corepatch.Config
+import com.luckyzyx.luckytool.hook.core.*
 
 object ReconcilePackageUtilsHook : BaseHook() {
     override val name = "ReconcilePackageUtilsHook"
@@ -18,7 +17,7 @@ object ReconcilePackageUtilsHook : BaseHook() {
             "com.android.server.pm.ReconcilePackageUtils".toClass()
         val reconcilePackagesMethod =
             reconcilePackageUtilsClazz.declaredMethods.first { m -> m.name == "reconcilePackages" }
-        if (!reconcilePackagesMethod.deoptimize()) YLog.debug("failed to deoptimize reconcilePackages")
+        if (!reconcilePackagesMethod.deoptimize()) XLog.debug("failed to deoptimize reconcilePackages")
 
         if (Config.isBypassDigestEnabled() && Config.isBypassSharedUserEnabled()) {
             reconcilePackageUtilsClazz.declaredFields.firstOrNull { field -> field.name == "ALLOW_NON_PRELOADS_SYSTEM_SHAREDUIDS" }

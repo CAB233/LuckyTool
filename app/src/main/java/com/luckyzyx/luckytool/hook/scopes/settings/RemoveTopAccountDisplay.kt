@@ -1,15 +1,11 @@
 package com.luckyzyx.luckytool.hook.scopes.settings
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.A13
 import com.luckyzyx.luckytool.utils.SDK
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveTopAccountDisplay : YukiBaseHooker() {
+object RemoveTopAccountDisplay : Hooker {
     override fun onHook() {
         //Source UserPreferenceController
         "com.oplus.settings.feature.homepage.user.UserPreferenceController".toClass().resolve()
@@ -19,9 +15,9 @@ object RemoveTopAccountDisplay : YukiBaseHooker() {
                     else "getAvailabilityStatus"
                 }.hook {
                     if (SDK >= A13) {
-                        intercept(false)
+                        replaceTo(false)
                     } else {
-                        intercept(3)
+                        replaceTo(3)
                     }
                 }
             }

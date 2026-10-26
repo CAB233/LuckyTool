@@ -5,53 +5,47 @@ import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.condition.type.VagueType
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.isZh
 import com.luckyzyx.luckytool.utils.safeOf
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class HookSystemStorage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class HookSystemStorage(val dexKitBridge: DexKitBridge) : Hooker {
 
     override fun onHook() {
         val osCode = getOSVersionCode
 
         //替换OnePlus机型水印
-        val notOplus = preferences(ModulePrefs).getBoolean("replace_oneplus_model_watermark", false)
+        val notOplus = prefs(ModulePrefs).getBoolean("replace_oneplus_model_watermark", false)
         //高级筛选
         val seniorPicked =
-            preferences(ModulePrefs).getBoolean("enable_photo_listview_senior_picked", false)
+            prefs(ModulePrefs).getBoolean("enable_photo_listview_senior_picked", false)
         //拇指线
         val thumbLine =
-            preferences(ModulePrefs).getString("set_photo_view_thumb_line_display_mode", "0")
+            prefs(ModulePrefs).getString("set_photo_view_thumb_line_display_mode", "0")
         //GIF合成
         val gifSynthesis =
-            preferences(ModulePrefs).getBoolean("enable_photo_editor_gif_synthesis", false)
+            prefs(ModulePrefs).getBoolean("enable_photo_editor_gif_synthesis", false)
         //闪速抠图
-        val lnsImage = preferences(ModulePrefs).getBoolean("enable_lns_cut_photo", false)
+        val lnsImage = prefs(ModulePrefs).getBoolean("enable_lns_cut_photo", false)
         //画框水印
-        val frameWaterMark = preferences(ModulePrefs).getBoolean("enable_frame_watermark", false)
+        val frameWaterMark = prefs(ModulePrefs).getBoolean("enable_frame_watermark", false)
         //哈苏水印
-        val hasselWaterMark = preferences(ModulePrefs).getBoolean("enable_hassel_watermark", false)
+        val hasselWaterMark = prefs(ModulePrefs).getBoolean("enable_hassel_watermark", false)
         //AI大师水印
-        val aiWaterMark = preferences(ModulePrefs).getBoolean("enable_ai_master_watermark", false)
+        val aiWaterMark = prefs(ModulePrefs).getBoolean("enable_ai_master_watermark", false)
         //隐私水印
         val privicyWaterMark =
-            preferences(ModulePrefs).getBoolean("enable_privacy_watermark", false)
+            prefs(ModulePrefs).getBoolean("enable_privacy_watermark", false)
         //新春水印
         val springFestival =
-            preferences(ModulePrefs).getBoolean("enable_spring_festival_watermark", false)
+            prefs(ModulePrefs).getBoolean("enable_spring_festival_watermark", false)
         //国庆水印
         val nationalDay =
-            preferences(ModulePrefs).getBoolean("enable_national_day_watermark", false)
+            prefs(ModulePrefs).getBoolean("enable_national_day_watermark", false)
 
         //Source OtherSystemStorage
         //配置键已由 String 改为 vab 对象, 类内字符串随版本变动不可作锚点, 改为纯结构特征定位
@@ -81,7 +75,7 @@ class HookSystemStorage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                     after {
                         val context = firstField { type = Context::class }.of(instance)
                             .get<Context>() ?: return@after
-                        val configNode = firstArg().get().toString()
+                        val configNode = args().first().any().toString()
                         when {
                             //com.oplus.camera.support.custom.hasselblad.watermark
                             configNode.contains("feature_is_support_watermark") -> {
@@ -164,7 +158,7 @@ class HookSystemStorage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                                 }
                             }
                         } ?: run {
-                            YLog.debug("WatermarkDevice HasselDevice hook error! -> ${classData.name}")
+                            XLog.debug("WatermarkDevice HasselDevice hook error! -> ${classData.name}")
                         }
                     }
                 }
@@ -211,7 +205,7 @@ class HookSystemStorage(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                     returnType = classOf<Boolean>(primitiveType = false)
                 }.hook {
                     after {
-                        when (firstArg().get<String>() ?: "") {
+                        when (args().first().cast<String>() ?: "") {
                             "is_oneplus_brand" -> if (notOplus) result = false
 //                            "feature_is_support_watermark" -> if (waterMark) result = true
 //                            "feature_is_support_hassel_watermark" -> if (hasselWaterMark) result = true

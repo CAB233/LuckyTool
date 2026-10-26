@@ -30,9 +30,7 @@ import com.luckyzyx.luckytool.utils.showToast
 import com.topjohnwu.superuser.ShellUtils
 import kotlinx.coroutines.Dispatchers
 import okhttp3.internal.toHexString
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 class AutoStartControllerService : Service() {
 
     private val CHANNEL_ID = "auto_start_channel"

@@ -1,8 +1,6 @@
 package com.luckyzyx.luckytool.utils
 
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 object GlobalKeyValue {
 
     const val qqPackName = "com.tencent.mobileqq"

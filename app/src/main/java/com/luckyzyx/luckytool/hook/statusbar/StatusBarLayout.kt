@@ -9,19 +9,15 @@ import android.widget.TextView
 import com.highcapable.betterandroid.ui.extension.view.parent
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.A13
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.getScreenOrientation
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 @Suppress("UNUSED_VARIABLE", "DiscouragedApi")
-object StatusBarLayout : YukiBaseHooker() {
+object StatusBarLayout : Hooker {
     private var statusBarLeftMargin: Int = 0
     private var statusBarRightMargin: Int = 0
     private var statusBarTopMargin: Int = 0
@@ -34,14 +30,14 @@ object StatusBarLayout : YukiBaseHooker() {
         var mCenterLayout: LinearLayout?
         var mStatusBar: ViewGroup? = null
 
-        val layoutMode = preferences(ModulePrefs).getString("statusbar_layout_mode", "0")
+        val layoutMode = prefs(ModulePrefs).getString("statusbar_layout_mode", "0")
 
         val isCompatibleMode =
-            preferences(ModulePrefs).getBoolean("statusbar_layout_compatible_mode", false)
+            prefs(ModulePrefs).getBoolean("statusbar_layout_compatible_mode", false)
         val leftMargin =
-            preferences(ModulePrefs).getInt("statusbar_layout_left_margin", 0)
+            prefs(ModulePrefs).getInt("statusbar_layout_left_margin", 0)
         val rightMargin =
-            preferences(ModulePrefs).getInt("statusbar_layout_right_margin", 0)
+            prefs(ModulePrefs).getInt("statusbar_layout_right_margin", 0)
 
         fun updateCustomLayout(context: Context) {
             getScreenOrientation(context) {
@@ -82,7 +78,7 @@ object StatusBarLayout : YukiBaseHooker() {
                 parameterCount = 3
             }.hook {
                 before {
-                    if (isCompatibleMode) arg(1).set(0)
+                    if (isCompatibleMode) args(1).set(0)
                 }
             }
         }
@@ -97,7 +93,7 @@ object StatusBarLayout : YukiBaseHooker() {
                 parameterCount = 2
             }.hook {
                 after {
-                    val phoneStatusBarView = arg(0).get<ViewGroup>()!!
+                    val phoneStatusBarView = args(0).cast<ViewGroup>()!!
                     val context = phoneStatusBarView.context
                     val res = phoneStatusBarView.resources
                     val statusBarId = res?.getIdentifier(

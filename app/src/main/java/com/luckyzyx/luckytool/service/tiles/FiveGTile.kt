@@ -3,11 +3,9 @@ package com.luckyzyx.luckytool.service.tiles
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.telephony.SubscriptionManager
-import org.lsposed.lsparanoid.Obfuscate
 import com.luckyzyx.luckytool.ITileServiceController
 import com.luckyzyx.luckytool.service.TilesService
 
-@Obfuscate
 class FiveGTile : TileService() {
     private var controller: ITileServiceController? = null
 

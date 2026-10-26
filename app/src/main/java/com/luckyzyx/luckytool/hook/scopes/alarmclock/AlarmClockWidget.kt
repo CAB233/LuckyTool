@@ -11,19 +11,13 @@ import androidx.collection.arrayMapOf
 import androidx.core.graphics.toColorInt
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.factory.injectModuleResources
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.safeOfNull
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class AlarmClockWidget(val dexKitBridge: DexKitBridge) : Hooker {
 
     companion object {
         private lateinit var redMode: String
@@ -55,7 +49,7 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
          * 新版时钟V14+替换RemoteViews
          * @receiver Class<*>
          */
-        fun YukiBaseHooker.hookBaseClock(clazz: Class<Any>) {
+        fun Hooker.hookBaseClock(clazz: Class<Any>) {
             clazz.resolve().apply {
                 method {
                     emptyParameters()
@@ -66,7 +60,7 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                             val context = (field { type = Context::class }.firstOrNull()
                                 ?: field { type = Context::class; superclass() }.firstOrNull())
                                 ?.of(instance)?.get<Context>() ?: return@after
-                            context.injectModuleResources()
+                            context.injectModuleAppResources()
                             val res = result<RemoteViews>() ?: return@after
                             val layoutName = safeOfNull {
                                 context.resources.getResourceEntryName(res.layoutId)
@@ -170,8 +164,8 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
 
 
     override fun onHook() {
-        redMode = preferences(ModulePrefs).getString("alarmclock_widget_redone_mode", "0")
-        dataChannel.wait<String>("alarmclock_widget_redone_mode") { redMode = it }
+        redMode = prefs(ModulePrefs).getString("alarmclock_widget_redone_mode", "0")
+        Channel.wait<String>("alarmclock_widget_redone_mode") { redMode = it }
 
         val onePlusWidget = OnePlusWidget.toClassOrNull()?.resolve() ?: return
         when {
@@ -192,7 +186,7 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
         }
     }
 
-    private class BaseAlarmClock15(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    private class BaseAlarmClock15(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
             //Source BaseClockWidget
             //Source OnePlusWidget / OppoWeather / OppoWeatherSingle / OppoWeatherVertical
@@ -246,14 +240,14 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
         }
     }
 
-    private object BaseAlarmClock14 : YukiBaseHooker() {
+    private object BaseAlarmClock14 : Hooker {
         override fun onHook() {
             //Source BaseClockWidget
             hookBaseClock(BaseClockWidget.toClass())
         }
     }
 
-    private class AlarmClock130(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    private class AlarmClock130(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
             //OnePlusWidget setTextViewText -> local_hour_txt -> SpannableStringBuilder -> CharSequence
             dexKitBridge.findClass {
@@ -299,7 +293,7 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
         }
     }
 
-    private object AlarmClock12 : YukiBaseHooker() {
+    private object AlarmClock12 : Hooker {
         override fun onHook() {
             //Source OnePlusWidget
             "com.coloros.widget.smallweather.OnePlusWidget".toClass().resolve().apply {

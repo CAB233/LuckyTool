@@ -1,19 +1,15 @@
 package com.luckyzyx.luckytool.hook.scopes.uiengine
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.A14
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object SetAodNotificationIconStyle : YukiBaseHooker() {
+object SetAodNotificationIconStyle : Hooker {
 
     override fun onHook() {
-        val mode = preferences(ModulePrefs).getString("set_aod_notification_icon_style", "0")
+        val mode = prefs(ModulePrefs).getString("set_aod_notification_icon_style", "0")
         if (mode == "0") return
 
         //Source ProductFlavorOption
@@ -23,10 +19,10 @@ object SetAodNotificationIconStyle : YukiBaseHooker() {
             }.hook {
                 when (mode) {
                     "1" -> {
-                        intercept(true)
+                        replaceTo(true)
                     }
                     "2" -> {
-                        intercept(false)
+                        replaceTo(false)
                     }
                 }
             }

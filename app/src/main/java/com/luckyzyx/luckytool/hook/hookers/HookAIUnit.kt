@@ -2,13 +2,9 @@ package com.luckyzyx.luckytool.hook.hookers
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookAIUnit : YukiBaseHooker() {
+object HookAIUnit : Hooker {
     override fun onHook() {
         //Source Router
         "com.oplus.aiunit.router.Router".toClass().resolve().apply {
@@ -16,7 +12,7 @@ object HookAIUnit : YukiBaseHooker() {
                 after {
                     val list = result<List<Any>>()?.takeIf { it.isNotEmpty() } ?: return@after
                     list.forEachIndexed { _, it ->
-//                            YLog.info("$index -> ${it.toString()}")
+//                            XLog.info("$index -> ${it.toString()}")
                         val unitName =
                             it.asResolver().firstMethod { name = "getUnitName" }.invoke<String>()
                         when (unitName) {

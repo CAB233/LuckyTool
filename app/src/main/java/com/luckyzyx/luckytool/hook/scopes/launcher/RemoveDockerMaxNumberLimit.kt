@@ -2,14 +2,10 @@ package com.luckyzyx.luckytool.hook.scopes.launcher
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.utils.launcher.LauncherAppStateUtils
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveDockerMaxNumberLimit : YukiBaseHooker() {
+object RemoveDockerMaxNumberLimit : Hooker {
     override fun onHook() {
         //Source ExpandConfig
         "com.android.launcher3.hotseat.expand.ExpandConfig".toClass().resolve().apply {

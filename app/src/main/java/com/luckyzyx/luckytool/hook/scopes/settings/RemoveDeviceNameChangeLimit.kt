@@ -2,13 +2,9 @@ package com.luckyzyx.luckytool.hook.scopes.settings
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveDeviceNameChangeLimit : YukiBaseHooker() {
+object RemoveDeviceNameChangeLimit : Hooker {
     override fun onHook() {
         //Source PhoneNameSettingsActivity -> AlertDialog
 
@@ -17,7 +13,7 @@ object RemoveDeviceNameChangeLimit : YukiBaseHooker() {
             .apply {
                 firstMethod { name = "activeVerifyPhoneName" }.hook {
                     before {
-                        val callback = lastArg().get() ?: return@before
+                        val callback = args().last().any() ?: return@before
                         callback.asResolver().firstMethod { name = "onSuccess" }.invoke(null)
                         result = null
                     }
@@ -31,7 +27,7 @@ object RemoveDeviceNameChangeLimit : YukiBaseHooker() {
         "com.oplus.settings.utils.WirelessDeviceVerifyUtils".toClass().resolve().apply {
             firstMethod { name = "activeVerifyPhoneName" }.hook {
                 before {
-                    val callback = lastArg().get() ?: return@before
+                    val callback = args().last().any() ?: return@before
                     callback.asResolver().firstMethod { name = "onSuccess" }.invoke(null)
                     result = null
                 }
@@ -41,7 +37,7 @@ object RemoveDeviceNameChangeLimit : YukiBaseHooker() {
         //Source OplusDeviceInfoUtils
         "com.oplus.settings.utils.OplusDeviceInfoUtils".toClass().resolve().apply {
             firstMethod { name = "getVerifyNameCondition" }.hook {
-                intercept(false)
+                replaceTo(false)
             }
         }
     }

@@ -21,11 +21,6 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
 import com.highcapable.kavaref.extension.createInstance
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.utils.sysui.ClockSwitchHelper
 import com.luckyzyx.luckytool.hook.utils.sysui.WeatherInfoParseHelper
 import com.luckyzyx.luckytool.utils.A14
@@ -34,22 +29,20 @@ import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
 import com.luckyzyx.luckytool.utils.dp
 import com.luckyzyx.luckytool.utils.safeOf
-import org.lsposed.lsparanoid.Obfuscate
 import java.util.Calendar
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object LockScreenClock : YukiBaseHooker() {
+object LockScreenClock : Hooker {
 
     override fun onHook() {
-        val removeClock = preferences(ModulePrefs).getBoolean("remove_lock_screen_clock_component", false)
+        val removeClock = prefs(ModulePrefs).getBoolean("remove_lock_screen_clock_component", false)
         if (removeClock) {
             if (SDK >= A15) loadHooker(RemoveLockScreenClock)
             else loadHooker(RemoveLockScreenClockV14)
         } else loadHooker(LockScreenClockStyleV14)
     }
 
-    @Obfuscate
-    object RemoveLockScreenClock : YukiBaseHooker() {
+    object RemoveLockScreenClock : Hooker {
         override fun onHook() {
             //Source KeyguardStyleClockControllerImpl
             "com.oplus.systemui.keyguard.clockstyle.KeyguardStyleClockControllerImpl".toClass()
@@ -65,8 +58,7 @@ object LockScreenClock : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object RemoveLockScreenClockV14 : YukiBaseHooker() {
+    object RemoveLockScreenClockV14 : Hooker {
         override fun onHook() {
             //Source KeyguardClockSwitch
             "com.android.keyguard.KeyguardClockSwitch".toClass().resolve().apply {
@@ -107,17 +99,16 @@ object LockScreenClock : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object LockScreenClockStyleV14 : YukiBaseHooker() {
+    object LockScreenClockStyleV14 : Hooker {
         override fun onHook() {
-            var redMode = preferences(ModulePrefs).getString("lock_screen_clock_redone_mode", "0")
-            dataChannel.wait<String>("lock_screen_clock_redone_mode") { redMode = it }
+            var redMode = prefs(ModulePrefs).getString("lock_screen_clock_redone_mode", "0")
+            Channel.wait<String>("lock_screen_clock_redone_mode") { redMode = it }
             var dualClock =
-                preferences(ModulePrefs).getBoolean("apply_lock_screen_dual_clock_redone", false)
-            dataChannel.wait<Boolean>("apply_lock_screen_dual_clock_redone") { dualClock = it }
-            val isCenter = preferences(ModulePrefs).getBoolean("set_lock_screen_centered", false)
+                prefs(ModulePrefs).getBoolean("apply_lock_screen_dual_clock_redone", false)
+            Channel.wait<Boolean>("apply_lock_screen_dual_clock_redone") { dualClock = it }
+            val isCenter = prefs(ModulePrefs).getBoolean("set_lock_screen_centered", false)
             val userTypeface =
-                preferences(ModulePrefs).getBoolean("lock_screen_clock_use_user_typeface", false)
+                prefs(ModulePrefs).getBoolean("lock_screen_clock_use_user_typeface", false)
             val weatherInfoClazz = WeatherInfoParseHelper(hostClassLoader!!).weatherInfoClazz
             val timeInfoClazz = WeatherInfoParseHelper(hostClassLoader!!).timeInfoClazz
 
@@ -184,7 +175,7 @@ object LockScreenClock : YukiBaseHooker() {
                             else if (s.contains("updateResidentTime")) "ResidentTime"
                             else return@after
                         }
-                        val view = if (args.size > 1) firstArg().get() ?: return@after
+                        val view = if (args.size > 1) args().first().any() ?: return@after
                         else instance
                         when (type) {
                             "LocatedTime" -> {
@@ -295,14 +286,14 @@ object LockScreenClock : YukiBaseHooker() {
                                 else if (s.contains("updateResidentTime")) "ResidentTime"
                                 else return@after
                             }
-                            val view = if (args.size > 1) firstArg().get() ?: return@after
+                            val view = if (args.size > 1) args().first().any() ?: return@after
                             else instance
                             when (type) {
                                 "LocateTime" -> {
                                     val mLocatedTimeHour = view.asResolver().firstField {
                                         name = "mTvHorizontalLocateClockHour"
                                     }.get<TextView>() ?: return@after
-                                    val mLocatedTimeInfo = lastArg().get() ?: return@after
+                                    val mLocatedTimeInfo = args().last().any() ?: return@after
                                     val mHour =
                                         mLocatedTimeInfo.asResolver()
                                             .firstMethod { name = "getHour" }
@@ -314,7 +305,7 @@ object LockScreenClock : YukiBaseHooker() {
                                     val mResidentTimeHour = view.asResolver().firstField {
                                         name = "mTvHorizontalResidentClockHour"
                                     }.get<TextView>() ?: return@after
-                                    val mResidentTimeInfo = lastArg().get() ?: return@after
+                                    val mResidentTimeInfo = args().last().any() ?: return@after
                                     val mHour =
                                         mResidentTimeInfo.asResolver()
                                             .firstMethod { name = "getHour" }

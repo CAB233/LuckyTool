@@ -42,7 +42,6 @@ import com.highcapable.betterandroid.ui.extension.graphics.decodeToBitmapOrNull
 import com.highcapable.betterandroid.ui.extension.view.toast
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.hook.factory.dataChannel
 import com.luckyzyx.luckytool.BuildConfig
 import com.luckyzyx.luckytool.IGlobalFuncController
 import com.luckyzyx.luckytool.R
@@ -59,6 +58,7 @@ import java.util.regex.Pattern
 import kotlin.math.roundToLong
 import kotlin.random.Random
 import kotlin.system.exitProcess
+import com.luckyzyx.luckytool.hook.core.*
 
 /** 设备信息按字段保存，显示时再根据当前语言解析标题。 */
 data class DeviceInfoEntry(val labelRes: Int, val value: String)
@@ -704,14 +704,25 @@ fun logcatToFile(file: File): Boolean {
  * @param packName 原 dataChannel 目标包，现仅作兼容保留（不再按包路由）
  */
 fun Context.sendPrefsValue(packName: String, key: String, newValue: Any) {
-    // dataChannel 同样跨进程：集合不能把 Kotlin 单例实现（emptySet()/emptyList()）送过去，
-    // 统一复制成 java.util 实现后传输（值类型与语义不变）
-    val safeValue = when (newValue) {
-        is Set<*> -> HashSet(newValue)
-        is List<*> -> ArrayList(newValue)
-        else -> newValue
+    // 跨进程写入同一个 remote prefs 组：宿主进程的 Channel 监听该组变化后分发回调
+    when (newValue) {
+        is String -> putString(ModulePrefs, key, newValue)
+        is Boolean -> putBoolean(ModulePrefs, key, newValue)
+        is Int -> putInt(ModulePrefs, key, newValue)
+        is Long -> putLong(ModulePrefs, key, newValue)
+        is Float -> putFloat(ModulePrefs, key, newValue)
+        is Set<*> -> putStringSet(
+            ModulePrefs,
+            key,
+            newValue.filterIsInstance<String>().toSet()
+        )
+        else -> LogUtils.e(
+            "sendPrefsValue",
+            "$packName/$key",
+            "unsupported value ${newValue.javaClass.name}",
+            true
+        )
     }
-    dataChannel(packName).put(key, safeValue)
 }
 
 /**
@@ -719,7 +730,7 @@ fun Context.sendPrefsValue(packName: String, key: String, newValue: Any) {
  * 键值本身由调用方的 putXxx(ModulePrefs, ...) 已写入，本函数保留为兼容空操作。
  */
 fun Context.sendPrefsKey(packName: String, key: String) {
-    dataChannel(packName).put(key)
+    // 值已由调用方写入，remote prefs 的变化通知即宿主侧 Channel 的事件来源
 }
 
 /**

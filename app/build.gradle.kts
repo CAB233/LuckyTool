@@ -1,18 +1,12 @@
 import java.io.FileInputStream
 import java.util.Properties
+import javax.xml.parsers.DocumentBuilderFactory
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.ksp)
     alias(libs.plugins.lsplugin.resopt)
-    alias(libs.plugins.lsplugin.lsparanoid)
     alias(libs.plugins.kotlin.serialization)
-}
-
-lsparanoid {
-    includeDependencies = false
-    variantFilter = { variant -> variant.name == "release" }
 }
 
 android {
@@ -36,27 +30,28 @@ android {
             enableV3Signing = true
             enableV4Signing = null
 
-            storeFile = file(rootProject.extra.get("storeFile") as String)
-            storePassword = rootProject.extra.get("storePassword") as String
-            keyAlias = rootProject.extra.get("keyAlias") as String
-            keyPassword = rootProject.extra.get("keyPassword") as String
+            if ((rootProject.extra.get("storeFile") as String).isNotBlank()) {
+                storeFile = rootProject.file(rootProject.extra.get("storeFile") as String)
+                storePassword = rootProject.extra.get("storePassword") as String
+                keyAlias = rootProject.extra.get("keyAlias") as String
+                keyPassword = rootProject.extra.get("keyPassword") as String
+            }
         }
     }
     buildTypes {
         release {
             isDebuggable = false
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
-            )
+            // AGP 9 的 R8 优化：保留规则来自 src/release/keepRules/*.keep
+            optimization {
+                enable = true
+            }
             signingConfig = signingConfigs.getByName("debug")
         }
         debug {
             isDebuggable = false
-            isMinifyEnabled = false
-            //noinspection NotShrinkingResources
-            isShrinkResources = false
+            optimization {
+                enable = false
+            }
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -84,9 +79,43 @@ android {
     }
 }
 
+// 作用域以资源数组为单一来源，构建时生成 Modern Xposed 的清单。
+abstract class GenerateXposedScope : DefaultTask() {
+    @get:InputFile
+    abstract val source: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val destination: DirectoryProperty
+
+    @TaskAction
+    fun generate() {
+        val document = DocumentBuilderFactory.newInstance().apply {
+            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+        }.newDocumentBuilder().parse(source.get().asFile)
+        val arrays = document.getElementsByTagName("string-array")
+        val scopeArray = (0 until arrays.length).map { arrays.item(it) }
+            .single { it.attributes.getNamedItem("name").nodeValue == "xposed_scope" }
+        val scopes = (0 until scopeArray.childNodes.length).map { scopeArray.childNodes.item(it) }
+            .filter { it.nodeName == "item" }.map { it.textContent.trim() }
+            .map { if (it == "android") "system" else it }
+        check(scopes.isNotEmpty() && scopes.size == scopes.distinct().size)
+        check(scopes.all { it.matches(Regex("[a-zA-Z0-9_.]+")) })
+        destination.get().file("META-INF/xposed/scope.list").asFile.apply {
+            parentFile.mkdirs()
+            writeText(scopes.joinToString("\n", postfix = "\n"))
+        }
+    }
+}
+
+val generateXposedScope = tasks.register<GenerateXposedScope>("generateXposedScope") {
+    source.set(layout.projectDirectory.file("src/main/res/values/arrays.xml"))
+    destination.set(layout.buildDirectory.dir("generated/xposedResources"))
+}
+
 @Suppress("UnstableApiUsage")
 androidComponents {
     onVariants { variant ->
+        variant.sources.resources?.addGeneratedSourceDirectory(generateXposedScope) { it.destination }
         val buildType = variant.buildType ?: "None"
         variant.outputs.forEach { output ->
             val versionName = output.versionName.get()
@@ -104,20 +133,11 @@ dependencies {
     compileOnly(projects.hiddenApiStub)
 
     @Suppress("AvoidDuplicateDependencies")
-    platform(libs.yukihook.bom).apply {
-        implementation(this)
-        ksp(this)
-    }
-    implementation(libs.yukihook.core)
-    ksp(libs.yukihook.compiler)
-    implementation(libs.yukihook.runtime.libxposed)
-    implementation(libs.yukihook.extension.kavaref)
-
     compileOnly(libs.libxposed.api)
+    testImplementation(libs.libxposed.api)
     implementation(libs.libxposed.service)
 
     implementation(libs.kavaref.core)
-    implementation(libs.kavaref.android)
     implementation(libs.kavaref.extension)
 
     implementation(libs.dexkit)

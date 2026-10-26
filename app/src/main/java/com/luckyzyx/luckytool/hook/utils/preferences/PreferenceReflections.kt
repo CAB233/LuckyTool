@@ -5,13 +5,10 @@ import android.content.Intent
 import android.graphics.drawable.Drawable
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.condition.MethodCondition
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 @Suppress("unused")
 object PreferenceReflections {
 
-    @Obfuscate
     object Companion {
 
         fun callFinder(

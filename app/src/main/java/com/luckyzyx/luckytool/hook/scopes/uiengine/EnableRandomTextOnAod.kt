@@ -5,20 +5,16 @@ import com.drake.net.okhttp.trustSSLCertificate
 import com.drake.net.utils.scopeNet
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import java.io.File
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object EnableRandomTextOnAod : YukiBaseHooker() {
+object EnableRandomTextOnAod : Hooker {
     override fun onHook() {
-        val mode = preferences(ModulePrefs).getString("set_random_text_display_mode", "0")
+        val mode = prefs(ModulePrefs).getString("set_random_text_display_mode", "0")
 
-        val customFile = preferences(ModulePrefs).getString("custom_random_text_file", "")
-        val customApi = preferences(ModulePrefs).getString("custom_random_text_api", "")
+        val customFile = prefs(ModulePrefs).getString("custom_random_text_file", "")
+        val customApi = prefs(ModulePrefs).getString("custom_random_text_api", "")
 
         val yiyanTextArrayCache = ArrayList<String>()
         var yiyanTextCache = ""
@@ -56,7 +52,7 @@ object EnableRandomTextOnAod : YukiBaseHooker() {
             }
             firstMethod { name = "getCustomView" }.hook {
                 before {
-                    val viewBean = firstArg().get() ?: return@before
+                    val viewBean = args().first().any() ?: return@before
                     val mViewType =
                         viewBean.asResolver().firstMethod { name = "getViewType" }.invoke<String>()
                     if (mViewType != "AodTextView") return@before

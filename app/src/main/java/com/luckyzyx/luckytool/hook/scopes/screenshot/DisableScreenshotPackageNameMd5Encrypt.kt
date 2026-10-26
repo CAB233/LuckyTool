@@ -2,15 +2,11 @@ package com.luckyzyx.luckytool.hook.scopes.screenshot
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class DisableScreenshotPackageNameMd5Encrypt(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class DisableScreenshotPackageNameMd5Encrypt(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         //Source EncryptUtils
         dexKitBridge.findClass {
@@ -37,7 +33,7 @@ class DisableScreenshotPackageNameMd5Encrypt(val dexKitBridge: DexKitBridge) : Y
                         returnType = String::class
                     }.hook {
                         before {
-                            val packName = firstArg().get<String>() ?: ""
+                            val packName = args().first().cast<String>() ?: ""
                             if (packName.isNotBlank()) result = packName
                         }
                     }

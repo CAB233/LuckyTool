@@ -2,13 +2,9 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemovePowerMenuSOSButton : YukiBaseHooker() {
+object RemovePowerMenuSOSButton : Hooker {
     override fun onHook() {
         //Source GlobalActionsUtils
         VariousClass(
@@ -16,7 +12,7 @@ object RemovePowerMenuSOSButton : YukiBaseHooker() {
             "com.oplusos.systemui.common.util.GlobalActionsUtils" //C14 C15
         ).toClass().resolve().apply {
             firstMethodOrNull { name = "isShowSosButton" }?.hook {
-                intercept(false)
+                replaceTo(false)
             }
         }
 
@@ -26,7 +22,7 @@ object RemovePowerMenuSOSButton : YukiBaseHooker() {
             "com.oplus.systemui.shutdown.OplusShutdownView"
         ).toClass().resolve().apply {
             firstMethod { name = "isShowEmergency" }.hook {
-                intercept(false)
+                replaceTo(false)
             }
         }
     }

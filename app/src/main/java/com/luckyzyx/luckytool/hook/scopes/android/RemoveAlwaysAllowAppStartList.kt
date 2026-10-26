@@ -2,29 +2,24 @@ package com.luckyzyx.luckytool.hook.scopes.android
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveAlwaysAllowAppStartList : YukiBaseHooker() {
+object RemoveAlwaysAllowAppStartList : Hooker {
     override fun onHook() {
-        val isEnable = preferences(ModulePrefs).getBoolean("enable_always_allow_app_start_dialog", false)
+        val isEnable = prefs(ModulePrefs).getBoolean("enable_always_allow_app_start_dialog", false)
         if (!isEnable) return
 
         var controller: Any? = null
 
-        dataChannel.wait<ArrayList<Int>>("remove_always_allow_app_start_list") {
+        Channel.wait<ArrayList<Int>>("remove_always_allow_app_start_list") {
             it.forEachIndexed { _, i ->
                 controller?.asResolver()?.firstMethod {
                     name = "onUserRemoved"
                     parameters(Int::class)
                 }?.invoke(i)
             }
-            YLog.debug("cleaning $it always start app list")
+            XLog.debug("cleaning $it always start app list")
         }
 
         //Source OplusSecurityPermissionManager

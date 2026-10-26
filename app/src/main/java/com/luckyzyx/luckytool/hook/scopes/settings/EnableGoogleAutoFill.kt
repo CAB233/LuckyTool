@@ -13,23 +13,18 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
 import com.highcapable.kavaref.extension.createInstance
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class EnableGoogleAutoFill(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class EnableGoogleAutoFill(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         if (getOSVersionCode >= 30) loadHooker(GoogleAutoFill)
         else loadHooker(GoogleAutoFillV13(dexKitBridge))
     }
 
-    @Obfuscate
-    object GoogleAutoFill : YukiBaseHooker() {
+    object GoogleAutoFill : Hooker {
         override fun onHook() {
             //Source DefaultAppInfo
             val defaultAppInfoClazz = "com.android.settingslib.applications.DefaultAppInfo"
@@ -80,7 +75,7 @@ class EnableGoogleAutoFill(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
 //                        val preference = method {
 //                            name = "newAddServicePreferenceOrNull";superClass()
 //                        }.get(instance).original().call()
-//                        YLog.debug("newAddServicePreferenceOrNull -> ${preference.toString()}")
+//                        XLog.debug("newAddServicePreferenceOrNull -> ${preference.toString()}")
 //
 //                        if (preference != null) {
 //                            val title = context.resources.getIdentifier(
@@ -95,7 +90,7 @@ class EnableGoogleAutoFill(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
 //                            preference.current().method { name = "setKey";param(StringClass) }
 //                                .call("add_autofill_services")
 //
-//                            YLog.debug("preference -> ${preference.toString()}")
+//                            XLog.debug("preference -> ${preference.toString()}")
 //
 //                            result = preference
 //                        }
@@ -105,8 +100,7 @@ class EnableGoogleAutoFill(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    class GoogleAutoFillV13(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    class GoogleAutoFillV13(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
             //Source DefaultAppInfo
             val defaultAppInfoClazz = dexKitBridge.findClass {

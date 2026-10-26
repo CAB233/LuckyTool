@@ -5,27 +5,22 @@ import android.content.Context
 import android.os.Handler
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class HookBatteryNotify(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class HookBatteryNotify(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         //Channel high_performance_channel_id 5
         val highPerformance =
-            preferences(ModulePrefs).getBoolean("remove_high_performance_mode_notifications", false)
+            prefs(ModulePrefs).getBoolean("remove_high_performance_mode_notifications", false)
         //Channel PowerConsumptionOptimizationChannel / PowerConsumptionOptimizationChannelLow 17
         //power_consumption_optimization_title
         val highBatteryConsumption =
-            preferences(ModulePrefs).getBoolean("remove_app_high_battery_consumption_warning", false)
+            prefs(ModulePrefs).getBoolean("remove_app_high_battery_consumption_warning", false)
         //Channel smart_charge_channel_id 20
-//        val smartRapidCharge = preferences(ModulePrefs).getBoolean("remove_smart_rapid_charging_notification", false)
+//        val smartRapidCharge = prefs(ModulePrefs).getBoolean("remove_smart_rapid_charging_notification", false)
 
         //Source NotifyUtil
         dexKitBridge.findClass {

@@ -8,21 +8,17 @@ import android.widget.Button
 import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.enums.StringMatchType
 import org.luckypray.dexkit.result.MethodData
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class HookInstallAppProgress(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class HookInstallAppProgress(val dexKitBridge: DexKitBridge) : Hooker {
 
-    val removeAds = preferences(ModulePrefs).getBoolean("remove_install_ads", false)
-    val autoDone = preferences(ModulePrefs).getBoolean("auto_click_install_button", false)
+    val removeAds = prefs(ModulePrefs).getBoolean("remove_install_ads", false)
+    val autoDone = prefs(ModulePrefs).getBoolean("auto_click_install_button", false)
 
     override fun onHook() {
         //Source InstallAppProgress
@@ -95,7 +91,7 @@ class HookInstallAppProgress(val dexKitBridge: DexKitBridge) : YukiBaseHooker() 
             firstMethod { name = onPackageInstalled.methodName }.hook {
                 after {
                     val activity = instance<Activity>()
-                    if ((firstArg().get<Int>() ?: 0) == 0) {
+                    if ((args().first().cast<Int>() ?: 0) == 0) {
                         activity.findViewById<Button>(
                             activity.resources.getIdentifier(
                                 "done_button", "id",

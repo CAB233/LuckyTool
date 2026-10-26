@@ -1,10 +1,8 @@
 package com.luckyzyx.luckytool.utils
 
 import android.annotation.SuppressLint
-import org.lsposed.lsparanoid.Obfuscate
 
 @Suppress("MayBeConstant")
-@Obfuscate
 object CommandUtils {
 
     val aesCryptKey = "luckyzyxluckyzyx"

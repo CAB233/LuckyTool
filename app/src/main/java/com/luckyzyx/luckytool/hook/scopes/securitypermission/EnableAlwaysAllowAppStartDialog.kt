@@ -8,22 +8,17 @@ import android.os.Bundle
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class EnableAlwaysAllowAppStartDialog(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class EnableAlwaysAllowAppStartDialog(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         loadHooker(HookAlwaysAllowButton(dexKitBridge))
         loadHooker(HookValidTime(dexKitBridge))
     }
 
-    @Obfuscate
-    class HookAlwaysAllowButton(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    class HookAlwaysAllowButton(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
             //Source COUIAlertDialogBuilder
             dexKitBridge.findClass {
@@ -63,8 +58,8 @@ class EnableAlwaysAllowAppStartDialog(val dexKitBridge: DexKitBridge) : YukiBase
                             )
                         }.hook {
                             before {
-                                val resId = firstArg().get<Int>() ?: 0
-                                val listener = arg(1).get() ?: return@before
+                                val resId = args().first().cast<Int>() ?: 0
+                                val listener = args(1).any() ?: return@before
                                 val activity =
                                     listener.asResolver().firstField { type = Activity::class }
                                         .get<Activity>() ?: return@before
@@ -76,7 +71,7 @@ class EnableAlwaysAllowAppStartDialog(val dexKitBridge: DexKitBridge) : YukiBase
                                     "app_start_dialog_always_allow", "string",
                                     this@HookAlwaysAllowButton.packageName
                                 ).takeIf { it > 0 } ?: return@before
-                                if (resId == allow30Id) firstArg().set(alwaysAllowId)
+                                if (resId == allow30Id) args().first().set(alwaysAllowId)
                             }
                         }
                     }
@@ -85,8 +80,7 @@ class EnableAlwaysAllowAppStartDialog(val dexKitBridge: DexKitBridge) : YukiBase
         }
     }
 
-    @Obfuscate
-    class HookValidTime(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    class HookValidTime(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
             //Source OplusPermissionManager
             dexKitBridge.findClass {
@@ -113,7 +107,7 @@ class EnableAlwaysAllowAppStartDialog(val dexKitBridge: DexKitBridge) : YukiBase
                             parameters(Bundle::class)
                         }.hook {
                             before {
-                                val bundle = firstArg().get<Bundle>() ?: return@before
+                                val bundle = args().first().cast<Bundle>() ?: return@before
                                 bundle.remove("valid_time")
                             }
                         }

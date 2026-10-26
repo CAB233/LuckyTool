@@ -1,9 +1,7 @@
 [versions]
 agp = "9.4.1"
 kotlin = "2.4.21"
-ksp = "2.3.12"
 
-yukihook = "1.5.0"
 kavaref = "1.1.1"
 betterandroid = "1.1.6"
 
@@ -19,7 +17,6 @@ miuix = "0.9.4"
 libsu = "6.0.0"
 coil = "3.6.3"
 markwon = "4.6.2"
-lsparanoid = "0.6.0"
 
 junit = "4.13.2"
 robolectric = "4.17"
@@ -30,24 +27,16 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
 lsplugin-resopt = { id = "org.lsposed.lsplugin.resopt", version = "1.6" }
-lsplugin-lsparanoid = { id = "org.lsposed.lsparanoid", version.ref = "lsparanoid" }
 
 [libraries]
 libxposed-api = { group = "io.github.libxposed", name = "api", version = "102.0.0" }
 libxposed-service = { group = "io.github.libxposed", name = "service", version = "102.0.0" }
 
-yukihook-bom = { group = "com.highcapable.yukihookapi", name = "yukihook-bom", version.ref = "yukihook" }
-yukihook-core = { group = "com.highcapable.yukihookapi", name = "yukihook-core" }
-yukihook-compiler = { group = "com.highcapable.yukihookapi", name = "yukihook-compiler" }
-yukihook-runtime-libxposed = { group = "com.highcapable.yukihookapi", name = "yukihook-runtime-libxposed" }
-yukihook-extension-kavaref = { group = "com.highcapable.yukihookapi", name = "yukihook-extension-kavaref" }
 
 kavaref-core = { group = "com.highcapable.kavaref", name = "kavaref-core", version.ref = "kavaref" }
-kavaref-android = { group = "com.highcapable.kavaref", name = "kavaref-android", version.ref = "kavaref" }
 kavaref-extension = { group = "com.highcapable.kavaref", name = "kavaref-extension", version.ref = "kavaref" }
 
 dexkit = { group = "org.luckypray", name = "dexkit", version = "2.3.0" }

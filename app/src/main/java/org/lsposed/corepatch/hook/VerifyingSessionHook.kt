@@ -2,8 +2,8 @@ package org.lsposed.corepatch.hook
 
 import android.annotation.SuppressLint
 import android.os.Build
-import com.highcapable.yukihookapi.extension.kavaref.toClass
 import org.lsposed.corepatch.Config
+import com.luckyzyx.luckytool.hook.core.*
 
 object VerifyingSessionHook : BaseHook() {
     override val name = "VerifyingSessionHook"

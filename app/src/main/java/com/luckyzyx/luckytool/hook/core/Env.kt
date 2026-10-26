@@ -35,6 +35,13 @@ object Env {
     var frameworkProperties: Long = 0L
         private set
 
+    /** 本进程首个落地的宿主包（同形 YukiHook 的 isFirstApplication） */
+    @Volatile
+    private var firstPackageName: String? = null
+
+    val isFirstApplication: Boolean
+        get() = HookRouter.currentContext()?.packageName?.let { it == firstPackageName } ?: false
+
     /** 远程偏好能力告警只打一次 */
     private var remotePrefsWarned = false
     private var isSystemServer = false
@@ -57,6 +64,7 @@ object Env {
 
     /** 进入宿主包回调：切换 KavaRef 反射 ClassLoader 与上下文 */
     fun enter(packageName: String, classLoader: ClassLoader, appInfo: ApplicationInfo?) {
+        if (firstPackageName == null) firstPackageName = packageName
         this.packageName = packageName
         this.classLoader = classLoader
         this.appInfo = appInfo

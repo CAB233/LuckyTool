@@ -8,13 +8,9 @@ import android.provider.Settings
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.createInstance
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object AutoJumpAccessibilitySettings : YukiBaseHooker() {
+object AutoJumpAccessibilitySettings : Hooker {
     override fun onHook() {
         //Source SettingsActivity
         "com.android.settings.SettingsActivity".toClass().resolve().apply {

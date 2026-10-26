@@ -2,9 +2,9 @@ package org.lsposed.corepatch.hook
 
 import android.annotation.SuppressLint
 import android.os.Build
-import com.highcapable.yukihookapi.extension.kavaref.toClass
 import org.lsposed.corepatch.Config
 import java.util.Arrays
+import com.luckyzyx.luckytool.hook.core.*
 
 object SigningDetailsHook : BaseHook() {
     override val name = "SigningDetailsHook"

@@ -4,13 +4,10 @@ import android.annotation.SuppressLint
 import android.hardware.display.DisplayManager
 import android.os.Build
 import android.view.SurfaceControl
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import java.util.function.BiConsumer
 import java.util.function.BiPredicate
+import com.luckyzyx.luckytool.hook.core.*
 
 /**
  * 由上游 io.github.lsposed.disableflagsecure.DisableFlagSecure（libxposed 链式 Hook API）迁移为 YukiHook 经典钩子。
@@ -22,17 +19,16 @@ import java.util.function.BiPredicate
  * 因此只有 ModulePrefs.disable_flag_secure 为 true（界面开关“禁用FLAG_SECURE”已打开）时才安装钩子，否则直接退出。
  */
 @SuppressLint("PrivateApi", "BlockedPrivateApi")
-@Obfuscate
-object HookDisableFlagSecure : YukiBaseHooker() {
+object HookDisableFlagSecure : Hooker {
 
     override fun onHook() {
         //LuckyTool：上游 isEnabled() = !disable_flag_secure，为 true 时早退，故此处仅在开关打开时继续
-        if (!preferences(ModulePrefs).getBoolean("disable_flag_secure", false)) return
+        if (!prefs(ModulePrefs).getBoolean("disable_flag_secure", false)) return
 
         try {
             deoptimizeSystemServer()
         } catch (t: Throwable) {
-            YLog.error("deoptimize system server failed", t)
+            XLog.error("deoptimize system server failed", t)
         }
 
         hookSystemServer()
@@ -44,7 +40,7 @@ object HookDisableFlagSecure : YukiBaseHooker() {
             try {
                 hookWindowManagerService()
             } catch (t: Throwable) {
-                YLog.error("hook WindowManagerService failed", t)
+                XLog.error("hook WindowManagerService failed", t)
             }
         }
 
@@ -53,7 +49,7 @@ object HookDisableFlagSecure : YukiBaseHooker() {
             try {
                 hookActivityTaskManagerService()
             } catch (t: Throwable) {
-                YLog.error("hook ActivityTaskManagerService failed", t)
+                XLog.error("hook ActivityTaskManagerService failed", t)
             }
 
             // Xiaomi HyperOS (U~Baklava)
@@ -62,7 +58,7 @@ object HookDisableFlagSecure : YukiBaseHooker() {
                 hookHyperOS()
             } catch (ignored: ClassNotFoundException) {
             } catch (t: Throwable) {
-                YLog.error("hook HyperOS failed", t)
+                XLog.error("hook HyperOS failed", t)
             }
         }
 
@@ -70,7 +66,7 @@ object HookDisableFlagSecure : YukiBaseHooker() {
         try {
             hookScreenCapture()
         } catch (t: Throwable) {
-            YLog.error("hook ScreenCapture failed", t)
+            XLog.error("hook ScreenCapture failed", t)
         }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -78,7 +74,7 @@ object HookDisableFlagSecure : YukiBaseHooker() {
             try {
                 hookActivityManagerService()
             } catch (t: Throwable) {
-                YLog.error("hook ActivityManagerService failed", t)
+                XLog.error("hook ActivityManagerService failed", t)
             }
         }
 
@@ -86,14 +82,14 @@ object HookDisableFlagSecure : YukiBaseHooker() {
         try {
             hookDisplayControl()
         } catch (t: Throwable) {
-            YLog.error("hook DisplayControl failed", t)
+            XLog.error("hook DisplayControl failed", t)
         }
 
         // VirtualDisplay with MediaProjection (S~Baklava)
         try {
             hookVirtualDisplayAdapter()
         } catch (t: Throwable) {
-            YLog.error("hook VirtualDisplayAdapter failed", t)
+            XLog.error("hook VirtualDisplayAdapter failed", t)
         }
 
         // OneUI
@@ -101,14 +97,14 @@ object HookDisableFlagSecure : YukiBaseHooker() {
             hookScreenshotHardwareBuffer()
         } catch (t: Throwable) {
             if (t !is ClassNotFoundException) {
-                YLog.error("hook ScreenshotHardwareBuffer failed", t)
+                XLog.error("hook ScreenshotHardwareBuffer failed", t)
             }
         }
         try {
             hookOneUI()
         } catch (t: Throwable) {
             if (t !is ClassNotFoundException) {
-                YLog.error("hook OneUI failed", t)
+                XLog.error("hook OneUI failed", t)
             }
         }
 
@@ -117,7 +113,7 @@ object HookDisableFlagSecure : YukiBaseHooker() {
             // Screenshot
             hookWindowState()
         } catch (t: Throwable) {
-            YLog.error("hook WindowState failed", t)
+            XLog.error("hook WindowState failed", t)
         }
 
         // oplus dumpsys
@@ -126,7 +122,7 @@ object HookDisableFlagSecure : YukiBaseHooker() {
             hookOplus()
         } catch (t: Throwable) {
             if (t !is ClassNotFoundException) {
-                YLog.error("hook Oplus failed", t)
+                XLog.error("hook Oplus failed", t)
             }
         }
     }
@@ -240,7 +236,7 @@ object HookDisableFlagSecure : YukiBaseHooker() {
                                 captureSecureLayersField.set(captureArgs, true)
                             }
                         } catch (t: IllegalAccessException) {
-                            YLog.error("ScreenCaptureHooker failed", t)
+                            XLog.error("ScreenCaptureHooker failed", t)
                         }
                     }
                 }
@@ -301,7 +297,7 @@ object HookDisableFlagSecure : YukiBaseHooker() {
                                 return@before
                             }
                         }
-                        YLog.warn("flag not found in CreateVirtualDisplayLockedHooker")
+                        XLog.warn("flag not found in CreateVirtualDisplayLockedHooker")
                     }
                 }
             }
@@ -316,7 +312,7 @@ object HookDisableFlagSecure : YukiBaseHooker() {
         )
         method.hook {
             //经典 before 钩子无法可靠跳过 void 方法的原始调用，改用 intercept
-            intercept {
+            replaceAny {
                 //registerScreenCaptureObserver 无返回值，恒返回 null 即完全跳过原始调用
                 null
             }
@@ -331,7 +327,7 @@ object HookDisableFlagSecure : YukiBaseHooker() {
         )
         method.hook {
             //经典 before 钩子无法可靠跳过 void 方法的原始调用，改用 intercept
-            intercept {
+            replaceAny {
                 //与上游一致：不注册屏幕录制回调（方法无返回值时该返回值会被忽略）
                 false
             }
@@ -386,8 +382,7 @@ object HookDisableFlagSecure : YukiBaseHooker() {
 }
 
 @SuppressLint("PrivateApi", "BlockedPrivateApi")
-@Obfuscate
-object HookDisableFlagSecureApp : YukiBaseHooker() {
+object HookDisableFlagSecureApp : Hooker {
 
     private const val SYSTEMUI = "com.android.systemui"
     private const val OPLUS_APPPLATFORM = "com.oplus.appplatform"
@@ -397,7 +392,7 @@ object HookDisableFlagSecureApp : YukiBaseHooker() {
 
     override fun onHook() {
         //LuckyTool：上游 isEnabled() = !disable_flag_secure，为 true 时早退，故此处仅在开关打开时继续
-        if (!preferences(ModulePrefs).getBoolean("disable_flag_secure", false)) return
+        if (!prefs(ModulePrefs).getBoolean("disable_flag_secure", false)) return
         if (!isFirstApplication) return
 
         hookPackage()
@@ -417,7 +412,7 @@ object HookDisableFlagSecureApp : YukiBaseHooker() {
                     hookOplusScreenCapture()
                 } catch (t: Throwable) {
                     if (t !is ClassNotFoundException) {
-                        YLog.error("hook OplusScreenCapture failed", t)
+                        XLog.error("hook OplusScreenCapture failed", t)
                     }
                 }
             }
@@ -430,7 +425,7 @@ object HookDisableFlagSecureApp : YukiBaseHooker() {
                 hookScreenshotHardwareBuffer()
             } catch (t: Throwable) {
                 if (t !is ClassNotFoundException) {
-                    YLog.error("hook ScreenshotHardwareBuffer failed", t)
+                    XLog.error("hook ScreenshotHardwareBuffer failed", t)
                 }
             }
         }
@@ -444,7 +439,7 @@ object HookDisableFlagSecureApp : YukiBaseHooker() {
                 try {
                     hookScreenCapture()
                 } catch (t: Throwable) {
-                    YLog.error("hook ScreenCapture failed", t)
+                    XLog.error("hook ScreenCapture failed", t)
                 }
             }
         }
@@ -509,7 +504,7 @@ object HookDisableFlagSecureApp : YukiBaseHooker() {
                                 captureSecureLayersField.set(captureArgs, true)
                             }
                         } catch (t: IllegalAccessException) {
-                            YLog.error("ScreenCaptureHooker failed", t)
+                            XLog.error("ScreenCaptureHooker failed", t)
                         }
                     }
                 }

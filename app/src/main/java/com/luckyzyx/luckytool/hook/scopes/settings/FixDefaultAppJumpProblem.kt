@@ -4,21 +4,17 @@ import android.content.Context
 import android.content.Intent
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.safeOfNull
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object FixDefaultAppJumpProblem : YukiBaseHooker() {
+object FixDefaultAppJumpProblem : Hooker {
     override fun onHook() {
         //Source DefaultAppManagerPreferenceController
         "com.oplus.settings.feature.appmanager.controller.DefaultAppManagerPreferenceController".toClass()
             .resolve().apply {
                 firstMethod { name = "handlePreferenceTreeClick" }.hook {
                     before {
-                        val preference = firstArg().get() ?: return@before
+                        val preference = args().first().any() ?: return@before
                         val key =
                             preference.asResolver().firstMethod { name = "getKey";superclass() }
                             .invoke<String>()

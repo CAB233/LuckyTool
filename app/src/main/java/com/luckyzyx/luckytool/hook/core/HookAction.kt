@@ -159,6 +159,9 @@ class HookCall internal constructor(
     internal var early = false
 }
 
+/** 同形 YukiHookAPI 的 instanceOrNull<T>()：泛型取实例（可空） */
+inline fun <reified T> HookCall.instanceOrNull(): T? = instanceOrNull as? T
+
 /** 同形 YukiHookAPI 的 result<T>()：泛型取值（成员属性 result 提供裸引用） */
 inline fun <reified T> HookCall.result(): T? = result as? T
 
@@ -225,7 +228,7 @@ class Args internal constructor(
 /**
  * Hook 入口：KavaRef 查找结果直接衔接 hook 动作块（方法/构造器通用，可空接收者）
  */
-fun <M : Member> MemberResolver<M, *>.hook(
+fun <M : Member> MemberResolver<M, *, *>.hook(
     priority: Int = XposedInterface.PRIORITY_DEFAULT, action: HookAction.() -> Unit = {}
 ) = when (val member = self) {
     is Method -> member.hookMethod(priority, action)
@@ -312,3 +315,23 @@ internal fun HookAction.invoke(
 fun Executable.hook(
     priority: Int = XposedInterface.PRIORITY_DEFAULT, action: HookAction.() -> Unit = {}
 ) = hookMethod(priority, action)
+
+/** 同形 YukiHookAPI 的 MethodResolver.replaceAny { }：直接注册替换回调 */
+fun <M : Member> MemberResolver<M, *, *>.replaceAny(
+    priority: Int = XposedInterface.PRIORITY_DEFAULT, action: HookCall.() -> Any?
+) = hook(priority) { replaceAny(action) }
+
+/** 同形 YukiHookAPI 的 MethodResolver.before { } */
+fun <M : Member> MemberResolver<M, *, *>.before(
+    priority: Int = XposedInterface.PRIORITY_DEFAULT, action: HookCall.() -> Unit
+) = hook(priority) { before(action) }
+
+/** 同形 YukiHookAPI 的 MethodResolver.after { } */
+fun <M : Member> MemberResolver<M, *, *>.after(
+    priority: Int = XposedInterface.PRIORITY_DEFAULT, action: HookCall.() -> Unit
+) = hook(priority) { after(action) }
+
+/** 同形 YukiHookAPI 的 interceptAll：列表内全部注册替换回调 */
+fun <T : Any> List<MethodResolver<T>>.interceptAll(
+    priority: Int = XposedInterface.PRIORITY_DEFAULT, action: HookCall.() -> Any?
+) = forEach { it.replaceAny(priority, action) }

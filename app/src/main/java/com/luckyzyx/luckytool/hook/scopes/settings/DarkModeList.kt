@@ -6,49 +6,43 @@ import android.util.ArraySet
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
 import com.highcapable.kavaref.extension.createInstance
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.data.DarkModeInfo
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.safeOfNull
 import kotlinx.serialization.json.Json
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
 import java.io.InputStream
 import java.io.Reader
 import java.util.concurrent.atomic.AtomicBoolean
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class DarkModeList(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class DarkModeList(val dexKitBridge: DexKitBridge) : Hooker {
 
     var isEnable = false
     val list = ArraySet<DarkModeInfo>()
 
     fun loadData() {
-        isEnable = preferences(ModulePrefs).getBoolean("dark_mode_list_enable", false)
-        dataChannel.wait<Boolean>("dark_mode_list_enable") {
+        isEnable = prefs(ModulePrefs).getBoolean("dark_mode_list_enable", false)
+        Channel.wait<Boolean>("dark_mode_list_enable") {
             isEnable = it
-            YLog.debug("update dark mode configs status -> $it")
+            XLog.debug("update dark mode configs status -> $it")
         }
 
         list.clear()
-        val enabled = preferences(ModulePrefs).getStringSet("dark_mode_support_list", ArraySet())
+        val enabled = prefs(ModulePrefs).getStringSet("dark_mode_support_list", ArraySet())
         list.addAll(enabled.mapNotNull {
             safeOfNull { Json.decodeFromString<DarkModeInfo>(it) }
         })
-        dataChannel.wait("dark_mode_support_list") {
-            val new = preferences(ModulePrefs).getStringSet("dark_mode_support_list", ArraySet())
-            YLog.debug("update dark mode whitelist configs -> ${list.size} | ${new.size}")
+        Channel.wait("dark_mode_support_list") {
+            val new = prefs(ModulePrefs).getStringSet("dark_mode_support_list", ArraySet())
+            XLog.debug("update dark mode whitelist configs -> ${list.size} | ${new.size}")
             list.clear()
             list.addAll(new.mapNotNull {
                 safeOfNull { Json.decodeFromString<DarkModeInfo>(it) }
             })
         }
-        YLog.debug("init dark mode configs success")
+        XLog.debug("init dark mode configs success")
     }
 
     override fun onHook() {

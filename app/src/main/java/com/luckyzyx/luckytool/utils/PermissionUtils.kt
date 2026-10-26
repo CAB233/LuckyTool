@@ -6,7 +6,6 @@ import com.hjq.permissions.XXPermissions
 import com.hjq.permissions.permission.base.IPermission
 import com.hjq.permissions.permission.PermissionLists
 import com.luckyzyx.luckytool.R
-import org.lsposed.lsparanoid.Obfuscate
 import java.lang.ref.WeakReference
 
 /**
@@ -28,7 +27,6 @@ enum class AppPermission(@StringRes val labelRes: Int) {
     }
 }
 
-@Obfuscate
 class PermissionUtils(val activity: Activity) {
 
     /**

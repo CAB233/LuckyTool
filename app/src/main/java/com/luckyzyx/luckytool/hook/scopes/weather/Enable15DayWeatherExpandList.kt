@@ -2,13 +2,9 @@ package com.luckyzyx.luckytool.hook.scopes.weather
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object Enable15DayWeatherExpandList : YukiBaseHooker() {
+object Enable15DayWeatherExpandList : Hooker {
     override fun onHook() {
         //Source FutureDayWeatherItem
         "com.oplus.weather.main.view.itemview.FutureDayWeatherItem".toClass().resolve().apply {
@@ -17,7 +13,7 @@ object Enable15DayWeatherExpandList : YukiBaseHooker() {
                 parameters { it.contains(classOf<Boolean>()) }
             }.hookAll {
                 before {
-                    arg(args.indexOfFirst { it is Boolean }).set(true)
+                    args(arguments.indexOfFirst { it is Boolean }).set(true)
                 }
             }
         }
@@ -27,7 +23,7 @@ object Enable15DayWeatherExpandList : YukiBaseHooker() {
             method {
                 name { it.startsWith("get") && it.contains("Day15ExpandConfig") }
             }.hookAll {
-                intercept(true)
+                replaceTo(true)
             }
         }
     }

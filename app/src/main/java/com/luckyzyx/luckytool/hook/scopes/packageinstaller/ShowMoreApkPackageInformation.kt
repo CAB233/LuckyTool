@@ -9,21 +9,17 @@ import androidx.collection.ArrayMap
 import androidx.collection.arrayMapOf
 import com.highcapable.betterandroid.ui.extension.view.child
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.scopes.appdetail.ApkDetailsView
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.PackageUtils
 import com.luckyzyx.luckytool.utils.safeOf
 import com.oplus.util.OplusUnitConversionUtils
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.result.MethodData
 import java.io.File
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class ShowMoreApkPackageInformation(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class ShowMoreApkPackageInformation(val dexKitBridge: DexKitBridge) : Hooker {
 
     lateinit var loadApkInfo: MethodData
 
@@ -56,13 +52,13 @@ class ShowMoreApkPackageInformation(val dexKitBridge: DexKitBridge) : YukiBaseHo
             firstConstructor { parameterCount = 7 }.hook {
                 after {
                     cacheApkInfoMap[instance] = arrayMapOf(
-                        "icon" to (arg(0).get<Int>() ?: 0),
-                        "apkPath" to (arg(1).get<String>() ?: ""),
-                        "label" to (arg(2).get<String>() ?: ""),
-                        "versionName" to (arg(3).get<String>() ?: ""),
-                        "versionCode" to (arg(4).get<Int>() ?: 0),
-                        "packageName" to (arg(5).get<String>() ?: ""),
-                        "size" to (arg(6).get<Long>() ?: 0L),
+                        "icon" to (args(0).cast<Int>() ?: 0),
+                        "apkPath" to (args(1).cast<String>() ?: ""),
+                        "label" to (args(2).cast<String>() ?: ""),
+                        "versionName" to (args(3).cast<String>() ?: ""),
+                        "versionCode" to (args(4).cast<Int>() ?: 0),
+                        "packageName" to (args(5).cast<String>() ?: ""),
+                        "size" to (args(6).cast<Long>() ?: 0L),
                     )
                 }
             }
@@ -73,10 +69,10 @@ class ShowMoreApkPackageInformation(val dexKitBridge: DexKitBridge) : YukiBaseHo
             firstConstructor { parameterCount = 4 }.hook {
                 after {
                     cacheSourceInfoMap[instance] = arrayMapOf(
-                        "sourcePackage" to (arg(0).get<String>() ?: ""),
-                        "sourceName" to (arg(1).get<String>() ?: ""),
-                        "bUnknownSource" to (arg(2).get<Boolean>() ?: false),
-                        "actionType" to (arg(3).get<Int>() ?: 0),
+                        "sourcePackage" to (args(0).cast<String>() ?: ""),
+                        "sourceName" to (args(1).cast<String>() ?: ""),
+                        "bUnknownSource" to (args(2).cast<Boolean>() ?: false),
+                        "actionType" to (args(3).cast<Int>() ?: 0),
                     )
                 }
             }
@@ -94,9 +90,9 @@ class ShowMoreApkPackageInformation(val dexKitBridge: DexKitBridge) : YukiBaseHo
                     val pm = context.packageManager
 
                     val apkInfo =
-                        arg(args.indexOfFirst { it?.javaClass?.name == apkInfoClazz }).get()
+                        args(arguments.indexOfFirst { it?.javaClass?.name == apkInfoClazz }).any()
                     val sourceInfo =
-                        arg(args.indexOfFirst { it?.javaClass?.name == sourceInfoClazz }).get()
+                        args(arguments.indexOfFirst { it?.javaClass?.name == sourceInfoClazz }).any()
 
                     val cacheApkInfo = cacheApkInfoMap[apkInfo] ?: return@after
                     val cacheSourceInfo = cacheSourceInfoMap[sourceInfo] ?: return@after

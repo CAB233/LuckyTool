@@ -1,7 +1,8 @@
 package org.lsposed.corepatch
 
-import com.highcapable.yukihookapi.hook.log.YLog
-import com.highcapable.yukihookapi.hook.xposed.preference.YukiHookPreferences
+import com.luckyzyx.luckytool.hook.core.Env
+import com.luckyzyx.luckytool.hook.core.XLog
+
 
 object Config {
     const val BYPASS_DOWNGRADE = "downgrade"
@@ -28,15 +29,15 @@ object Config {
 
     //LuckyTool：配置统一存 ModulePrefs 组，键名沿用上游，由 BaseHook 在 hook 前绑定
     @Volatile
-    private var preferences: YukiHookPreferences? = null
+    private var preferences: Env.NonNullPrefs? = null
 
-    fun bind(preferences: YukiHookPreferences) {
+    fun bind(preferences: Env.NonNullPrefs) {
         this.preferences = preferences
     }
 
     fun printAllConfig() {
         allConfig.forEach {
-            YLog.debug("$it: ${getBoolean(it)}")
+            XLog.debug("$it: ${getBoolean(it)}")
         }
     }
 

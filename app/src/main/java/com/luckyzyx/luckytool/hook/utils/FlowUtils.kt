@@ -2,10 +2,8 @@ package com.luckyzyx.luckytool.hook.utils
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.kavaref.extension.toClass
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 class FlowUtils(val classLoader: ClassLoader?) {
 
     val stateFlowKt = "kotlinx.coroutines.flow.StateFlowKt".toClass(classLoader)

@@ -29,8 +29,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.highcapable.betterandroid.ui.extension.view.toast
-import com.highcapable.yukihookapi.YukiHook
-import com.highcapable.yukihookapi.hook.xposed.reload.entity.ModuleReloadStatus
 import com.luckyzyx.luckytool.IPackageServiceController
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.service.ActivityManagerService
@@ -45,14 +43,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.lsposed.lsparanoid.Obfuscate
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
+import com.luckyzyx.luckytool.hook.core.*
+import android.os.Bundle
+import io.github.libxposed.service.HookedTarget
+import io.github.libxposed.service.HotReloadResult
+import io.github.libxposed.service.XposedService
 
-@Obfuscate
 object RestartMenuUtils {
 
     private val TAG = "RestartMenuUtils"
@@ -419,30 +420,30 @@ object RestartMenuUtils {
      * @param scopes Array<String>
      */
     private fun restartHooker(context: Context, scopes: Array<String>) {
-        val reload = YukiHook.Module.reload
-        if (!reload.isAvailable) return
-        val targets = runCatching { reload.targets }.onFailure {
+        val service = XposedServiceManager.currentService() ?: return
+        val targets = runCatching { service.runningTargets }.onFailure {
             LogUtils.e("restartHooker", "query reload targets failed", "$it", true)
         }.getOrDefault(emptyList())
         runCatching {
             targets.filter {
                 scopes.contains(it.processName.substringBefore(":"))
             }.forEach { target ->
-                // skippedIfUpToDate = false：与迁移前 hotReloadModule 一致，不做「代码已是最新」的跳过
-                reload.request(target, skippedIfUpToDate = false) { result ->
-                    LogUtils.d(
-                        "restartHooker",
-                        result.target.processName,
-                        "${result.status} | ${result.message}",
-                        true
-                    )
-                    if (result.status != ModuleReloadStatus.SUCCEEDED) {
-                        context.toast("${result.target.processName}: ${result.message}")
+                service.hotReloadModule(target, Bundle(), object : XposedService.HotReloadCallback {
+                    override fun onHotReloadResult(target: HookedTarget, result: HotReloadResult) {
+                        LogUtils.d(
+                            "restartHooker",
+                            target.processName,
+                            "${result.status()} | ${result.message()}",
+                            true
+                        )
+                        if (result.status() != HotReloadResult.Status.SUCCEEDED) {
+                            context.toast("${target.processName}: ${result.message()}")
+                        }
                     }
-                }
+                })
             }
         }.onFailure {
-            // request 内部还有一次 API 版本校验，失败会抛到这里（调用点是 Compose 回调，不能让它崩）
+            // 调用点是 Compose 回调，不能让 Binder 异常把它带崩
             LogUtils.e("restartHooker", "request module reload failed", "$it", true)
         }
     }

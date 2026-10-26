@@ -2,13 +2,9 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object EnableGlobalNotificationSimpleBannerMode : YukiBaseHooker() {
+object EnableGlobalNotificationSimpleBannerMode : Hooker {
     override fun onHook() {
         //Source FullScreenBannerHelper -> simple_banner_switch_state
         VariousClass(
@@ -20,7 +16,7 @@ object EnableGlobalNotificationSimpleBannerMode : YukiBaseHooker() {
                 name = "isSimpleBannerEnable"
                 returnType = Boolean::class
             }.hook {
-                intercept(true)
+                replaceTo(true)
             }
         }
     }

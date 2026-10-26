@@ -1,6 +1,5 @@
 package com.luckyzyx.luckytool.hook.hookers
 
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.scopes.systemui.CustomMusicFluidCloudWhitelist
 import com.luckyzyx.luckytool.hook.scopes.systemui.DisableMediaMusicFluidCloudBlacklist
 import com.luckyzyx.luckytool.hook.scopes.systemui.StatusBarIconOrder
@@ -17,11 +16,10 @@ import com.luckyzyx.luckytool.hook.statusbar.StatusBarTile
 import com.luckyzyx.luckytool.hook.statusbar.StatusBarUI
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class HookSystemUIStatusBar(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class HookSystemUIStatusBar(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
 
@@ -63,10 +61,10 @@ class HookSystemUIStatusBar(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
 
         //自定义音乐流体云白名单
         if (osCode >= 33) {
-            if (preferences(ModulePrefs).getBoolean("custom_music_fluid_cloud_whitelist", false)) {
+            if (prefs(ModulePrefs).getBoolean("custom_music_fluid_cloud_whitelist", false)) {
                 loadHooker(CustomMusicFluidCloudWhitelist)
             }
-            if (preferences(ModulePrefs).getBoolean("disable_media_music_fluid_cloud_blacklist", false)) {
+            if (prefs(ModulePrefs).getBoolean("disable_media_music_fluid_cloud_blacklist", false)) {
                 if (osCode >= 35) loadHooker(DisableMediaMusicFluidCloudBlacklist)
             }
         }
@@ -76,7 +74,7 @@ class HookSystemUIStatusBar(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
 //        "com.oplus.systemui.qs.widget.OplusToggleSliderView".toClass().apply {
 //            method { name = "onShapeChanged" }.hook {
 //                after {
-//                    val type = firstArg().get<Int>() ?: 0
+//                    val type = args().first().cast<Int>() ?: 0
 //                    val mSlider = field { name = "mSlider" }.get(instance).any() ?: return@after
 //                    val mThumbColorStateList = mSlider.current().field {
 //                        name = "mThumbColorStateList"
@@ -103,11 +101,11 @@ class HookSystemUIStatusBar(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
 //        "com.android.systemui.statusbar.notification.row.NotificationContentView".toClass().apply {
 //            method { name = "shouldShowBubbleButton" }.hook {
 //                before {
-//                    val entry = firstArg().get() ?: return@before
+//                    val entry = args().first().any() ?: return@before
 //                    result = entry.current().method {
 //                        name = "getBubbleMetadata";emptyParam()
 //                    }.call() != null
-//                    YLog.debug("${method.name} -> $result")
+//                    XLog.debug("${method.name} -> $result")
 //                }
 //            }
 //        }

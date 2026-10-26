@@ -10,19 +10,14 @@ import com.highcapable.betterandroid.ui.extension.component.base.getDrawableComp
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.isSubclassOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.factory.injectModuleResources
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.closeScreen
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.safeOfNull
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object LockScreenBottomButton : YukiBaseHooker() {
+object LockScreenBottomButton : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
         if (osCode >= 37) loadHooker(FlashlightQuickCloseScreen)
@@ -30,13 +25,12 @@ object LockScreenBottomButton : YukiBaseHooker() {
         else loadHooker(LockScreenBottomButtonV13)
     }
 
-    @Obfuscate
-    object FlashlightQuickCloseScreen : YukiBaseHooker() {
+    object FlashlightQuickCloseScreen : Hooker {
         override fun onHook() {
-            var autoCloseScreen = preferences(ModulePrefs).getBoolean(
+            var autoCloseScreen = prefs(ModulePrefs).getBoolean(
                 "lock_screen_switch_flashlight_auto_close_screen", false
             )
-            dataChannel.wait<Boolean>("lock_screen_switch_flashlight_auto_close_screen") {
+            Channel.wait<Boolean>("lock_screen_switch_flashlight_auto_close_screen") {
                 autoCloseScreen = it
             }
 
@@ -55,22 +49,21 @@ object LockScreenBottomButton : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object LockScreenBottomButtonV14 : YukiBaseHooker() {
+    object LockScreenBottomButtonV14 : Hooker {
         val ViewModel =
             "com.android.systemui.keyguard.ui.viewmodel.KeyguardQuickAffordanceViewModel"
 
         override fun onHook() {
             var rmLeft =
-                preferences(ModulePrefs).getBoolean("remove_lock_screen_bottom_left_button", false)
-            dataChannel.wait<Boolean>("remove_lock_screen_bottom_left_button") { rmLeft = it }
+                prefs(ModulePrefs).getBoolean("remove_lock_screen_bottom_left_button", false)
+            Channel.wait<Boolean>("remove_lock_screen_bottom_left_button") { rmLeft = it }
             var rmRight =
-                preferences(ModulePrefs).getBoolean("remove_lock_screen_bottom_right_camera", false)
-            dataChannel.wait<Boolean>("remove_lock_screen_bottom_right_camera") { rmRight = it }
-            var autoCloseScreen = preferences(ModulePrefs).getBoolean(
+                prefs(ModulePrefs).getBoolean("remove_lock_screen_bottom_right_camera", false)
+            Channel.wait<Boolean>("remove_lock_screen_bottom_right_camera") { rmRight = it }
+            var autoCloseScreen = prefs(ModulePrefs).getBoolean(
                 "lock_screen_switch_flashlight_auto_close_screen", false
             )
-            dataChannel.wait<Boolean>("lock_screen_switch_flashlight_auto_close_screen") {
+            Channel.wait<Boolean>("lock_screen_switch_flashlight_auto_close_screen") {
                 autoCloseScreen = it
             }
 
@@ -80,7 +73,7 @@ object LockScreenBottomButton : YukiBaseHooker() {
                     (firstMethodOrNull { name = "updateButton" }
                         ?: firstMethod { name { it.endsWith("updateButton") } }).hook {
                         before {
-                            val viewModel = args.find {
+                            val viewModel = arguments.find {
                                 it != null && it::class isSubclassOf ViewModel.toClass()
                             } ?: return@before
                             val solt = viewModel.asResolver().firstField { name = "slotId" }
@@ -115,29 +108,28 @@ object LockScreenBottomButton : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object LockScreenBottomButtonV13 : YukiBaseHooker() {
+    object LockScreenBottomButtonV13 : Hooker {
         override fun onHook() {
             //affordance_magazine
             var rmLeft =
-                preferences(ModulePrefs).getBoolean("remove_lock_screen_bottom_left_button", false)
-            dataChannel.wait<Boolean>("remove_lock_screen_bottom_left_button") { rmLeft = it }
+                prefs(ModulePrefs).getBoolean("remove_lock_screen_bottom_left_button", false)
+            Channel.wait<Boolean>("remove_lock_screen_bottom_left_button") { rmLeft = it }
             //affordance_camera
             var rmRight =
-                preferences(ModulePrefs).getBoolean("remove_lock_screen_bottom_right_camera", false)
-            dataChannel.wait<Boolean>("remove_lock_screen_bottom_right_camera") { rmRight = it }
+                prefs(ModulePrefs).getBoolean("remove_lock_screen_bottom_right_camera", false)
+            Channel.wait<Boolean>("remove_lock_screen_bottom_right_camera") { rmRight = it }
 
             //affordance_flashlight
-            var useFlashLight = preferences(ModulePrefs).getBoolean(
+            var useFlashLight = prefs(ModulePrefs).getBoolean(
                 "lock_screen_bottom_left_button_replace_with_flashlight", false
             )
-            dataChannel.wait<Boolean>("lock_screen_bottom_left_button_replace_with_flashlight") {
+            Channel.wait<Boolean>("lock_screen_bottom_left_button_replace_with_flashlight") {
                 useFlashLight = it
             }
-            var autoCloseScreen = preferences(ModulePrefs).getBoolean(
+            var autoCloseScreen = prefs(ModulePrefs).getBoolean(
                 "lock_screen_switch_flashlight_auto_close_screen", false
             )
-            dataChannel.wait<Boolean>("lock_screen_switch_flashlight_auto_close_screen") {
+            Channel.wait<Boolean>("lock_screen_switch_flashlight_auto_close_screen") {
                 autoCloseScreen = it
             }
 
@@ -147,7 +139,7 @@ object LockScreenBottomButton : YukiBaseHooker() {
                     firstMethod { name = "onFinishInflate" }.hook {
                         before {
                             if (!useFlashLight) return@before
-                            instance<ViewGroup>().context.injectModuleResources()
+                            instance<ViewGroup>().context.injectModuleAppResources()
                         }
                     }
                     firstMethod { name = "updateLeftAffordanceIcon" }.hook {

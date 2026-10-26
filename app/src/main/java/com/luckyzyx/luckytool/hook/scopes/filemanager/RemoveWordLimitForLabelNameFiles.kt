@@ -2,15 +2,11 @@ package com.luckyzyx.luckytool.hook.scopes.filemanager
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveWordLimitForLabelNameFiles(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveWordLimitForLabelNameFiles(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         //Source BaseFileNameDialog
         dexKitBridge.findClass {
@@ -39,7 +35,7 @@ class RemoveWordLimitForLabelNameFiles(val dexKitBridge: DexKitBridge) : YukiBas
                         emptyParameters()
                         returnType = Int::class
                     }.hook {
-                        intercept(9999)
+                        replaceTo(9999)
                     }
                 }
             }

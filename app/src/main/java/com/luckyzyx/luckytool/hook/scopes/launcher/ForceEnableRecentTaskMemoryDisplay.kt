@@ -2,16 +2,12 @@ package com.luckyzyx.luckytool.hook.scopes.launcher
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class ForceEnableRecentTaskMemoryDisplay(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class ForceEnableRecentTaskMemoryDisplay(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
         //Source MemoryInfoManager
@@ -40,7 +36,7 @@ class ForceEnableRecentTaskMemoryDisplay(val dexKitBridge: DexKitBridge) : YukiB
                 }.apply {
                     checkDataList("needMemoryDetail")
                 }.single().getMethodInstance(hostClassLoader!!).hook {
-                    intercept(true)
+                    replaceTo(true)
                 }
 
                 findMethod {
@@ -58,13 +54,13 @@ class ForceEnableRecentTaskMemoryDisplay(val dexKitBridge: DexKitBridge) : YukiB
                 }.apply {
                     checkDataList("isAllowMemoryInfoDisplay")
                 }.single().getMethodInstance(hostClassLoader!!).hook {
-                    intercept(true)
+                    replaceTo(true)
                 }
             }
         } else {
             "com.oplus.quickstep.memory.MemoryInfoManager".toClass().resolve().apply {
-                firstMethod { name = "isAllowMemoryInfoDisplay" }.hook { intercept(true) }
-                firstMethod { name = "needMemoryDetail" }.hook { intercept(true) }
+                firstMethod { name = "isAllowMemoryInfoDisplay" }.hook { replaceTo(true) }
+                firstMethod { name = "needMemoryDetail" }.hook { replaceTo(true) }
             }
         }
     }

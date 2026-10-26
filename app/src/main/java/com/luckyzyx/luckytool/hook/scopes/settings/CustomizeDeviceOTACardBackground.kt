@@ -22,20 +22,15 @@ import com.highcapable.betterandroid.ui.extension.component.startActivity
 import com.highcapable.betterandroid.ui.extension.view.parentOrNull
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.intercept
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.dp
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.safeOfNull
 import java.io.File
 import java.lang.ref.WeakReference
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
+object CustomizeDeviceOTACardBackground : Hooker {
 
     //拦截 MediaPlayer.setOnCompletionListener 时，内部还要再调一次真注册，用它挡住自递归
     private var installingCompletionListener = false
@@ -57,20 +52,20 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
     @SuppressLint("DiscouragedApi")
     override fun onHook() {
         val osCode = getOSVersionCode
-        backgroundPath = preferences(ModulePrefs)
+        backgroundPath = prefs(ModulePrefs)
             .getString("customize_device_ota_card_background_path", "")
         videoPath =
-            preferences(ModulePrefs).getString("customize_device_ota_card_video_path", "")
-        val hideText = preferences(ModulePrefs).getBoolean("hide_ota_card_top_text", false)
+            prefs(ModulePrefs).getString("customize_device_ota_card_video_path", "")
+        val hideText = prefs(ModulePrefs).getBoolean("hide_ota_card_top_text", false)
         val applySharePage =
-            preferences(ModulePrefs).getBoolean("apply_device_parameter_sharing_page", false)
+            prefs(ModulePrefs).getBoolean("apply_device_parameter_sharing_page", false)
 
         //Source AboutDeviceOtaUpdatePreference
         "com.oplus.settings.widget.preference.AboutDeviceOtaUpdatePreference".toClass().resolve()
             .apply {
                 firstMethod { name = "onBindViewHolder" }.hook {
                     after {
-                        val holder = firstArg().get() ?: return@after
+                        val holder = args().first().any() ?: return@after
                         val itemView =
                             holder.asResolver().firstField { name = "itemView"; superclass() }
                                 .get<View>() ?: return@after
@@ -132,22 +127,22 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
 
                 //官方在彩蛋/视频收敛时会把封面写回 bg，这三个方法都是 void 且自己写视图，
                 //所以用拦截器表达 after 语义：先跑官方实现，再把自定义图补回去
-                firstMethodOrNull { name = "getTopDrawableBg" }?.intercept {
-                    proceed()
+                firstMethodOrNull { name = "getTopDrawableBg" }?.replaceAny {
+                    callOriginal()
                     //此处官方可能刚把 bg 置 GONE 去露彩蛋视频，可见性按现状判断，不能硬顶上来
                     restoreTopBackground(false)
                     null
                 }
                 val showTopVideoLastFrame = firstMethodOrNull { name = "showTopVideoLastFrame" }
-                showTopVideoLastFrame?.intercept {
-                    proceed()
+                showTopVideoLastFrame?.replaceAny {
+                    callOriginal()
                     restoreTopBackground(true)
                     null
                 }
-                firstMethodOrNull { name = "showEasterEggVideo" }?.intercept {
+                firstMethodOrNull { name = "showEasterEggVideo" }?.replaceAny {
                     //show=true 是刚露出彩蛋视频，show=false 才是收回静态背景
-                    val show = arg<Boolean>(0) ?: false
-                    proceed()
+                    val show = args(0).cast<Boolean>() ?: false
+                    callOriginal()
                     restoreTopBackground(!show)
                     null
                 }
@@ -159,14 +154,14 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
                         firstMethod {
                             name = "setOnCompletionListener"
                             parameterCount = 1
-                        }.intercept {
-                            val official = arg<MediaPlayer.OnCompletionListener>(0)
+                        }.replaceAny {
+                            val official = args(0).cast<MediaPlayer.OnCompletionListener>()
                             //官方的 clearListenersQuietly 会注册 null，直接放过
-                            if (official == null) return@intercept proceed()
+                            if (official == null) return@replaceAny callOriginal()
                             //替换注册要再调一次真方法，重入时直通，别自己包自己
-                            if (installingCompletionListener) return@intercept proceed()
+                            if (installingCompletionListener) return@replaceAny callOriginal()
                             val mediaPlayer = instance as? MediaPlayer
-                                ?: return@intercept proceed()
+                                ?: return@replaceAny callOriginal()
                             installingCompletionListener = true
                             try {
                                 mediaPlayer.setOnCompletionListener { player ->
@@ -191,12 +186,12 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
                 }
                 if (videoPath.isNotEmpty()) {
                     //原实现会顺带置位 mTopVideoIsWithMask，这里直接给路径并跳过原实现
-                    firstMethodOrNull { name = "getColorOSVideoPath" }?.intercept {
+                    firstMethodOrNull { name = "getColorOSVideoPath" }?.replaceAny {
                         videoPath
                     }
                     //官方在 onPrepared 里 start() 之前调用它，正好用来静音，并用自己算的 centerCrop 换掉官方 Matrix
-                    firstMethodOrNull { name = "applyTopVideoDisplayTransform" }?.intercept {
-                        val textureView = arg<TextureView>(0) ?: return@intercept null
+                    firstMethodOrNull { name = "applyTopVideoDisplayTransform" }?.replaceAny {
+                        val textureView = args(0).cast<TextureView>() ?: return@replaceAny null
                         val player = firstFieldOrNull { name = "mAboutDeviceTopMediaPlayer" }
                             ?.of(instance)?.get<MediaPlayer>()
                         runCatching { player?.setVolume(0F, 0F) }
@@ -206,14 +201,14 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
                 }
                 if (false) {
                     firstMethod { name = "isSupportTopVideo" }.hook {
-                        intercept(false)
+                        replaceTo(false)
                     }
                     firstMethod { name = "isSupportEasterEggVideo" }.hook {
-                        intercept(false)
+                        replaceTo(false)
                     }
                     firstMethod { name = "applyVideoTransform" }.hook {
                         before {
-                            firstArg().set(null)
+                            args().first().set(null)
                         }
                     }
                     firstMethod { name = "getColorOSVideoPath" }.hook {
@@ -236,8 +231,8 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
                     after {
                         val context = firstMethod { name = "getContext"; superclass() }
                             .of(instance).invoke<Context>() ?: return@after
-                        val menu = firstArg().get<Menu>() ?: return@after
-                        val menuInflater = lastArg().get<MenuInflater>() ?: return@after
+                        val menu = args().first().cast<Menu>() ?: return@after
+                        val menuInflater = args().last().cast<MenuInflater>() ?: return@after
                         val menuId = context.resources.getIdentifier(
                             "about_device_share_menu", "menu",
                             this@CustomizeDeviceOTACardBackground.packageName
@@ -253,7 +248,7 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
                     after {
                         val context = firstMethod { name = "getContext"; superclass() }
                             .of(instance).invoke<Context>() ?: return@after
-                        val menuItem = firstArg().get<MenuItem>() ?: return@after
+                        val menuItem = args().first().cast<MenuItem>() ?: return@after
                         val shareId = context.resources.getIdentifier(
                             "about_share", "id",
                             this@CustomizeDeviceOTACardBackground.packageName

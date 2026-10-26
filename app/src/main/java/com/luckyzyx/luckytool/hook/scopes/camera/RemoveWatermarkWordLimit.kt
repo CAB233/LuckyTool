@@ -3,17 +3,13 @@ package com.luckyzyx.luckytool.hook.scopes.camera
 import android.text.Spanned
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.A13
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.SDK
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveWatermarkWordLimit(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveWatermarkWordLimit(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         //Source CameraSubSettingFragment -> camera_namelength_outofrange -> filter
         //Source CameraSloganSettingFragment -> camera_namelength_outofrange -> filter
@@ -46,7 +42,7 @@ class RemoveWatermarkWordLimit(val dexKitBridge: DexKitBridge) : YukiBaseHooker(
                             returnType = CharSequence::class
                         }.hook {
                             before {
-                                result = firstArg().get<CharSequence>() ?: return@before
+                                result = args().first().cast<CharSequence>() ?: return@before
                             }
                         }
                     }
@@ -62,7 +58,7 @@ class RemoveWatermarkWordLimit(val dexKitBridge: DexKitBridge) : YukiBaseHooker(
                         returnType = CharSequence::class
                     }.hook {
                         before {
-                            result = firstArg().get<CharSequence>() ?: return@before
+                            result = args().first().cast<CharSequence>() ?: return@before
                         }
                     }
                 }

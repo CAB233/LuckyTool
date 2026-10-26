@@ -4,14 +4,10 @@ import android.app.ActivityManager.RunningTaskInfo
 import android.content.Intent
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.startMirageWindow
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RunFloatingWindowTasksInForeground : YukiBaseHooker() {
+object RunFloatingWindowTasksInForeground : Hooker {
 
     override fun onHook() {
         var flag = -1
@@ -24,8 +20,8 @@ object RunFloatingWindowTasksInForeground : YukiBaseHooker() {
                 parameters(Int::class, Boolean::class)
             }.hook {
                 before {
-                    flag = firstArg().get<Int>() ?: 0
-                    status = lastArg().get<Boolean>() ?: false
+                    flag = args().first().cast<Int>() ?: 0
+                    status = args().last().cast<Boolean>() ?: false
 
                     //浮窗全屏 flag 4
                     //浮窗贴边 flag 5

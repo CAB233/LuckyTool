@@ -1,19 +1,15 @@
 package com.luckyzyx.luckytool.hook.scopes.android
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object BatteryOptimizationWhitelist : YukiBaseHooker() {
+object BatteryOptimizationWhitelist : Hooker {
     override fun onHook() {
         val isEnable =
-            preferences(ModulePrefs).getBoolean("restore_default_battery_optimization_whitelist", false)
+            prefs(ModulePrefs).getBoolean("restore_default_battery_optimization_whitelist", false)
         val disableCustom = false
-//            preferences(ModulePrefs).getBoolean("disable_customize_battery_optimization_whiteList", false)
+//            prefs(ModulePrefs).getBoolean("disable_customize_battery_optimization_whiteList", false)
         if (!isEnable) return
 
         //Source oplus-service-jobscheduler -> OplusDeviceIdleHelper
@@ -22,7 +18,7 @@ object BatteryOptimizationWhitelist : YukiBaseHooker() {
             (firstMethodOrNull { name = "getNewWhiteList" }
                 ?: firstMethod { name = "getNewWhiteListLocked" }).hook {
                 before {
-                    val whiteListAll = firstArg().get<ArrayList<String>>()
+                    val whiteListAll = args().first().cast<ArrayList<String>>()
                     whiteListAll?.clear()
                     val mDefaultWhitelist = firstField { name = "mDefaultWhitelist" }
                         .get<List<String>>() ?: listOf()

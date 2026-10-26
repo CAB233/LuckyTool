@@ -2,13 +2,9 @@ package com.luckyzyx.luckytool.hook.scopes.pictorial
 
 import android.widget.LinearLayout
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveVideoSaveWaterMark : YukiBaseHooker() {
+object RemoveVideoSaveWaterMark : Hooker {
     override fun onHook() {
         //Source VideoWaterMarkView -> view_video_water_mark
         "com.heytap.pictorial.data.VideoWaterMarkView".toClass().resolve().apply {

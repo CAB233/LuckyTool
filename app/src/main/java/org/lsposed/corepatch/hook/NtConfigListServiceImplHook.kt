@@ -1,7 +1,7 @@
 package org.lsposed.corepatch.hook
 
-import com.highcapable.yukihookapi.extension.kavaref.toClass
 import org.lsposed.corepatch.Config
+import com.luckyzyx.luckytool.hook.core.*
 
 object NtConfigListServiceImplHook : BaseHook() {
     override val name = "NtConfigListServiceImplHook"

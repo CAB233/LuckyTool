@@ -4,30 +4,24 @@ import android.graphics.Typeface
 import android.widget.TextView
 import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.A14
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object LockScreenCarriers : YukiBaseHooker() {
+object LockScreenCarriers : Hooker {
     override fun onHook() {
         if (SDK >= A14) loadHooker(LockScreenCarrier)
         else loadHooker(LockScreenCarrierV13)
     }
 
-    @Obfuscate
-    private object LockScreenCarrier : YukiBaseHooker() {
+    private object LockScreenCarrier : Hooker {
         override fun onHook() {
-            val isRemove = preferences(ModulePrefs).getBoolean("remove_statusbar_carriers", false)
+            val isRemove = prefs(ModulePrefs).getBoolean("remove_statusbar_carriers", false)
             val customText =
-                preferences(ModulePrefs).getString("statusbar_custom_carrier_display_text", "")
+                prefs(ModulePrefs).getString("statusbar_custom_carrier_display_text", "")
             val userFont =
-                preferences(ModulePrefs).getBoolean("statusbar_carriers_use_user_typeface", false)
+                prefs(ModulePrefs).getBoolean("statusbar_carriers_use_user_typeface", false)
 
 
             //Source OplusCarrierTextCallbackInfo
@@ -52,7 +46,7 @@ object LockScreenCarriers : YukiBaseHooker() {
                     }
                     firstMethod { name = "setVisible" }.hook {
                         before {
-                            if (isRemove) firstArg().set(false)
+                            if (isRemove) args().first().set(false)
                         }
                     }
                     firstMethod { name = "updateCarrierInfo" }.hook {
@@ -80,14 +74,13 @@ object LockScreenCarriers : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    private object LockScreenCarrierV13 : YukiBaseHooker() {
+    private object LockScreenCarrierV13 : Hooker {
         override fun onHook() {
             val userFont =
-                preferences(ModulePrefs).getBoolean("statusbar_carriers_use_user_typeface", false)
-            val isRemove = preferences(ModulePrefs).getBoolean("remove_statusbar_carriers", false)
+                prefs(ModulePrefs).getBoolean("statusbar_carriers_use_user_typeface", false)
+            val isRemove = prefs(ModulePrefs).getBoolean("remove_statusbar_carriers", false)
             val customText =
-                preferences(ModulePrefs).getString("statusbar_custom_carrier_display_text", "")
+                prefs(ModulePrefs).getString("statusbar_custom_carrier_display_text", "")
 
             //Source StatOperatorNameView
             "com.oplusos.systemui.statusbar.widget.StatOperatorNameView".toClass().resolve().apply {

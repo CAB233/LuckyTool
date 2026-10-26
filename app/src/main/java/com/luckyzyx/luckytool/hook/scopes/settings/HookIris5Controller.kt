@@ -1,18 +1,14 @@
 package com.luckyzyx.luckytool.hook.scopes.settings
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookIris5Controller : YukiBaseHooker() {
+object HookIris5Controller : Hooker {
     override fun onHook() {
         val isVideoFrameInsertion = true
-        //preferences(ModulePrefs).getBoolean("video_display_enhancement_support_2K120", false)
+        //prefs(ModulePrefs).getBoolean("video_display_enhancement_support_2K120", false)
         val isVideoDisplayEnhancement = true
-        //preferences(ModulePrefs).getBoolean("video_super_resolution_support_2K120", false)
+        //prefs(ModulePrefs).getBoolean("video_super_resolution_support_2K120", false)
         val isVideoSuperResolution = true
 
         //Source Iris5MotionFluencySwitchController
@@ -20,12 +16,12 @@ object HookIris5Controller : YukiBaseHooker() {
             .resolve().apply {
                 firstMethod { name = "is2kReject" }.hook {
                     if (isVideoFrameInsertion) {
-                        intercept(false)
+                        replaceTo(false)
                     }
                 }
                 firstMethod { name = "isSupport120With2K" }.hook {
                     if (isVideoFrameInsertion) {
-                        intercept(true)
+                        replaceTo(true)
                     }
                 }
             }
@@ -34,12 +30,12 @@ object HookIris5Controller : YukiBaseHooker() {
             .resolve().apply {
                 firstMethod { name = "is2kReject" }.hook {
                     if (isVideoFrameInsertion) {
-                        intercept(false)
+                        replaceTo(false)
                     }
                 }
                 firstMethod { name = "isSupport120With2K" }.hook {
                     if (isVideoFrameInsertion) {
-                        intercept(true)
+                        replaceTo(true)
                     }
                 }
             }
@@ -48,12 +44,12 @@ object HookIris5Controller : YukiBaseHooker() {
             .resolve().apply {
                 firstMethod { name = "is2kReject" }.hook {
                     if (isVideoDisplayEnhancement) {
-                        intercept(false)
+                        replaceTo(false)
                     }
                 }
                 firstMethod { name = "isSupport120With2K" }.hook {
                     if (isVideoDisplayEnhancement) {
-                        intercept(true)
+                        replaceTo(true)
                     }
                 }
             }
@@ -62,12 +58,12 @@ object HookIris5Controller : YukiBaseHooker() {
             .resolve().apply {
                 firstMethod { name = "is2kReject" }.hook {
                     if (isVideoSuperResolution) {
-                        intercept(false)
+                        replaceTo(false)
                     }
                 }
                 firstMethod { name = "isSupport120With2K" }.hook {
                     if (isVideoSuperResolution) {
-                        intercept(true)
+                        replaceTo(true)
                     }
                 }
             }

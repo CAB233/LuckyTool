@@ -8,49 +8,41 @@ import androidx.core.net.toUri
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.core.YukiHookCreator
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.data.AppVerInfo
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.enums.StringMatchType
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 class WeatherAdsAndJumpBrowser(
     private val appVer: AppVerInfo?, val dexKitBridge: DexKitBridge
-) : YukiBaseHooker() {
+) : Hooker {
     override fun onHook() {
         val isNew = appVer?.versionCode?.let { it >= 13000000 } ?: return
         if (isNew) loadHooker(HookWeatherAdsAndJump)
         else loadHooker(HookWeatherAdsAndJumpC12(dexKitBridge))
     }
 
-    @Obfuscate
-    object HookWeatherAdsAndJump : YukiBaseHooker() {
+    object HookWeatherAdsAndJump : Hooker {
         private const val weatherWrapper = "com.oplus.weather.main.model.WeatherWrapper"
 //        private const val BrowserCommonUtils = "com.oplus.weather.plugin.webview.BrowserCommonUtils"
         override fun onHook() {
             val removeAds =
-                preferences(ModulePrefs).getBoolean("remove_weather_some_page_bottom_ads", false)
-            val disableJump = preferences(ModulePrefs).getBoolean("disable_weather_jump_browser", false)
+                prefs(ModulePrefs).getBoolean("remove_weather_some_page_bottom_ads", false)
+            val disableJump = prefs(ModulePrefs).getBoolean("disable_weather_jump_browser", false)
             if (!removeAds && !disableJump) return
 
             //Source OPPOFeedAdManager switchesPopularRecommended
             "com.oplus.weather.ad.OPPOFeedAdManager".toClassOrNull()?.resolve()?.apply {
                 firstMethod { name = "hasOpenPopularRecommended" }.hook {
                     if (removeAds) {
-                        intercept(false)
+                        replaceTo(false)
                     }
                 }
                 firstMethod { name = "hasOpenAdSdkShowBannerFromNetwork" }.hook {
                     if (removeAds) {
-                        intercept(false)
+                        replaceTo(false)
                     }
                 }
             }
@@ -59,7 +51,7 @@ class WeatherAdsAndJumpBrowser(
             "com.oplus.weather.utils.AppFeatureUtils".toClassOrNull()?.resolve()?.apply {
                 firstMethod { name = "isSupportOplusAd" }.hook {
                     if (removeAds) {
-                        intercept(false)
+                        replaceTo(false)
                     }
                 }
             }
@@ -73,7 +65,7 @@ class WeatherAdsAndJumpBrowser(
                     hookBefore(removeAds, disableJump)
                 }
                 firstMethodOrNull { name = "isBrowserSupportJump" }?.hook {
-                    intercept(false)
+                    replaceTo(false)
                 }
                 firstMethod { name = "getH5StringBuffer" }.hook {
                     after {
@@ -97,7 +89,7 @@ class WeatherAdsAndJumpBrowser(
                 firstMethod { name = "showWarnWeatherPanel" }.hook {
                     before {
                         if (!disableJump) return@before
-                        val warnInfo = lastArg().get() ?: return@before
+                        val warnInfo = args().last().any() ?: return@before
                         warnInfo.asResolver().firstField { name = "addLink" }.set("")
                     }
                 }
@@ -128,7 +120,7 @@ class WeatherAdsAndJumpBrowser(
             "com.oplus.weather.service.service.RainReminder".toClass().resolve().apply {
                 firstMethod { name = "createIntentOpenWeatherMainActivity" }.hook {
                     before {
-                        if (disableJump) lastArg().set("")
+                        if (disableJump) args().last().set("")
                     }
                 }
             }
@@ -136,7 +128,7 @@ class WeatherAdsAndJumpBrowser(
             "com.oplus.weather.service.service.WarnReminder".toClass().resolve().apply {
                 firstMethod { name = "getWarnWeatherIntent" }.hook {
                     before {
-                        if (disableJump) lastArg().set("")
+                        if (disableJump) args().last().set("")
                     }
                 }
             }
@@ -153,30 +145,30 @@ class WeatherAdsAndJumpBrowser(
             }
         }
 
-        private fun YukiHookCreator.ClassicMemberHooker.hookBefore(
+        private fun HookAction.hookBefore(
             removeAds: Boolean, disableJump: Boolean
         ) {
             before {
-                val context = (args.find { it is Context } ?: return@before) as Context
-                val type = arg(args.indexOfFirst { it is Int }).get<Int>() ?: 0
+                val context = (arguments.find { it is Context } ?: return@before) as Context
+                val type = args(arguments.indexOfFirst { it is Int }).cast<Int>() ?: 0
 
-//                var url = arg(2).get<String>() ?: ""
-//                val statisticsTag = arg(3).get<String>() ?: ""
-                val urlIndex = args.indexOfFirst {
+//                var url = args(2).cast<String>() ?: ""
+//                val statisticsTag = args(3).cast<String>() ?: ""
+                val urlIndex = arguments.indexOfFirst {
                     it is String && (it.contains("http") || it.contains("://"))
                 }
-                val url = arg(urlIndex).get<String>() ?: ""
-                val tagIndex = args.indexOfFirst {
+                val url = args(urlIndex).cast<String>() ?: ""
+                val tagIndex = arguments.indexOfFirst {
                     it is String && (!it.contains("http") && !it.contains("://"))
                 }
-                val statisticsTag = arg(tagIndex).get<String>() ?: ""
+                val statisticsTag = args(tagIndex).cast<String>() ?: ""
 
                 //CCTV
                 if (url.startsWith("heytapbrowser://")) return@before
 
-                if (removeAds) arg(urlIndex).set(formatWeatherUrl(url))
+                if (removeAds) args(urlIndex).set(formatWeatherUrl(url))
                 if (disableJump) {
-                    val newUrl = arg(urlIndex).get<String>() ?: ""
+                    val newUrl = args(urlIndex).cast<String>() ?: ""
                     startWebActivity(type, context, newUrl, statisticsTag)
                     result = null
                 }
@@ -184,14 +176,13 @@ class WeatherAdsAndJumpBrowser(
         }
     }
 
-    @Obfuscate
-    class HookWeatherAdsAndJumpC12(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    class HookWeatherAdsAndJumpC12(val dexKitBridge: DexKitBridge) : Hooker {
         private var startWebView = ""
         override fun onHook() {
             val removeAds =
-                preferences(ModulePrefs).getBoolean("remove_weather_some_page_bottom_ads", false)
+                prefs(ModulePrefs).getBoolean("remove_weather_some_page_bottom_ads", false)
             val disableJump =
-                preferences(ModulePrefs).getBoolean("disable_weather_jump_browser", false)
+                prefs(ModulePrefs).getBoolean("disable_weather_jump_browser", false)
             if (!removeAds && !disableJump) return
 
             //Source OppoUtils
@@ -278,30 +269,30 @@ class WeatherAdsAndJumpBrowser(
             }
         }
 
-        private fun YukiHookCreator.ClassicMemberHooker.hookBefore(
+        private fun HookAction.hookBefore(
             removeAds: Boolean, disableJump: Boolean
         ) {
             before {
                 if (startWebView.isBlank()) return@before
-                val context = (args.find { it is Context } ?: return@before) as Context
-//                val url = arg(2).get<String>() ?: ""
-//                val statisticsTag = arg(3).get<String>() ?: ""
+                val context = (arguments.find { it is Context } ?: return@before) as Context
+//                val url = args(2).cast<String>() ?: ""
+//                val statisticsTag = args(3).cast<String>() ?: ""
 
-                val urlIndex = args.indexOfFirst {
+                val urlIndex = arguments.indexOfFirst {
                     it is String && (it.contains("http") || it.contains("://"))
                 }
-                val url = arg(urlIndex).get<String>() ?: ""
-                val tagIndex = args.indexOfFirst {
+                val url = args(urlIndex).cast<String>() ?: ""
+                val tagIndex = arguments.indexOfFirst {
                     it is String && (!it.contains("http") && !it.contains("://"))
                 }
-                val statisticsTag = arg(tagIndex).get<String>() ?: ""
+                val statisticsTag = args(tagIndex).cast<String>() ?: ""
 
                 //CCTV
                 if (url.startsWith("heytapbrowser://")) return@before
 
-                if (removeAds) arg(urlIndex).set(formatWeatherUrl(url))
+                if (removeAds) args(urlIndex).set(formatWeatherUrl(url))
                 if (disableJump) {
-                    val newUrl = arg(urlIndex).get<String>() ?: ""
+                    val newUrl = args(urlIndex).cast<String>() ?: ""
                     startWebActivity(startWebView.toClass(), context, newUrl, statisticsTag)
                     result = null
                 }
@@ -370,7 +361,7 @@ class WeatherAdsAndJumpBrowser(
                 if (cacheUrl.lastOrNull() != '&') cacheUrl += "&"
                 cacheUrl += "infoEnable=false"
             }
-//            YLog.debug("url -> $cacheUrl")
+//            XLog.debug("url -> $cacheUrl")
             return cacheUrl
         }
     }

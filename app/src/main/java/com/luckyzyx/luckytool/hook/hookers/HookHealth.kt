@@ -1,16 +1,14 @@
 package com.luckyzyx.luckytool.hook.hookers
 
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.scopes.health.RemoveHealthRootCheck
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookHealth : YukiBaseHooker() {
+object HookHealth : Hooker {
     override fun onHook() {
 
         //移除Root检测对话框
-        if (preferences(ModulePrefs).getBoolean("remove_health_root_check_dialog", false)) {
+        if (prefs(ModulePrefs).getBoolean("remove_health_root_check_dialog", false)) {
             loadHooker(RemoveHealthRootCheck)
         }
 

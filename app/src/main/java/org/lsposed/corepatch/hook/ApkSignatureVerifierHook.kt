@@ -5,11 +5,9 @@ import android.app.Application
 import android.content.pm.PackageManager
 import android.content.pm.Signature
 import android.os.Build
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.log.YLog
 import org.lsposed.corepatch.Config
 import org.lsposed.corepatch.Constant
+import com.luckyzyx.luckytool.hook.core.*
 
 @SuppressLint(
     "PrivateApi",
@@ -109,7 +107,7 @@ object ApkSignatureVerifierHook : BaseHook() {
                                             currentApplicationMethod.invoke(null) as Application
                                         val packageManager = application.packageManager
                                         if (packageManager == null) {
-                                            YLog.debug("Cannot get the Package Manager... Are you using MiUI?")
+                                            XLog.debug("Cannot get the Package Manager... Are you using MiUI?")
                                         } else {
                                             val packageInfo = packageManager.getPackageArchiveInfo(
                                                 args[if (parseError == null) 0 else 1] as String,
@@ -125,7 +123,7 @@ object ApkSignatureVerifierHook : BaseHook() {
                                             }
                                         }
                                     } catch (t: Throwable) {
-                                        YLog.debug("cannot get signatures from installed package: ${t.message}")
+                                        XLog.debug("cannot get signatures from installed package: ${t.message}")
                                     }
                                 }
                                 // if previous signatures not found, parse it from apk
@@ -174,7 +172,7 @@ object ApkSignatureVerifierHook : BaseHook() {
                                             runCatching { closeMethod.invoke(originalJarFile) }
                                         }
                                     } catch (t: Throwable) {
-                                        YLog.error("Unexpected error while parsing signatures", t)
+                                        XLog.error("Unexpected error while parsing signatures", t)
                                     }
                                 }
 

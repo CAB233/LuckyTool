@@ -2,10 +2,8 @@ package com.luckyzyx.luckytool.hook.utils.sysui
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.kavaref.extension.toClass
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 class DependencyUtils(val classLoader: ClassLoader?, isEx: Boolean = false) {
 
     val clazz = if (isEx) "com.android.systemui.DependencyEx".toClass(classLoader)

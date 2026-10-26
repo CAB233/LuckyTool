@@ -1,8 +1,6 @@
 package com.luckyzyx.luckytool.hook.hookers
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.scopes.camera.CustomCameraOpenGalleryByDefault
 import com.luckyzyx.luckytool.hook.scopes.camera.CustomModelWaterMark
 import com.luckyzyx.luckytool.hook.scopes.camera.EnableCameraDebugUIOption
@@ -16,14 +14,13 @@ import com.luckyzyx.luckytool.utils.DexkitUtils
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookCamera : YukiBaseHooker() {
+object HookCamera : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
 
-        val appVer = preferences(ModulePrefs).getAppVerInfo(packageName)
+        val appVer = prefs(ModulePrefs).getAppVerInfo(packageName)
         if (appVer?.versionCommit.isNullOrBlank()) return
 
         //Source BuildConfig
@@ -39,7 +36,7 @@ object HookCamera : YukiBaseHooker() {
             if (SDK >= A13 && isRealme.not()) loadHooker(CustomModelWaterMark(dexKitBridge))
 
             //移除自定义水印字数限制
-            if (preferences(ModulePrefs).getBoolean("remove_watermark_word_limit", false)) {
+            if (prefs(ModulePrefs).getBoolean("remove_watermark_word_limit", false)) {
                 loadHooker(RemoveWatermarkWordLimit(dexKitBridge))
             }
 
@@ -47,18 +44,18 @@ object HookCamera : YukiBaseHooker() {
             if (osCode >= 26) loadHooker(CustomCameraOpenGalleryByDefault(dexKitBridge))
 
             //启用DebugUI选项
-            if (preferences(ModulePrefs).getBoolean("enable_camera_debug_ui_option", false)) {
+            if (prefs(ModulePrefs).getBoolean("enable_camera_debug_ui_option", false)) {
                 if (osCode >= 30) loadHooker(EnableCameraDebugUIOption(dexKitBridge))
             }
 
             //移除闪光灯使用限制
-            if (preferences(ModulePrefs).getBoolean("remove_camera_flash_limit", false)) {
+            if (prefs(ModulePrefs).getBoolean("remove_camera_flash_limit", false)) {
                 if (osCode >= 26) loadHooker(RemoveCameraFlashLimit(dexKitBridge))
             }
         }
 
         //移除滤镜机型限制
-        if (preferences(ModulePrefs).getBoolean("remove_filter_model_limit", false)) {
+        if (prefs(ModulePrefs).getBoolean("remove_filter_model_limit", false)) {
             if (osCode >= 34) loadHooker(RemoveFilterModelLimit)
         }
 

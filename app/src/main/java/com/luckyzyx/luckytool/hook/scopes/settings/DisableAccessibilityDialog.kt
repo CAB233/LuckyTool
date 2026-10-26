@@ -1,13 +1,9 @@
 package com.luckyzyx.luckytool.hook.scopes.settings
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.intercept
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object DisableAccessibilityDialog : YukiBaseHooker() {
+object DisableAccessibilityDialog : Hooker {
     override fun onHook() {
         //Source SpecialPermRiskConfirmHelper
         "com.oplus.settings.applications.specialaccess.SpecialPermRiskConfirmHelper".toClass()
@@ -15,8 +11,8 @@ object DisableAccessibilityDialog : YukiBaseHooker() {
                 firstMethod {
                     name = "show"
                     returnType = Boolean::class
-                }.intercept {
-                    val runnale = lastArg() as? Runnable
+                }.replaceAny {
+                    val runnale = args().last().any() as? Runnable
                     runnale?.run()
                     true
                 }

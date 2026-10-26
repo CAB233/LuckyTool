@@ -9,7 +9,6 @@ import android.widget.Toast
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
 import org.lsposed.hiddenapibypass.HiddenApiBypass
-import org.lsposed.lsparanoid.Obfuscate
 
 /**
  * 预测性返回手势开关。
@@ -21,7 +20,6 @@ import org.lsposed.lsparanoid.Obfuscate
  * 把 `enable_predictive_back` 偏好同步到 ApplicationInfo。默认开启（opt-out）：偏好为 true 时
  * 保持系统默认的预测性返回，false 时回落旧返回。开关切换用 [applyImmediately] 即时生效。
  */
-@Obfuscate
 object PredictiveBackUtils {
 
     fun isSupported(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE

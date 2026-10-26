@@ -5,28 +5,23 @@ import android.content.Context
 import androidx.core.content.edit
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.query.enums.StringMatchType
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookADM : YukiBaseHooker() {
+object HookADM : Hooker {
     override fun onHook() {
         //解锁Pro
-        if (preferences(ModulePrefs).getBoolean("adm_unlock_pro", false)) {
+        if (prefs(ModulePrefs).getBoolean("adm_unlock_pro", false)) {
             loadHooker(UnlockAdmPro)
         }
         //解锁线程数
         loadHooker(UnlockAdmThreads)
     }
 
-    @Obfuscate
-    object UnlockAdmPro : YukiBaseHooker() {
+    object UnlockAdmPro : Hooker {
         override fun onHook() {
             //Search Beta / Pro -> EVENT_DISA / hua_voices
             "com.dv.get.Main".toClass().resolve().apply {
@@ -44,10 +39,9 @@ object HookADM : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object UnlockAdmThreads : YukiBaseHooker() {
+    object UnlockAdmThreads : Hooker {
         override fun onHook() {
-            val threads = preferences(ModulePrefs).getString("adm_unlock_more_threads", "0")
+            val threads = prefs(ModulePrefs).getString("adm_unlock_more_threads", "0")
                 .toIntOrNull() ?: 0
             if (threads <= 0) return
 

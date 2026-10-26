@@ -2,42 +2,36 @@ package com.luckyzyx.luckytool.hook.scopes.settings
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object ForceDisplayPasswordManagementSettings : YukiBaseHooker() {
+object ForceDisplayPasswordManagementSettings : Hooker {
 
     override fun onHook() {
         if (getOSVersionCode >= 30) loadHooker(PasswordManagementSettings)
         else loadHooker(PasswordManagementSettingsV13)
     }
 
-    @Obfuscate
-    object PasswordManagementSettings : YukiBaseHooker() {
+    object PasswordManagementSettings : Hooker {
         override fun onHook() {
             //Source PasswordManagerPreferenceController
             "com.oplus.settings.feature.password.controller.PasswordManagerPreferenceController".toClass()
                 .resolve().apply {
                     firstMethod { name = "isPreferenceNotAvailable" }.hook {
-                        intercept(false)
+                        replaceTo(false)
                     }
                 }
         }
     }
 
-    @Obfuscate
-    object PasswordManagementSettingsV13 : YukiBaseHooker() {
+    object PasswordManagementSettingsV13 : Hooker {
         override fun onHook() {
             //Source PasswordManagerPreferenceController
             "com.oplus.settings.feature.password.controller.PasswordManagerPreferenceController".toClass()
                 .resolve().apply {
                     firstMethod { name = "displayPreference" }.hook {
                         after {
-                            val preferenceScreen = firstArg().get() ?: return@after
+                            val preferenceScreen = args().first().any() ?: return@after
                             val preference = preferenceScreen.asResolver().firstMethod {
                                 name = "findPreference"
                                 parameters(CharSequence::class)
@@ -52,7 +46,7 @@ object ForceDisplayPasswordManagementSettings : YukiBaseHooker() {
                     }
                     firstMethod { name = "updateState" }.hook {
                         after {
-                            val preference = firstArg().get() ?: return@after
+                            val preference = args().first().any() ?: return@after
                             preference.asResolver().firstMethod {
                                 name = "setVisible"
                                 parameters(Boolean::class)

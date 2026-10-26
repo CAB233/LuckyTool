@@ -1,40 +1,36 @@
 package com.luckyzyx.luckytool.hook.scopes.notificationmanager
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveNotificationManagerLimit : YukiBaseHooker() {
+object RemoveNotificationManagerLimit : Hooker {
     override fun onHook() {
         //Source ControllerChannelGroup$AppItemListener -> 通知渠道列表允许通知锁
         "com.oplus.notificationmanager.property.uicontroller.ControllerChannelGroup\$AppItemListener".toClass()
             .resolve().apply {
                 firstMethod { name = "isSwitchEnabled" }.hook {
-                    intercept(true)
+                    replaceTo(true)
                 }
             }
         //Source ControllerAllowNotificationChannel -> 通知渠道内允许通知锁
         "com.oplus.notificationmanager.property.uicontroller.ControllerAllowNotificationChannel".toClass()
             .resolve().apply {
                 firstMethod { name = "isNormAppEnabled" }.hook {
-                    intercept(true)
+                    replaceTo(true)
                 }
             }
         //Source ControllerUnimportantChannel -> 通知渠道内不重要通知锁
         "com.oplus.notificationmanager.property.uicontroller.ControllerUnimportantChannel".toClass()
             .resolve().apply {
                 firstMethod { name = "isNormAppEnabled" }.hook {
-                    intercept(true)
+                    replaceTo(true)
                 }
             }
         //Source ControllerAllowNotificationPkg -> 应用内允许通知锁
         "com.oplus.notificationmanager.property.uicontroller.ControllerAllowNotificationPkg".toClass()
             .resolve().apply {
                 firstMethod { name = "isNormAppEnabled" }.hook {
-                    intercept(true)
+                    replaceTo(true)
                 }
             }
 //

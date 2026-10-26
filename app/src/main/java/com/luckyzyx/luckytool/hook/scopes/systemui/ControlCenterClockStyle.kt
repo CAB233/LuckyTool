@@ -9,11 +9,6 @@ import androidx.core.graphics.toColorInt
 import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.A11
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SDK
@@ -21,14 +16,13 @@ import com.luckyzyx.luckytool.utils.getCharColor
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.safeOf
 import com.luckyzyx.luckytool.utils.safeOfNull
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object ControlCenterClockStyle : YukiBaseHooker() {
+object ControlCenterClockStyle : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
 
-        val rmClock = preferences(ModulePrefs).getBoolean("remove_control_center_clock_view", false)
+        val rmClock = prefs(ModulePrefs).getBoolean("remove_control_center_clock_view", false)
         if (rmClock) {
             if (osCode >= 40) loadHooker(RemoveControlCenterClock)
             else if (osCode >= 34) loadHooker(RemoveControlCenterClockV16)
@@ -38,8 +32,7 @@ object ControlCenterClockStyle : YukiBaseHooker() {
         else loadHooker(ControlCenterClock)
     }
 
-    @Obfuscate
-    object RemoveControlCenterClock : YukiBaseHooker() {
+    object RemoveControlCenterClock : Hooker {
         override fun onHook() {
             //Source OplusQSQuickEntranceComponent
             "com.oplus.systemui.plugins.qs.quickentrance.OplusQSQuickEntranceComponent".toClassOrNull()
@@ -59,8 +52,7 @@ object ControlCenterClockStyle : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object RemoveControlCenterClockV16 : YukiBaseHooker() {
+    object RemoveControlCenterClockV16 : Hooker {
         override fun onHook() {
             val newQsClock =
                 "com.oplus.systemui.plugins.qs.quickentrance.OplusQSQuickEntranceComponent".toClassOrNull()
@@ -93,22 +85,21 @@ object ControlCenterClockStyle : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object ControlCenterClock : YukiBaseHooker() {
+    object ControlCenterClock : Hooker {
         override fun onHook() {
             val osCode = getOSVersionCode
             val showSecond =
-                preferences(ModulePrefs).getBoolean("control_center_clock_show_second", false)
-            var redOneMode = preferences(ModulePrefs).getString(
+                prefs(ModulePrefs).getBoolean("control_center_clock_show_second", false)
+            var redOneMode = prefs(ModulePrefs).getString(
                 "statusbar_control_center_clock_red_one_mode", "0"
             )
-            dataChannel.wait<String>("statusbar_control_center_clock_red_one_mode") {
+            Channel.wait<String>("statusbar_control_center_clock_red_one_mode") {
                 redOneMode = it
             }
-            var colonStyle = preferences(ModulePrefs).getString(
+            var colonStyle = prefs(ModulePrefs).getString(
                 "statusbar_control_center_clock_colon_style", "0"
             )
-            dataChannel.wait<String>("statusbar_control_center_clock_colon_style") {
+            Channel.wait<String>("statusbar_control_center_clock_colon_style") {
                 colonStyle = it
             }
 
@@ -143,7 +134,7 @@ object ControlCenterClockStyle : YukiBaseHooker() {
                                 "oplus_qs_clock" -> {}  //分离模式时钟
                                 else -> return@before
                             }
-                            if (showSecond) firstArg().set(true)
+                            if (showSecond) args().first().set(true)
                         }
                     }
                 }
@@ -160,7 +151,7 @@ object ControlCenterClockStyle : YukiBaseHooker() {
                 }.hook {
                     after {
                         if (redOneMode == "0" && colonStyle == "0") return@after
-                        val view = firstArg().get<TextView>() ?: return@after
+                        val view = args().first().cast<TextView>() ?: return@after
                         val clockName = safeOfNull {
                             view.context.resources.getResourceEntryName(view.id)
                         } ?: return@after
@@ -169,7 +160,7 @@ object ControlCenterClockStyle : YukiBaseHooker() {
                             "oplus_qs_clock" -> {}  //分离模式时钟
                             else -> return@after
                         }
-                        val char = (if (osCode >= 40) arg(1) else lastArg()).get<CharSequence>()
+                        val char = (if (osCode >= 40) args(1).cast<CharSequence>() else args().last().cast<CharSequence>())
                             ?: return@after
                         if (char.isBlank()) return@after
                         setStyle(view, char, colonStyle, redOneMode)
@@ -225,15 +216,14 @@ object ControlCenterClockStyle : YukiBaseHooker() {
         } else view.text = sb
     }
 
-    @Obfuscate
-    object ControlCenterClockStyleA11 : YukiBaseHooker() {
+    object ControlCenterClockStyleA11 : Hooker {
         override fun onHook() {
             val showSecond =
-                preferences(ModulePrefs).getBoolean("control_center_clock_show_second", false)
-            var redOneMode = preferences(ModulePrefs).getString(
+                prefs(ModulePrefs).getBoolean("control_center_clock_show_second", false)
+            var redOneMode = prefs(ModulePrefs).getString(
                 "statusbar_control_center_clock_red_one_mode", "0"
             )
-            dataChannel.wait<String>("statusbar_control_center_clock_red_one_mode") {
+            Channel.wait<String>("statusbar_control_center_clock_red_one_mode") {
                 redOneMode = it
             }
 
@@ -243,7 +233,7 @@ object ControlCenterClockStyle : YukiBaseHooker() {
                     before {
                         val view = instance<TextView>()
                         if (view.context.resources.getResourceEntryName(view.id) != "qs_footer_clock") return@before
-                        if (showSecond) firstArg().set(true)
+                        if (showSecond) args().first().set(true)
                     }
                 }
                 firstMethod {
@@ -253,7 +243,7 @@ object ControlCenterClockStyle : YukiBaseHooker() {
                     after {
                         val view = instance<TextView>()
                         if (view.context.resources.getResourceEntryName(view.id) != "qs_footer_clock") return@after
-                        val char = firstArg().get<CharSequence>() ?: return@after
+                        val char = args().first().cast<CharSequence>() ?: return@after
                         setStyle(view, char, "0", redOneMode)
                     }
                 }

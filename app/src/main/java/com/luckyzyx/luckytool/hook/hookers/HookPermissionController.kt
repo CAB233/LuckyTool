@@ -1,15 +1,13 @@
 package com.luckyzyx.luckytool.hook.hookers
 
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.globals.HookGlobalFeatureConfig
 import com.luckyzyx.luckytool.hook.scopes.permissioncontroller.RemoveStoragePermissionExceptionDialog
 import com.luckyzyx.luckytool.utils.DexkitUtils
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookPermissionController : YukiBaseHooker() {
+object HookPermissionController : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
 
@@ -18,7 +16,7 @@ object HookPermissionController : YukiBaseHooker() {
         DexkitUtils.create(appInfo.sourceDir) { dexKitBridge ->
 
             val storageDialog =
-                preferences(ModulePrefs).getBoolean("remove_storage_permission_exception_dialog", false)
+                prefs(ModulePrefs).getBoolean("remove_storage_permission_exception_dialog", false)
             if (osCode < 37 && storageDialog) {
                 loadHooker(RemoveStoragePermissionExceptionDialog(dexKitBridge))
             }

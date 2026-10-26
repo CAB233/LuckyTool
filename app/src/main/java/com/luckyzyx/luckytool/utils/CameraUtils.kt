@@ -1,11 +1,9 @@
 package com.luckyzyx.luckytool.utils
 
 import android.content.Context
-import org.lsposed.lsparanoid.Obfuscate
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.data.CameraFilter
 
-@Obfuscate
 object CameraUtils {
 
     fun getCameraFilters(context: Context): ArrayList<CameraFilter> {

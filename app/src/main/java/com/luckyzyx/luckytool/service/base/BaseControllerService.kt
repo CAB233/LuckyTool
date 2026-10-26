@@ -9,9 +9,7 @@ import android.os.UserHandle
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.luckyzyx.luckytool.utils.LogUtils
 import com.luckyzyx.luckytool.utils.bindRootService
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 @Suppress("PropertyName")
 abstract class BaseControllerService<T : IInterface> {
     abstract val TAG: String

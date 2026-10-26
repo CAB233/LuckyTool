@@ -3,25 +3,21 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 import android.annotation.SuppressLint
 import android.view.View
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.dp
 import com.luckyzyx.luckytool.utils.getScreenOrientation
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object EnableNotificationSideSpacing : YukiBaseHooker() {
+object EnableNotificationSideSpacing : Hooker {
 
     @SuppressLint("DiscouragedApi")
     override fun onHook() {
         var paddingVertical =
-            preferences(ModulePrefs).getInt("custom_notification_side_spacing_vertical", 0)
+            prefs(ModulePrefs).getInt("custom_notification_side_spacing_vertical", 0)
         var paddingHorizontal =
-            preferences(ModulePrefs).getInt("custom__notification_side_spacing_horizontal", 0)
-        dataChannel.wait<Int>("custom_notification_side_spacing_vertical") { paddingVertical = it }
-        dataChannel.wait<Int>("custom__notification_side_spacing_horizontal") {
+            prefs(ModulePrefs).getInt("custom__notification_side_spacing_horizontal", 0)
+        Channel.wait<Int>("custom_notification_side_spacing_vertical") { paddingVertical = it }
+        Channel.wait<Int>("custom__notification_side_spacing_horizontal") {
             paddingHorizontal = it
         }
 

@@ -5,9 +5,7 @@ import android.service.quicksettings.TileService
 import com.luckyzyx.luckytool.ITileServiceController
 import com.luckyzyx.luckytool.service.TilesService
 import com.luckyzyx.luckytool.utils.closeCollapse
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 class RunInBackgroundTile : TileService() {
 
     private var controller: ITileServiceController? = null

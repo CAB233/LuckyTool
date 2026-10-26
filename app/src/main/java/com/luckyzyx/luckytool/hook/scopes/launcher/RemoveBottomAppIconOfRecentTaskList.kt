@@ -3,15 +3,9 @@ package com.luckyzyx.luckytool.hook.scopes.launcher
 import android.view.View
 import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveBottomAppIconOfRecentTaskList : YukiBaseHooker() {
+object RemoveBottomAppIconOfRecentTaskList : Hooker {
     override fun onHook() {
         //Source DockView
         "com.oplus.quickstep.dock.DockView".toClass().resolve().apply {
@@ -28,7 +22,7 @@ object RemoveBottomAppIconOfRecentTaskList : YukiBaseHooker() {
             }
             firstMethodOrNull { name = "hideDockView" }?.hook {
                 before {
-                    firstArg().set(true)
+                    args().first().set(true)
                 }
             }
         }
@@ -37,17 +31,17 @@ object RemoveBottomAppIconOfRecentTaskList : YukiBaseHooker() {
         "com.oplus.quickstep.dock.DockViewController".toClassOrNull()?.resolve()?.apply {
             firstMethod { name = "onRecentsViewOrientationChange" }.hook {
                 before {
-                    firstArg().set(false)
+                    args().first().set(false)
                 }
             }
             firstMethod { name = "updateOnTaskDisplayModeChange" }.hook {
                 before {
-                    firstArg().set(true)
+                    args().first().set(true)
                 }
             }
             firstMethod { name = "updateOnLauncherMultiWindowChange" }.hook {
                 before {
-                    firstArg().set(true)
+                    args().first().set(true)
                 }
             }
         }

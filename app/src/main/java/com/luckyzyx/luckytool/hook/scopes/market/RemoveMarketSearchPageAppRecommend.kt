@@ -5,16 +5,11 @@ import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.isSubclassOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveMarketSearchPageAppRecommend(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveMarketSearchPageAppRecommend(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         val cardDto = "com.heytap.cdo.card.domain.dto.CardDto"
         val viewLayerWrapDto = "com.heytap.cdo.card.domain.dto.ViewLayerWrapDto"
@@ -47,7 +42,7 @@ class RemoveMarketSearchPageAppRecommend(val dexKitBridge: DexKitBridge) : YukiB
                     returnType = Void.TYPE
                 }.hook {
                     before {
-                        firstArg().set(null)
+                        args().first().set(null)
                     }
                 }
                 firstMethod {
@@ -56,17 +51,17 @@ class RemoveMarketSearchPageAppRecommend(val dexKitBridge: DexKitBridge) : YukiB
                     returnType = Void.TYPE
                 }.hook {
                     after {
-                        val dto = firstArg().get() ?: return@after
+                        val dto = args().first().any() ?: return@after
                         val viewGroup = firstField { type = horizontalAppItemView }.of(instance)
                             .get<ViewGroup>()
 
-                        YLog.debug("$dto")
+                        XLog.debug("$dto")
 
                         val code =
                             dto.asResolver().firstMethod { name = "getCode";superclass() }.invoke()
                         val key =
                             dto.asResolver().firstMethod { name = "getKey";superclass() }.invoke()
-                        YLog.debug("code: $code | key: $key")
+                        XLog.debug("code: $code | key: $key")
 
                         val parent = viewGroup?.parent
                         when (key) {
@@ -98,9 +93,9 @@ class RemoveMarketSearchPageAppRecommend(val dexKitBridge: DexKitBridge) : YukiB
                     returnType = Void.TYPE
                 }.hook {
                     before {
-                        val dto = firstArg().get() ?: return@before
+                        val dto = args().first().any() ?: return@before
                         if (dto::class isSubclassOf appListCardDto.toClass()) {
-                            firstArg().set(null)
+                            args().first().set(null)
                         }
                     }
                 }

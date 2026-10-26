@@ -1,9 +1,9 @@
 package org.lsposed.corepatch.hook
 
 import android.annotation.SuppressLint
-import com.highcapable.yukihookapi.extension.kavaref.toClass
 import org.lsposed.corepatch.Config
 import java.security.cert.Certificate
+import com.luckyzyx.luckytool.hook.core.*
 
 object StrictJarVerifierHook : BaseHook() {
     override val name = "StrictJarVerifierHook"

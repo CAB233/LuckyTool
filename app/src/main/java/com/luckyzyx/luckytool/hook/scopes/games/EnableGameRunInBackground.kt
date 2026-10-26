@@ -3,18 +3,14 @@ package com.luckyzyx.luckytool.hook.scopes.games
 import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.IntentUtils
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.startMirageWindow
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class EnableGameRunInBackground(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class EnableGameRunInBackground(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
 
@@ -43,7 +39,7 @@ class EnableGameRunInBackground(val dexKitBridge: DexKitBridge) : YukiBaseHooker
                         emptyParameters()
                         returnType = Boolean::class
                     }.hook {
-                        intercept(true)
+                        replaceTo(true)
                     }
                     firstMethod {
                         parameters(Context::class)
@@ -53,7 +49,7 @@ class EnableGameRunInBackground(val dexKitBridge: DexKitBridge) : YukiBaseHooker
                             if (osCode >= 34) {
                                 startMirageWindow(null)
                             } else {
-                                val context = firstArg().get<Context>() ?: return@before
+                                val context = args().first().cast<Context>() ?: return@before
                                 IntentUtils(context).startBackgroundRunServiceV14()
                             }
                             result = null

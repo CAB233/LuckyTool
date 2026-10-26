@@ -4,10 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.graphics.drawable.Icon
-import org.lsposed.lsparanoid.Obfuscate
 import java.io.Serializable
 
-@Obfuscate
 data class ShortcutBean(
     val key: String,
     val label: String,

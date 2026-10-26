@@ -2,11 +2,9 @@ package com.luckyzyx.luckytool.service.tiles
 
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import org.lsposed.lsparanoid.Obfuscate
 import com.luckyzyx.luckytool.IRefreshRateController
 import com.luckyzyx.luckytool.service.RefreshRateService
 
-@Obfuscate
 class RefreshRateDisplayTile : TileService() {
     private var controller: IRefreshRateController? = null
 

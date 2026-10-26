@@ -4,13 +4,9 @@ import android.content.Context
 import android.os.customize.OplusCustomizeRestrictionManager
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object DisableSettingOtgAutoOff : YukiBaseHooker() {
+object DisableSettingOtgAutoOff : Hooker {
     override fun onHook() {
         //Source OtgConnectionOpenedPreferenceController
         VariousClass(
@@ -19,7 +15,7 @@ object DisableSettingOtgAutoOff : YukiBaseHooker() {
         ).toClass().resolve().apply {
             firstMethod { name = "isPreferenceSupport" }.hook {
                 before {
-                    val context = firstArg().get<Context>() ?: return@before
+                    val context = args().first().cast<Context>() ?: return@before
                     val isUSBOtgDisabled =
                         OplusCustomizeRestrictionManager.getInstance(context).isUSBOtgDisabled
                     result = !isUSBOtgDisabled

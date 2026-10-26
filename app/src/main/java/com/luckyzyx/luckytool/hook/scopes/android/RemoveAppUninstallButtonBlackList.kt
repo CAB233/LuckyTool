@@ -3,16 +3,12 @@ package com.luckyzyx.luckytool.hook.scopes.android
 import android.util.ArraySet
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveAppUninstallButtonBlackList : YukiBaseHooker() {
+object RemoveAppUninstallButtonBlackList : Hooker {
     override fun onHook() {
-        val isEnable = preferences(ModulePrefs).getBoolean("remove_app_uninstall_button_blacklist", false)
+        val isEnable = prefs(ModulePrefs).getBoolean("remove_app_uninstall_button_blacklist", false)
 
         //Source OplusUninstallableConfigManager
         "com.android.server.pm.OplusUninstallableConfigManager".toClass().resolve().apply {

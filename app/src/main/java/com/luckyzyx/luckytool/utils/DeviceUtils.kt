@@ -3,17 +3,15 @@ package com.luckyzyx.luckytool.utils
 import android.content.Context
 import android.os.SystemProperties
 import com.android.internal.os.PowerProfile
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.R
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.ShellUtils
-import org.lsposed.lsparanoid.Obfuscate
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 import kotlin.math.roundToInt
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 object DeviceUtils {
 
     /**
@@ -229,7 +227,7 @@ object DeviceUtils {
             LogUtils.d("calcLocalHealth", "calc", "$calc", isDebug)
             return if (calc > 100) calc / 1000 else calc
         } catch (e: Exception) {
-            YLog.error("Calc Local Health Error", e = e)
+            XLog.error("Calc Local Health Error", e = e)
             return -1
         }
     }

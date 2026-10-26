@@ -4,13 +4,9 @@ import android.content.Context
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveUSBConnectDialog : YukiBaseHooker() {
+object RemoveUSBConnectDialog : Hooker {
     override fun onHook() {
         //Source UsbService
         VariousClass(
@@ -21,8 +17,8 @@ object RemoveUSBConnectDialog : YukiBaseHooker() {
             (firstMethodOrNull { name = "onUsbConnected" }
                 ?: firstMethod { name { it.contains("onUsbConnected") } }).hook {
                 before {
-                    val instance = instanceOrNull ?: firstArg().get()
-                    val context = lastArg().get<Context>() ?: return@before
+                    val instance = instanceOrNull ?: args().first().any()
+                    val context = args().last().cast<Context>() ?: return@before
                     firstMethod { name = "onUsbSelect" }.of(instance).invoke(1)
                     firstMethod { name = "updateAdbNotification" }.of(instance).invoke(context)
                     firstMethod { name = "updateUsbNotification" }.let {

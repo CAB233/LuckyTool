@@ -2,13 +2,9 @@ package com.luckyzyx.luckytool.hook.scopes.settings
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object ForceDisplayContentRecommend : YukiBaseHooker() {
+object ForceDisplayContentRecommend : Hooker {
     override fun onHook() {
         //Source RecommendController
         VariousClass(
@@ -16,7 +12,7 @@ object ForceDisplayContentRecommend : YukiBaseHooker() {
             "com.oplus.settings.feature.spfunction.RecommendController" //C14.1
         ).toClass().resolve().apply {
             firstMethod { name = "getAvailabilityStatus" }.hook {
-                intercept(0)
+                replaceTo(0)
             }
         }
     }

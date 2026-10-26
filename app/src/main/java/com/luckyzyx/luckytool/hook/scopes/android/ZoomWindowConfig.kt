@@ -3,17 +3,11 @@ package com.luckyzyx.luckytool.hook.scopes.android
 import android.os.Bundle
 import android.util.ArraySet
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class ZoomWindowConfig : YukiBaseHooker() {
+class ZoomWindowConfig : Hooker {
 
     var callback: ((key: String, value: Any) -> Unit)? = null
 
@@ -24,27 +18,27 @@ class ZoomWindowConfig : YukiBaseHooker() {
     var multiNum = 2
 
     fun loadData() {
-        mode = preferences(ModulePrefs).getString("custom_app_floating_window_display_mode", "0")
-        list.addAll(preferences(ModulePrefs).getStringSet("zoom_window_support_list", ArraySet()))
+        mode = prefs(ModulePrefs).getString("custom_app_floating_window_display_mode", "0")
+        list.addAll(prefs(ModulePrefs).getStringSet("zoom_window_support_list", ArraySet()))
 
-        dataChannel.wait<String>("custom_app_floating_window_display_mode") {
+        Channel.wait<String>("custom_app_floating_window_display_mode") {
             mode = it
-            YLog.debug("update zoom window configs status -> $it")
+            XLog.debug("update zoom window configs status -> $it")
         }
 
-        dataChannel.wait("zoom_window_support_list") {
-            val new = preferences(ModulePrefs).getStringSet("zoom_window_support_list", ArraySet())
-            YLog.debug("update zoom window whitelist configs -> ${list.size} | ${new.size}")
+        Channel.wait("zoom_window_support_list") {
+            val new = prefs(ModulePrefs).getStringSet("zoom_window_support_list", ArraySet())
+            XLog.debug("update zoom window whitelist configs -> ${list.size} | ${new.size}")
             list.clear()
             list.addAll(new)
         }
 
-        multiWindow = preferences(ModulePrefs).getBoolean("force_enable_multi_window_mode", false)
-        dataChannel.wait<Boolean>("force_enable_multi_window_mode") { multiWindow = it }
-        multiNum = preferences(ModulePrefs).getInt("custom_multi_window_display_upper_limit", 2)
-        dataChannel.wait<Int>("custom_multi_window_display_upper_limit") { multiNum = it }
+        multiWindow = prefs(ModulePrefs).getBoolean("force_enable_multi_window_mode", false)
+        Channel.wait<Boolean>("force_enable_multi_window_mode") { multiWindow = it }
+        multiNum = prefs(ModulePrefs).getInt("custom_multi_window_display_upper_limit", 2)
+        Channel.wait<Int>("custom_multi_window_display_upper_limit") { multiNum = it }
 
-        YLog.debug("init zoom window configs success -> ${list.size}")
+        XLog.debug("init zoom window configs success -> ${list.size}")
     }
 
     override fun onHook() {
@@ -55,8 +49,7 @@ class ZoomWindowConfig : YukiBaseHooker() {
         if (osCode >= 33) loadHooker(HookFlexibleWindow())
     }
 
-    @Obfuscate
-    inner class HookZoomWindow : YukiBaseHooker() {
+    inner class HookZoomWindow : Hooker {
         override fun onHook() {
             //Source OplusZoomWindowConfig
             "com.android.server.wm.OplusZoomWindowConfig".toClass().resolve().apply {
@@ -69,7 +62,7 @@ class ZoomWindowConfig : YukiBaseHooker() {
                             "1" -> result = false
                             "2" -> result = true
                             "3" -> {
-                                val target = firstArg().get<String>() ?: ""
+                                val target = args().first().cast<String>() ?: ""
                                 val packName = if (target.contains("/").not()) target
                                 else target.split("/")[0]
                                 if (list.contains(packName)) result = true
@@ -81,8 +74,7 @@ class ZoomWindowConfig : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    inner class HookFlexibleWindow : YukiBaseHooker() {
+    inner class HookFlexibleWindow : Hooker {
         override fun onHook() {
             //Source FlexibleWindowUtils
             "com.android.server.wm.FlexibleWindowUtils".toClassOrNull()?.resolve()?.apply {
@@ -95,7 +87,7 @@ class ZoomWindowConfig : YukiBaseHooker() {
                             "1" -> result = false
                             "2" -> result = true
                             "3" -> {
-                                val target = firstArg().get<String>() ?: ""
+                                val target = args().first().cast<String>() ?: ""
                                 val packName = if (target.contains("/").not()) target
                                 else target.split("/")[0]
                                 if (list.contains(packName)) result = true
@@ -112,9 +104,9 @@ class ZoomWindowConfig : YukiBaseHooker() {
                     returnType = Int::class
                 }.hook {
                     after {
-//                        val scenario = firstArg().get<Int>() ?: 0
+//                        val scenario = args().first().cast<Int>() ?: 0
 //                        val num = result<Int>() ?: -1
-//                        YLog.debug("${method.name} -> $scenario -> $num")
+//                        XLog.debug("${method.name} -> $scenario -> $num")
                         if (multiWindow && multiNum > 0) result = multiNum
                     }
                 }

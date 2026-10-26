@@ -1,14 +1,9 @@
 package com.luckyzyx.luckytool.hook.globals
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class HookSystemProperties(private val props: Map<String, Any>) : YukiBaseHooker() {
+class HookSystemProperties(private val props: Map<String, Any>) : Hooker {
     override fun onHook() {
         if (props.isEmpty()) return
         //Source SystemProperties
@@ -19,7 +14,7 @@ class HookSystemProperties(private val props: Map<String, Any>) : YukiBaseHooker
             it.toClass().resolve().apply {
                 method { name = "get"; returnType = String::class }.hookAll {
                     before {
-                        val key = firstArg().get<String>()
+                        val key = args().first().cast<String>()
                         if (key.isNullOrBlank()) return@before
                         when (val value = props[key]) {
                             null -> return@before
@@ -31,7 +26,7 @@ class HookSystemProperties(private val props: Map<String, Any>) : YukiBaseHooker
                 }
                 firstMethod { name = "getBoolean"; returnType = Boolean::class }.hook {
                     before {
-                        val key = firstArg().get<String>()
+                        val key = args().first().cast<String>()
                         if (key.isNullOrBlank()) return@before
                         when (val value = props[key]) {
                             null -> return@before
@@ -45,7 +40,7 @@ class HookSystemProperties(private val props: Map<String, Any>) : YukiBaseHooker
                 }
                 firstMethod { name = "getInt"; returnType = Int::class }.hook {
                     before {
-                        val key = firstArg().get<String>()
+                        val key = args().first().cast<String>()
                         if (key.isNullOrBlank()) return@before
                         when (val value = props[key]) {
                             null -> return@before
@@ -56,7 +51,7 @@ class HookSystemProperties(private val props: Map<String, Any>) : YukiBaseHooker
                 }
                 firstMethod { name = "getLong"; returnType = Long::class }.hook {
                     before {
-                        val key = firstArg().get<String>()
+                        val key = args().first().cast<String>()
                         if (key.isNullOrBlank()) return@before
                         when (val value = props[key]) {
                             null -> return@before

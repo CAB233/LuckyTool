@@ -26,10 +26,8 @@ import com.canhub.cropper.CropImageView.OnSetImageUriCompleteListener
 import com.canhub.cropper.R
 import com.canhub.cropper.parcelable
 import com.luckyzyx.luckytool.utils.ThemeUtils
-import org.lsposed.lsparanoid.Obfuscate
 import com.luckyzyx.luckytool.R as LuckyToolR
 
-@Obfuscate
 class CropImageActivity : AppCompatActivity(), MenuProvider,
     OnSetImageUriCompleteListener, OnCropImageCompleteListener {
 

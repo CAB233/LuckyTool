@@ -18,12 +18,10 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.highcapable.betterandroid.ui.extension.view.child
 import com.highcapable.betterandroid.ui.extension.view.textColor
-import com.highcapable.yukihookapi.hook.factory.injectModuleResources
 import com.luckyzyx.luckytool.R
-import org.lsposed.lsparanoid.Obfuscate
 import java.io.File
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 internal class ApkDetailsView(context: Context) : LinearLayout(context) {
     private val dark =
         resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
@@ -37,7 +35,7 @@ internal class ApkDetailsView(context: Context) : LinearLayout(context) {
     init {
         orientation = VERTICAL
         setPadding(0, dp(24), 0, dp(8))
-        context.injectModuleResources()
+        context.injectModuleAppResources()
     }
 
     fun bind(

@@ -2,13 +2,9 @@ package com.luckyzyx.luckytool.hook.scopes.games
 
 import android.app.Activity
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object EnableDeveloperPage : YukiBaseHooker() {
+object EnableDeveloperPage : Hooker {
     override fun onHook() {
         //Source GameDevelopOptionsActivity
         "business.compact.activity.GameDevelopOptionsActivity".toClassOrNull()?.resolve()?.apply {
@@ -21,7 +17,7 @@ object EnableDeveloperPage : YukiBaseHooker() {
                         putExtra("gameDevelopOptions", "GameDevelopOptionsActivity")
                         putExtra("openAutomation", -1)
                     }
-                    firstArg().set(null)
+                    args().first().set(null)
                 }
             }
         }

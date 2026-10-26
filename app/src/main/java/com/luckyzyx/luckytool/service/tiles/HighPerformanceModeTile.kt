@@ -5,9 +5,7 @@ import com.luckyzyx.luckytool.utils.A15
 import com.luckyzyx.luckytool.utils.IntentUtils
 import com.luckyzyx.luckytool.utils.SDK
 import com.luckyzyx.luckytool.utils.closeCollapse
-import org.lsposed.lsparanoid.Obfuscate
 
-@Obfuscate
 class HighPerformanceModeTile : TileService() {
     override fun onClick() {
         closeCollapse()

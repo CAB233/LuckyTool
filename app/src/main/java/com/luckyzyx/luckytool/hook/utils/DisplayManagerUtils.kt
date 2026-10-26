@@ -6,10 +6,8 @@ import android.view.Display
 import android.view.DisplayInfo
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.kavaref.extension.toClass
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 @Suppress("MemberVisibilityCanBePrivate")
 class DisplayManagerUtils(val classLoader: ClassLoader?) {
 

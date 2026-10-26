@@ -7,20 +7,16 @@ import android.text.TextPaint
 import android.view.View
 import androidx.core.graphics.toColorInt
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.dp
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object EnableControlCenterProgressPercentDisplay : YukiBaseHooker() {
+object EnableControlCenterProgressPercentDisplay : Hooker {
     override fun onHook() {
-        var color = preferences(ModulePrefs).getString(
+        var color = prefs(ModulePrefs).getString(
             "custom_control_center_progress_percent_color", "#FFFFFFFF"
         )
-        dataChannel.wait<String>("custom_control_center_progress_percent_color") { color = it }
+        Channel.wait<String>("custom_control_center_progress_percent_color") { color = it }
 
         //Source OplusQsVerticalSeekBar
         "com.oplus.systemui.qs.base.seek.OplusQsVerticalSeekBar".toClass().resolve().apply {
@@ -30,7 +26,7 @@ object EnableControlCenterProgressPercentDisplay : YukiBaseHooker() {
             }.hook {
                 after {
                     val view = instance<View>()
-                    val canvas = firstArg().get<Canvas>() ?: return@after
+                    val canvas = args().first().cast<Canvas>() ?: return@after
                     val progress = firstMethod { name = "getProgress"; superclass() }
                         .of(instance).invoke<Int>() ?: return@after
                     val max = firstMethod { name = "getMax"; superclass() }.of(instance)

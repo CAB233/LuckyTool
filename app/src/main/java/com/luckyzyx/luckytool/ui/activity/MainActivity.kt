@@ -29,8 +29,8 @@ import com.luckyzyx.luckytool.ui.compose.FunctionRequest
 import com.luckyzyx.luckytool.ui.compose.LuckySplashHost
 import com.luckyzyx.luckytool.ui.compose.MainShell
 import com.luckyzyx.luckytool.ui.compose.components.GateDialogSpec
-import com.luckyzyx.luckytool.ui.service.XposedServiceBridge
-import com.luckyzyx.luckytool.ui.service.awaitActivation
+import com.luckyzyx.luckytool.utils.XposedServiceManager
+import com.luckyzyx.luckytool.utils.awaitActivation
 import com.luckyzyx.luckytool.ui.theme.LuckyAppTheme
 import com.luckyzyx.luckytool.utils.A12
 import com.luckyzyx.luckytool.utils.BiometricUtils
@@ -48,12 +48,10 @@ import com.luckyzyx.luckytool.utils.putBoolean
 import com.luckyzyx.luckytool.utils.verityPackage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import org.lsposed.lsparanoid.Obfuscate
 
 /** 激活检测超时（ms）：框架服务绑定是异步的，超过这个时间仍未激活就按未激活处理（对齐迁移前 awaitReady 的默认值） */
 private const val ActivationCheckTimeoutMillis = 3000L
 
-@Obfuscate
 @Suppress("PrivatePropertyName")
 open class MainActivity : AppCompatActivity() {
     //检测Prefs状态
@@ -137,11 +135,11 @@ open class MainActivity : AppCompatActivity() {
     }
 
     private fun checkXposed() {
-        if (XposedServiceBridge.isModuleActive.value) return
+        if (XposedServiceManager.isModuleActive.value) return
         // 框架服务绑定是异步的：等待期间只组合加载层（见 setContent），检测到激活即取消显示
         isActivationPending = true
         launch {
-            val activated = XposedServiceBridge.isModuleActive
+            val activated = XposedServiceManager.isModuleActive
                 .awaitActivation(ActivationCheckTimeoutMillis)
             isActivationPending = false
             if (activated) return@launch
@@ -152,7 +150,7 @@ open class MainActivity : AppCompatActivity() {
             }
             // 激活迟到（框架服务起得慢）时撤掉未激活门：主界面已按本地 prefs 组合过了，
             // 重建一次让主题和页面数据重新走 remote prefs，免得显示的默认值与写入目标不一致
-            XposedServiceBridge.isModuleActive.first { it }
+            XposedServiceManager.isModuleActive.first { it }
             if (activationGateShown) {
                 activationGateShown = false
                 gateDialog = null

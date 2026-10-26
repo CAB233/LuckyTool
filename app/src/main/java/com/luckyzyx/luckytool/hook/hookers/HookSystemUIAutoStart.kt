@@ -8,28 +8,25 @@ import com.highcapable.betterandroid.ui.extension.component.lifecycleOwner
 import com.highcapable.betterandroid.ui.extension.component.runDelayed
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.BuildConfig
 import com.luckyzyx.luckytool.utils.GlobalKeyValue.keyGlobalDCMode
 import com.luckyzyx.luckytool.utils.GlobalKeyValue.keyHighBrightness
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.convertToMillis
 import kotlinx.coroutines.delay
-import org.lsposed.lsparanoid.Obfuscate
 import kotlin.time.Duration.Companion.milliseconds
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookSystemUIAutoStart : YukiBaseHooker() {
+object HookSystemUIAutoStart : Hooker {
     override fun onHook() {
-        var nfcEnable = preferences(ModulePrefs).getBoolean("enable_nfc_delay_shutdown", false)
-        dataChannel.wait<Boolean>("enable_nfc_delay_shutdown") { nfcEnable = it }
-        var nfcDelay = preferences(ModulePrefs).getString("custom_nfc_delay_shutdown_time", "10M")
-        dataChannel.wait<String>("custom_nfc_delay_shutdown_time") { nfcDelay = it }
+        var nfcEnable = prefs(ModulePrefs).getBoolean("enable_nfc_delay_shutdown", false)
+        Channel.wait<Boolean>("enable_nfc_delay_shutdown") { nfcEnable = it }
+        var nfcDelay = prefs(ModulePrefs).getString("custom_nfc_delay_shutdown_time", "10M")
+        Channel.wait<String>("custom_nfc_delay_shutdown_time") { nfcDelay = it }
 
         //磁贴全局DC/高亮度模式：模块磁贴写入开关后，宿主侧即时唤起自启控制器执行
-        dataChannel.wait<Boolean>(keyGlobalDCMode) { startAutoStartController() }
-        dataChannel.wait<Boolean>(keyHighBrightness) { startAutoStartController() }
+        Channel.wait<Boolean>(keyGlobalDCMode) { startAutoStartController() }
+        Channel.wait<Boolean>(keyHighBrightness) { startAutoStartController() }
 
         registerAppLifecycle {
             //监听锁屏解锁
@@ -47,7 +44,7 @@ object HookSystemUIAutoStart : YukiBaseHooker() {
                 val delay = convertToMillis(nfcDelay)
                 if (delay < 0) {
                     nfcEnable = false
-                    YLog.debug("NFC Delay Error -> $nfcDelay | $delay")
+                    XLog.debug("NFC Delay Error -> $nfcDelay | $delay")
                     return@registerReceiver
                 }
                 val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
@@ -58,7 +55,7 @@ object HookSystemUIAutoStart : YukiBaseHooker() {
                             nfcAdapter.asResolver().firstMethod { name = "disable" }.invoke()
                         }
                     } catch (t: Throwable) {
-                        YLog.debug("NFC [$intExtra] Handler Add Error", t)
+                        XLog.debug("NFC [$intExtra] Handler Add Error", t)
                     }
                 }
             }
@@ -76,10 +73,10 @@ object HookSystemUIAutoStart : YukiBaseHooker() {
                     setPackage(BuildConfig.APPLICATION_ID)
                 })
             } catch (t: Throwable) {
-                YLog.debug("AutoStartService try sthrow", t)
+                XLog.debug("AutoStartService try sthrow", t)
             }
         }.catch {
-            YLog.debug("AutoStartService scope throw", it)
+            XLog.debug("AutoStartService scope throw", it)
         }
     }
 }

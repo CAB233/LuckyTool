@@ -23,10 +23,6 @@ import com.highcapable.betterandroid.ui.extension.view.toast
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.resolver.MethodResolver
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.HiddenApp
 import com.luckyzyx.luckytool.utils.LauncherBackupGate
 import com.luckyzyx.luckytool.utils.LauncherBackupPrefs
@@ -38,9 +34,9 @@ import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.SnapshotCandidate
 import org.json.JSONArray
 import org.json.JSONObject
-import org.lsposed.lsparanoid.Obfuscate
 import java.io.File
 import java.util.concurrent.Executors
+import com.luckyzyx.luckytool.hook.core.*
 
 /**
  * 桌面布局备份/恢复（执行层在 launcher 进程里，用 launcher 自己的 uid，不走 root）
@@ -60,8 +56,7 @@ import java.util.concurrent.Executors
  *  uri 是 app 侧 FileProvider 的 content uri，app 已 grantUriPermission 把读/写权限授予桌面包名。
  * 没有回传：结果只落桌面 toast + 日志，app 侧靠备份文件长度判断 hook 是否真的执行。
  */
-@Obfuscate
-object LauncherBackupHooker : YukiBaseHooker() {
+object LauncherBackupHooker : Hooker {
 
     private const val TAG = "LauncherBackup"
 
@@ -150,10 +145,10 @@ object LauncherBackupHooker : YukiBaseHooker() {
         runCatching {
             Handler(Looper.getMainLooper()).postDelayed({
                 runCatching { tryInitHost() }.onFailure {
-                    YLog.debug("$TAG 初始化重试异常", it)
+                    XLog.debug("$TAG 初始化重试异常", it)
                 }
             }, INIT_RETRY_DELAY_MS)
-        }.onFailure { YLog.debug("$TAG 提交初始化重试失败", it) }
+        }.onFailure { XLog.debug("$TAG 提交初始化重试失败", it) }
     }
 
     /** 兜底取 Application：进程内 currentApplication 指向已创建的 Application，取不到返回 null */
@@ -176,10 +171,10 @@ object LauncherBackupHooker : YukiBaseHooker() {
         hostContext = context
         dataRoot = root
         lastToken = LauncherBackupUtils.parseCommand(
-            preferences(ModulePrefs).getString(LauncherBackupUtils.KEY_COMMAND, "")
+            prefs(ModulePrefs).getString(LauncherBackupUtils.KEY_COMMAND, "")
         )?.token
         LogUtils.d(TAG, "initHost", "初始化: pkg=" + appInfo.packageName + " dataRoot=" + root.absolutePath)
-        dataChannel.wait<String>(LauncherBackupUtils.KEY_COMMAND) { raw ->
+        Channel.wait<String>(LauncherBackupUtils.KEY_COMMAND) { raw ->
             handleCommand(raw)
         }
         installAutoBackupSelfCheck()
@@ -207,7 +202,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         lastToken = command.token
         executor.execute {
             val outcome = runCatching { dispatch(command) }.getOrElse { throwable ->
-                YLog.debug(TAG + " 指令执行异常: " + command.action, throwable)
+                XLog.debug(TAG + " 指令执行异常: " + command.action, throwable)
                 Outcome(false, throwable.message ?: throwable.javaClass.simpleName)
             }
             toastOutcome(command, outcome)
@@ -277,16 +272,16 @@ object LauncherBackupHooker : YukiBaseHooker() {
                             instanceOrNull<Application>()?.let { initHost(it) }
                             requestSelfCheck("LauncherApplication#onCreate")
                         }.onFailure {
-                            YLog.debug("$TAG 挂载点回调异常", it)
+                            XLog.debug("$TAG 挂载点回调异常", it)
                         }
                     }
                 }
                 LogUtils.d(TAG, "installProcessStartMountPoint", "挂载点命中: LauncherApplication#onCreate")
             }.onFailure { throwable ->
-                YLog.debug("$TAG 挂载 LauncherApplication#onCreate 失败", throwable)
+                XLog.debug("$TAG 挂载 LauncherApplication#onCreate 失败", throwable)
             }
         }.onFailure { throwable ->
-            YLog.debug("$TAG 找不到 LauncherApplication#onCreate，只用 onHook 时机", throwable)
+            XLog.debug("$TAG 找不到 LauncherApplication#onCreate，只用 onHook 时机", throwable)
         }
     }
 
@@ -302,7 +297,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         Handler(Looper.getMainLooper()).post {
             LogUtils.d(TAG, "requestSelfCheck", "挂载点触发自查: $reason")
             runCatching { enqueueAutoBackupSelfCheck() }.onFailure {
-                YLog.debug(
+                XLog.debug(
                     "$TAG 挂载点自查入队失败",
                     it
                 )
@@ -362,7 +357,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
     /** 自查要读库 + 写 1MB 级文件，全部丢到执行器上，不占桌面主线程 */
     private fun enqueueAutoBackupSelfCheck() {
         runCatching { executor.execute { runAutoBackupSelfCheck() } }.onFailure {
-            YLog.debug(
+            XLog.debug(
                 "$TAG 提交自动备份自查失败",
                 it
             )
@@ -373,7 +368,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
     private fun autoBackupDue(now: Long): Boolean {
         val context = hostContext ?: return false
         if (!autoBackupEnabled()) return false
-        val prefs = preferences(ModulePrefs)
+        val prefs = prefs(ModulePrefs)
         val hours = LauncherBackupPrefs.intervalHours(
             prefs.getString(
                 LauncherBackupPrefs.KEY_AUTO_INTERVAL,
@@ -390,7 +385,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
 
     /** 自动备份开关；重试链路里每一跳都要重新确认，用户可能在等待期间把它关掉 */
     private fun autoBackupEnabled(): Boolean = runCatching {
-        preferences(ModulePrefs).getBoolean(LauncherBackupPrefs.KEY_AUTO_ENABLED, false)
+        prefs(ModulePrefs).getBoolean(LauncherBackupPrefs.KEY_AUTO_ENABLED, false)
     }.getOrDefault(false)
 
     /**
@@ -409,7 +404,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             }
             LauncherBackupGate.markAttempt(context, now)
             runAutoBackupAttempt(LauncherBackupGate.PROVIDER_RETRY_TIMES)
-        }.onFailure { YLog.debug("$TAG 自动备份自查异常", it) }
+        }.onFailure { XLog.debug("$TAG 自动备份自查异常", it) }
     }
 
     /**
@@ -427,7 +422,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
         }
         val startedAt = System.currentTimeMillis()
         val outcome = runCatching { autoBackup(startedAt) }.getOrElse { throwable ->
-            YLog.debug("$TAG 自动备份异常", throwable)
+            XLog.debug("$TAG 自动备份异常", throwable)
             Outcome(false, throwable.message ?: throwable.javaClass.simpleName)
         }
         if (outcome.ok) {
@@ -457,10 +452,10 @@ object LauncherBackupHooker : YukiBaseHooker() {
         runCatching {
             hostContext?.lifecycleOwner?.runDelayed(delayMs) {
                 runCatching { executor.execute { runAutoBackupAttempt(retriesLeft) } }.onFailure {
-                    YLog.debug("$TAG 提交自动备份重试失败", it)
+                    XLog.debug("$TAG 提交自动备份重试失败", it)
                 }
             }
-        }.onFailure { YLog.debug("$TAG 排期自动备份重试失败", it) }
+        }.onFailure { XLog.debug("$TAG 排期自动备份重试失败", it) }
     }
 
     /** 布局是否加载完成：ROM 里 LauncherModel.mModelLoaded 由 LoaderTransaction.commit() 置位 */
@@ -489,7 +484,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
     private fun selfCheckIntervalMs(): Long {
         //prefs 在 onHook 里已经读过一次，这里只是内存读
         val hours = LauncherBackupPrefs.intervalHours(
-            preferences(ModulePrefs).getString(
+            prefs(ModulePrefs).getString(
                 LauncherBackupPrefs.KEY_AUTO_INTERVAL,
                 LauncherBackupPrefs.DEFAULT_INTERVAL_HOURS.toString(),
             )
@@ -551,7 +546,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
         val target = runCatching { resolver.insert(collection, pending) }.getOrElse { throwable ->
-            YLog.debug("$TAG 自动备份投稿失败", throwable)
+            XLog.debug("$TAG 自动备份投稿失败", throwable)
             return Outcome(
                 false,
                 "insert failed: " + (throwable.message ?: throwable.javaClass.simpleName),
@@ -569,7 +564,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             //回读 SIZE：投稿成功但字节为 0 说明写流没真落盘，按失败处理
             mediaSize(resolver, target) > 0L
         }.getOrElse { throwable ->
-            YLog.debug("$TAG 自动备份写流失败: $target", throwable)
+            XLog.debug("$TAG 自动备份写流失败: $target", throwable)
             deleteMedia(resolver, target)
             return Outcome(
                 false,
@@ -603,7 +598,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 null,
                 null
             )
-        }.onFailure { YLog.debug("$TAG 清理投稿残行失败: $uri", it) }
+        }.onFailure { XLog.debug("$TAG 清理投稿残行失败: $uri", it) }
     }
 
     /** 快照容器内容：meta.json 放概要（行数/隐藏数），layout.json 放全量数据（含 icon blob） */
@@ -637,7 +632,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 rowCounts[table] = rows.length()
             }
         } catch (throwable: Throwable) {
-            YLog.debug("$TAG 导出布局数据失败", throwable)
+            XLog.debug("$TAG 导出布局数据失败", throwable)
             return Result.failure(
                 IllegalStateException(
                     "dump failed: " + (throwable.message ?: throwable.javaClass.simpleName)
@@ -712,7 +707,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 }
             entries
         }.getOrElse { throwable ->
-            YLog.debug("$TAG 列出投稿文件失败", throwable)
+            XLog.debug("$TAG 列出投稿文件失败", throwable)
             return
         }
         if (skippedForeign > 0) {
@@ -748,7 +743,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             }
             true
         }.getOrElse { throwable ->
-            YLog.debug("$TAG 写备份文件失败", throwable)
+            XLog.debug("$TAG 写备份文件失败", throwable)
             false
         }
 
@@ -789,7 +784,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 }
             }
         } catch (throwable: Throwable) {
-            YLog.debug("$TAG 写回布局数据失败", throwable)
+            XLog.debug("$TAG 写回布局数据失败", throwable)
             return Outcome(
                 false, "restore db failed: " + (throwable.message ?: throwable.javaClass.simpleName)
             )
@@ -822,7 +817,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             context.contentResolver.openInputStream(uri) ?: error("openInputStream returned null")
         stream.use { input -> LauncherBackupUtils.readContainer(input) }
     }.getOrElse { throwable ->
-        YLog.debug("$TAG 读备份文件失败", throwable)
+        XLog.debug("$TAG 读备份文件失败", throwable)
         null
     }
 
@@ -865,7 +860,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                     userHandle(app.userId)
                 )
             }.onFailure {
-                YLog.debug(
+                XLog.debug(
                     TAG + " I() 调用异常: " + app.packageName + "#" + app.userId, it
                 )
             }
@@ -956,7 +951,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
                 .firstMethodOrNull { name = "forceReload"; superclass() }?.invoke()
             null
         }.getOrElse { throwable ->
-            YLog.debug("$TAG forceReload 失败", throwable)
+            XLog.debug("$TAG forceReload 失败", throwable)
             throwable.message ?: throwable.javaClass.simpleName
         }
     }
@@ -968,7 +963,7 @@ object LauncherBackupHooker : YukiBaseHooker() {
             ?.optional(true)?.firstMethodOrNull { name = "getCurType"; superclass() }
             ?.invoke() as? Int
     }.getOrElse {
-        YLog.debug("$TAG 读取 launcher_mode 失败", it)
+        XLog.debug("$TAG 读取 launcher_mode 失败", it)
         null
     }
 

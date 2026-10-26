@@ -1,13 +1,9 @@
 package com.luckyzyx.luckytool.hook.globals
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class HookFeatureConfigManager(private val features: Map<String, Boolean>) : YukiBaseHooker() {
+class HookFeatureConfigManager(private val features: Map<String, Boolean>) : Hooker {
     override fun onHook() {
         if (features.isEmpty()) return
 
@@ -19,7 +15,7 @@ class HookFeatureConfigManager(private val features: Map<String, Boolean>) : Yuk
                 returnType = Boolean::class
             }.hook {
                 before {
-                    val key = firstArg().get<String>()
+                    val key = args().first().cast<String>()
                     if (key.isNullOrBlank()) return@before
                     val value = features[key]
                     if (value != null) result = value
@@ -38,7 +34,7 @@ class HookFeatureConfigManager(private val features: Map<String, Boolean>) : Yuk
                     returnType = Boolean::class
                 }.hook {
                     before {
-                        val key = firstArg().get<String>() ?: ""
+                        val key = args().first().cast<String>() ?: ""
                         if (key.isBlank()) return@before
                         val value = features[key]
                         if (value != null) result = value
@@ -50,7 +46,7 @@ class HookFeatureConfigManager(private val features: Map<String, Boolean>) : Yuk
                     returnType = Boolean::class
                 }?.hook {
                     before {
-                        val key = firstArg().get<String>() ?: ""
+                        val key = args().first().cast<String>() ?: ""
                         if (key.isBlank()) return@before
                         val value = features[key]
                         if (value != null) result = value

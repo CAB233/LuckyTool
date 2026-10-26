@@ -2,8 +2,8 @@ package org.lsposed.corepatch.hook
 
 import android.annotation.SuppressLint
 import android.os.Build
-import com.highcapable.yukihookapi.extension.kavaref.toClass
 import org.lsposed.corepatch.Config
+import com.luckyzyx.luckytool.hook.core.*
 
 object ScanPackageUtilsHook : BaseHook() {
     override val name = "ScanPackageUtilsHook"
@@ -18,7 +18,7 @@ object ScanPackageUtilsHook : BaseHook() {
             scanPackageUtilsClazz.declaredMethods.first { m -> m.name == "assertMinSignatureSchemeIsValid" }
         //经典 before 钩子无法可靠跳过 void 方法的原始调用，改用 intercept
         assertMinSignatureSchemeIsValidMethod.hook {
-            intercept {
+            replaceAny {
                 if (Config.isBypassVerificationEnabled()) {
                     null
                 } else callOriginal()

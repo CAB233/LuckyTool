@@ -4,17 +4,13 @@ import android.content.Context
 import android.content.Intent
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.EcmUtils
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class AutoUnlockRestrictedSettings(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class AutoUnlockRestrictedSettings(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
 
@@ -22,8 +18,7 @@ class AutoUnlockRestrictedSettings(val dexKitBridge: DexKitBridge) : YukiBaseHoo
         else loadHooker(RestrictedSettingsV14(dexKitBridge))
     }
 
-    @Obfuscate
-    object RestrictedSettings : YukiBaseHooker() {
+    object RestrictedSettings : Hooker {
         override fun onHook() {
             //Source RestrictedPreferenceHelper
             "com.oplus.settings.widget.preference.RestrictedPreferenceHelper".toClass().resolve()
@@ -57,8 +52,7 @@ class AutoUnlockRestrictedSettings(val dexKitBridge: DexKitBridge) : YukiBaseHoo
         }
     }
 
-    @Obfuscate
-    class RestrictedSettingsV14(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    class RestrictedSettingsV14(val dexKitBridge: DexKitBridge) : Hooker {
         override fun onHook() {
             val limit = false
             //Source RestrictedPreferenceHelper

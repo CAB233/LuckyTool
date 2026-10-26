@@ -1,24 +1,20 @@
 package com.luckyzyx.luckytool.hook.scopes.android
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookMediaProjectionManager : YukiBaseHooker() {
+object HookMediaProjectionManager : Hooker {
     override fun onHook() {
         val isEnable =
-            preferences(ModulePrefs).getBoolean("enable_record_calls_on_third_party_apps", false)
+            prefs(ModulePrefs).getBoolean("enable_record_calls_on_third_party_apps", false)
 
         //Source MediaProjectionManagerServiceExtImpl
         "android.media.projection.MediaProjectionManagerServiceExtImpl".toClassOrNull()?.resolve()?.apply {
             firstMethod { name = "isOplusApp";parameterCount = 1 }.hook {
                 after {
                     if (!isEnable) return@after
-                    val packageName = firstArg().get<String>() ?: ""
+                    val packageName = args().first().cast<String>() ?: ""
                     if (packageName == "com.oplus.audiomonitor") result = true
                 }
             }

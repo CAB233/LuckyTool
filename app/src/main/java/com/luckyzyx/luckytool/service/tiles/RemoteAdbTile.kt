@@ -2,13 +2,11 @@ package com.luckyzyx.luckytool.service.tiles
 
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import org.lsposed.lsparanoid.Obfuscate
 import com.luckyzyx.luckytool.IAdbDebugController
 import com.luckyzyx.luckytool.service.AdbService
 import com.luckyzyx.luckytool.utils.OtherPrefs
 import com.luckyzyx.luckytool.utils.getString
 
-@Obfuscate
 class RemoteAdbTile : TileService() {
     private var controller: IAdbDebugController? = null
 

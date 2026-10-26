@@ -1,19 +1,15 @@
 package com.luckyzyx.luckytool.hook.scopes.settings
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object ForceDisplayAutoLaunchJumpOption : YukiBaseHooker() {
+object ForceDisplayAutoLaunchJumpOption : Hooker {
     override fun onHook() {
         //Source AutoLaunchMgrPreferenceController
         "com.oplus.settings.feature.appmanager.controller.AutoLaunchMgrPreferenceController".toClass()
             .resolve().apply {
                 firstMethod { name = "getAvailabilityStatus" }.hook {
-                    intercept(0)
+                    replaceTo(0)
                 }
             }
     }

@@ -2,26 +2,21 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveStatusBarBottomNetworkWarn : YukiBaseHooker() {
+object RemoveStatusBarBottomNetworkWarn : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
         if (osCode >= 34) loadHooker(StatusBarBottomNetworkWarn)
         else loadHooker(StatusBarBottomNetworkWarnOld)
     }
 
-    @Obfuscate
-    object StatusBarBottomNetworkWarn : YukiBaseHooker() {
+    object StatusBarBottomNetworkWarn : Hooker {
         override fun onHook() {
-            var removeMode = preferences(ModulePrefs).getString("remove_control_center_networkwarn", "0")
-            dataChannel.wait<String>("remove_control_center_networkwarn") { removeMode = it }
+            var removeMode = prefs(ModulePrefs).getString("remove_control_center_networkwarn", "0")
+            Channel.wait<String>("remove_control_center_networkwarn") { removeMode = it }
 
             //Source OplusQSSecurityController
             "com.oplus.systemui.qs.policy.OplusQSSecurityController".toClass().resolve().apply {
@@ -36,11 +31,10 @@ object RemoveStatusBarBottomNetworkWarn : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object StatusBarBottomNetworkWarnOld : YukiBaseHooker() {
+    object StatusBarBottomNetworkWarnOld : Hooker {
         override fun onHook() {
-            var removeMode = preferences(ModulePrefs).getString("remove_control_center_networkwarn", "0")
-            dataChannel.wait<String>("remove_control_center_networkwarn") { removeMode = it }
+            var removeMode = prefs(ModulePrefs).getString("remove_control_center_networkwarn", "0")
+            Channel.wait<String>("remove_control_center_networkwarn") { removeMode = it }
 
             //Source OplusQSSecurityText
             VariousClass(

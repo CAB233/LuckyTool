@@ -2,20 +2,16 @@ package com.luckyzyx.luckytool.hook.scopes.android
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object SetAppUpdateDotDisplayMode : YukiBaseHooker() {
+object SetAppUpdateDotDisplayMode : Hooker {
 
     private const val InstallSource = "com.android.server.pm.InstallSource"
     private const val OplusPMHelper = "com.android.server.pm.OplusOsPackageManagerHelper"
 
     override fun onHook() {
-        val mode = preferences(ModulePrefs).getString("set_app_update_dot_display_mode", "0")
+        val mode = prefs(ModulePrefs).getString("set_app_update_dot_display_mode", "0")
         if (mode == "0") return
 
         //Source PackageManagerServiceExtImpl
@@ -25,10 +21,10 @@ object SetAppUpdateDotDisplayMode : YukiBaseHooker() {
                 parameterCount = 6
             }.hook {
                 after {
-                    val packName = arg(2).get<String>() ?: ""
-                    val installSource = arg(3).get()
+                    val packName = args(2).cast<String>() ?: ""
+                    val installSource = args(3).any()
 
-                    val isUpdate = arg(4).get<Boolean>() ?: false
+                    val isUpdate = args(4).cast<Boolean>() ?: false
                     val marketList = firstField {
                         name = "DEFAULT_MARKET_LIST";type = List::class
                     }.get<List<String>>() ?: java.util.ArrayList()

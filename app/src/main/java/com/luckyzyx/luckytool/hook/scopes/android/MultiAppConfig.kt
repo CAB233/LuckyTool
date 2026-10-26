@@ -2,28 +2,22 @@ package com.luckyzyx.luckytool.hook.scopes.android
 
 import android.util.ArraySet
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object MultiAppConfig : YukiBaseHooker() {
+object MultiAppConfig : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
 
         loadHooker(MultiAppAllowList(osCode))
 
-        if (preferences(ModulePrefs).getBoolean("remove_multi_app_blacklist", false)) {
+        if (prefs(ModulePrefs).getBoolean("remove_multi_app_blacklist", false)) {
             if (osCode >= 31) loadHooker(MultiAppBlackList)
         }
     }
 
-    @Obfuscate
-    class MultiAppAllowList(val osCode: Int) : YukiBaseHooker() {
+    class MultiAppAllowList(val osCode: Int) : Hooker {
 
         var mode = "0"
         val list = ArrayList<String>()
@@ -31,25 +25,25 @@ object MultiAppConfig : YukiBaseHooker() {
         var limitApp = false
 
         private fun loadData() {
-            mode = preferences(ModulePrefs).getString("set_multi_app_support_mode", "0")
-            dataChannel.wait<String>("set_multi_app_support_mode") {
+            mode = prefs(ModulePrefs).getString("set_multi_app_support_mode", "0")
+            Channel.wait<String>("set_multi_app_support_mode") {
                 mode = it
-                YLog.debug("update multi app configs status -> $it")
+                XLog.debug("update multi app configs status -> $it")
             }
 
             list.clear()
-            list.addAll(preferences(ModulePrefs).getStringSet("multi_app_custom_list", ArraySet()))
-            dataChannel.wait("multi_app_custom_list") {
-                val new = preferences(ModulePrefs).getStringSet("multi_app_custom_list", ArraySet())
-                YLog.debug("update multi app whitelist configs -> ${list.size} | ${new.size}")
+            list.addAll(prefs(ModulePrefs).getStringSet("multi_app_custom_list", ArraySet()))
+            Channel.wait("multi_app_custom_list") {
+                val new = prefs(ModulePrefs).getStringSet("multi_app_custom_list", ArraySet())
+                XLog.debug("update multi app whitelist configs -> ${list.size} | ${new.size}")
                 list.clear()
                 list.addAll(new)
             }
             limitUser =
-                preferences(ModulePrefs).getBoolean("remove_multi_app_created_num_limit_for_users", false)
+                prefs(ModulePrefs).getBoolean("remove_multi_app_created_num_limit_for_users", false)
             limitApp =
-                preferences(ModulePrefs).getBoolean("remove_multi_app_created_num_limit_for_users", false)
-            YLog.debug("init multi app configs success -> ${list.size}")
+                prefs(ModulePrefs).getBoolean("remove_multi_app_created_num_limit_for_users", false)
+            XLog.debug("init multi app configs success -> ${list.size}")
         }
 
         override fun onHook() {
@@ -66,14 +60,14 @@ object MultiAppConfig : YukiBaseHooker() {
                 if (osCode >= 38) {
                     firstMethod { name = "getMaxCloneUserNum" }.hook {
                         if (limitUser) {
-                            intercept(10)
+                            replaceTo(10)
                         }
                     }
                 }
                 if (osCode >= 31) {
                     firstMethod { name = "getMaxCreatedNum" }.hook {
                         if (limitApp) {
-                            intercept(1000)
+                            replaceTo(1000)
                         }
                     }
                 }
@@ -89,7 +83,7 @@ object MultiAppConfig : YukiBaseHooker() {
 //                    returnType = Boolean::class
 //                }.hook {
 //                    before {
-//                        val userId = firstArg().get<Int>() ?: 0
+//                        val userId = args().first().cast<Int>() ?: 0
 //                        val maxNum = firstMethod { name = "getMaxCloneUserNum" }.of(instance)
 //                            .invoke<Int>() ?: return@before
 //                        result = if (userId !in 970..999) false
@@ -118,8 +112,7 @@ object MultiAppConfig : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object MultiAppBlackList : YukiBaseHooker() {
+    object MultiAppBlackList : Hooker {
         override fun onHook() {
             //Source OplusMultiAppDataManager
             "com.android.server.pm.OplusMultiAppDataManager".toClass().resolve().apply {

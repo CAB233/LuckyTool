@@ -17,25 +17,20 @@ import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.dp
-import org.lsposed.lsparanoid.Obfuscate
 import kotlin.math.pow
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
 @Suppress("MemberVisibilityCanBePrivate")
-object StatusBarNetWorkSpeed : YukiBaseHooker() {
+object StatusBarNetWorkSpeed : Hooker {
 
     override fun onHook() {
         loadHooker(NetWorkSpeedDelay)
         loadHooker(NetWorkSpeedView)
     }
 
-    @Obfuscate
-    object NetWorkSpeedDelay : YukiBaseHooker() {
+    object NetWorkSpeedDelay : Hooker {
 
         /** 自定义刷新间隔：-1 表示不开启，其余按 0.1 秒为单位（见 set_network_speed_interval） */
         private const val DEFAULT_INTERVAL = -1
@@ -52,12 +47,12 @@ object StatusBarNetWorkSpeed : YukiBaseHooker() {
 
         override fun onHook() {
             // 旧版 set_network_speed 只有开/关两态，开启时等价于固定 1 秒
-            val legacyEnable = preferences(ModulePrefs).getBoolean("set_network_speed", false)
-            var interval = preferences(ModulePrefs).getInt(
+            val legacyEnable = prefs(ModulePrefs).getBoolean("set_network_speed", false)
+            var interval = prefs(ModulePrefs).getInt(
                 "set_network_speed_interval",
                 if (legacyEnable) LEGACY_INTERVAL else DEFAULT_INTERVAL
             )
-            dataChannel.wait<Int>("set_network_speed_interval") { interval = it }
+            Channel.wait<Int>("set_network_speed_interval") { interval = it }
 
             //Search postUpdateNetworkSpeedDelay
             VariousClass(
@@ -77,7 +72,7 @@ object StatusBarNetWorkSpeed : YukiBaseHooker() {
                         schedule.hook {
                             before {
                                 if (interval < 0) return@before
-                                arg(0).set(intervalToDelay(interval))
+                                args(0).set(intervalToDelay(interval))
                             }
                         }
                         return@apply
@@ -94,7 +89,7 @@ object StatusBarNetWorkSpeed : YukiBaseHooker() {
                 }).hook {
                     before {
                         if (interval < 0) return@before
-                        val instance = instanceOrNull ?: firstArg().get()
+                        val instance = instanceOrNull ?: args().first().any()
 
                         val obtain = Message.obtain()
                         obtain.what = 100000
@@ -146,37 +141,36 @@ object StatusBarNetWorkSpeed : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object NetWorkSpeedView : YukiBaseHooker() {
-        var layoutMode = preferences(ModulePrefs).getString("statusbar_network_layout", "0")
+    object NetWorkSpeedView : Hooker {
+        var layoutMode = prefs(ModulePrefs).getString("statusbar_network_layout", "0")
         //用户字体是独立开关：与布局模式无关，默认模式下也可以只开字体
         var userTypeface =
-            preferences(ModulePrefs).getBoolean("statusbar_network_user_typeface", false)
+            prefs(ModulePrefs).getBoolean("statusbar_network_user_typeface", false)
         var useBoldFont =
-            preferences(ModulePrefs).getBoolean("statusbar_network_use_bold_font_style", false)
-        var noSpace = preferences(ModulePrefs).getBoolean("statusbar_network_no_space", false)
-        var noSecond = preferences(ModulePrefs).getBoolean("statusbar_network_no_second", false)
-        var noUnit = preferences(ModulePrefs).getBoolean("statusbar_network_no_unit", false)
-        var getDoubleSize = preferences(ModulePrefs).getInt("set_network_speed_font_size", 7)
+            prefs(ModulePrefs).getBoolean("statusbar_network_use_bold_font_style", false)
+        var noSpace = prefs(ModulePrefs).getBoolean("statusbar_network_no_space", false)
+        var noSecond = prefs(ModulePrefs).getBoolean("statusbar_network_no_second", false)
+        var noUnit = prefs(ModulePrefs).getBoolean("statusbar_network_no_unit", false)
+        var getDoubleSize = prefs(ModulePrefs).getInt("set_network_speed_font_size", 7)
         var getBottomPadding =
-            preferences(ModulePrefs).getInt("set_network_speed_padding_bottom", 0)
+            prefs(ModulePrefs).getInt("set_network_speed_padding_bottom", 0)
         var setInterval =
-            preferences(ModulePrefs).getInt("set_network_speed_double_row_spacing", -1)
+            prefs(ModulePrefs).getInt("set_network_speed_double_row_spacing", -1)
 
         var bMargin = 0
         var tMargin = 0
 
         @SuppressLint("DiscouragedApi")
         override fun onHook() {
-            dataChannel.wait<String>("statusbar_network_layout") { layoutMode = it }
-            dataChannel.wait<Boolean>("statusbar_network_user_typeface") { userTypeface = it }
-            dataChannel.wait<Boolean>("statusbar_network_use_bold_font_style") { useBoldFont = it }
-            dataChannel.wait<Boolean>("statusbar_network_no_space") { noSpace = it }
-            dataChannel.wait<Boolean>("statusbar_network_no_second") { noSecond = it }
-            dataChannel.wait<Boolean>("statusbar_network_no_unit") { noUnit = it }
-            dataChannel.wait<Int>("set_network_speed_font_size") { getDoubleSize = it }
-            dataChannel.wait<Int>("set_network_speed_padding_bottom") { getBottomPadding = it }
-            dataChannel.wait<Int>("set_network_speed_double_row_spacing") { setInterval = it }
+            Channel.wait<String>("statusbar_network_layout") { layoutMode = it }
+            Channel.wait<Boolean>("statusbar_network_user_typeface") { userTypeface = it }
+            Channel.wait<Boolean>("statusbar_network_use_bold_font_style") { useBoldFont = it }
+            Channel.wait<Boolean>("statusbar_network_no_space") { noSpace = it }
+            Channel.wait<Boolean>("statusbar_network_no_second") { noSecond = it }
+            Channel.wait<Boolean>("statusbar_network_no_unit") { noUnit = it }
+            Channel.wait<Int>("set_network_speed_font_size") { getDoubleSize = it }
+            Channel.wait<Int>("set_network_speed_padding_bottom") { getBottomPadding = it }
+            Channel.wait<Int>("set_network_speed_double_row_spacing") { setInterval = it }
 
             val NetworkSpeedIconState = VariousClass(
                 "com.oplusos.systemui.ext.BaseNetworkControllerImplExt\$NetworkSpeedIconState", //C12
@@ -232,7 +226,7 @@ object StatusBarNetWorkSpeed : YukiBaseHooker() {
                         if (layoutMode == "0") return@before
 
                         val viewGroup = instance<ViewGroup>()
-                        val state = firstArg().get()
+                        val state = args().first().any()
                         if (state == null) {
                             viewGroup.isVisible = false
                             mState.copy().of(instance).set(null)

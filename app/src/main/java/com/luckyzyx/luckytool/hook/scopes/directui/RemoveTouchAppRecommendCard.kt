@@ -1,13 +1,9 @@
 package com.luckyzyx.luckytool.hook.scopes.directui
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object RemoveTouchAppRecommendCard : YukiBaseHooker() {
+object RemoveTouchAppRecommendCard : Hooker {
     override fun onHook() {
         //Source DirectUIMainViewMode -> AppBean
         "com.coloros.directui.repository.datasource.AppBean".toClass().resolve().apply {

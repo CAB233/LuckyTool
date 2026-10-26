@@ -9,11 +9,9 @@ import com.luckyzyx.luckytool.service.base.BaseControllerService
 import com.luckyzyx.luckytool.utils.LogUtils
 import com.topjohnwu.superuser.ShellUtils
 import com.topjohnwu.superuser.ipc.RootService
-import org.lsposed.lsparanoid.Obfuscate
 import java.net.Inet4Address
 import java.net.NetworkInterface
 
-@Obfuscate
 object AdbService : BaseControllerService<IAdbDebugController>() {
     override val TAG = "AdbService"
     override var controllerService: Class<*> = classOf<AdbControllerService>()
@@ -22,7 +20,6 @@ object AdbService : BaseControllerService<IAdbDebugController>() {
         return IAdbDebugController.Stub.asInterface(iBinder)
     }
 
-    @Obfuscate
     @Suppress("PrivatePropertyName")
     class AdbControllerService : RootService() {
         private val TAG = "AdbControllerService"

@@ -10,16 +10,12 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
 import com.highcapable.kavaref.extension.createInstance
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.hook.utils.sysui.DependencyUtils
 import com.luckyzyx.luckytool.hook.utils.sysui.FlavorOneFeatureUtils
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object ShowManualLockButtonPowerMenu : YukiBaseHooker() {
+object ShowManualLockButtonPowerMenu : Hooker {
 
     val OsBinderCacheUtils = "com.android.systemui.oplusutils.OsBinderCacheUtils"
     val LockPatternUtils = "com.android.internal.widget.LockPatternUtils"
@@ -30,8 +26,7 @@ object ShowManualLockButtonPowerMenu : YukiBaseHooker() {
         else loadHooker(ManualLockButtonV14)
     }
 
-    @Obfuscate
-    object ManualLockButton : YukiBaseHooker() {
+    object ManualLockButton : Hooker {
         @SuppressLint("MissingPermission")
         override fun onHook() {
             //Source ShutdownViewControl
@@ -39,7 +34,7 @@ object ShowManualLockButtonPowerMenu : YukiBaseHooker() {
                 firstConstructor { parameters(Context::class) }.hook {
                     after {
                         if (FlavorOneFeatureUtils(hostClassLoader!!).isFlavorOneDevice() == true) return@after
-                        val context = firstArg().get<Context>() ?: return@after
+                        val context = args().first().cast<Context>() ?: return@after
                         val isManuallyLockedOn = getManuallyLockedStatus() ?: return@after
                         val getCurrentUserId = OsBinderCacheUtils.toClass().resolve().firstMethod {
                             name = "getCurrentUserId"
@@ -113,7 +108,7 @@ object ShowManualLockButtonPowerMenu : YukiBaseHooker() {
                     before {
                         if (FlavorOneFeatureUtils(hostClassLoader!!).isFlavorOneDevice() == true) return@before
                         val isManuallyLockedOn = getManuallyLockedStatus() ?: return@before
-                        val bool = firstArg().get<Boolean>() ?: false
+                        val bool = args().first().cast<Boolean>() ?: false
                         if (bool && isManuallyLockedOn) setManuallyLockedStatus(false)
                     }
                 }
@@ -132,15 +127,14 @@ object ShowManualLockButtonPowerMenu : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object ManualLockButtonV14 : YukiBaseHooker() {
+    object ManualLockButtonV14 : Hooker {
         override fun onHook() {
             //Source ShutdownViewControl
             "com.oplus.systemui.shutdown.ShutdownViewControl".toClass().resolve().apply {
                 firstMethod { name = "initManuallyLock" }.hook {
                     after {
                         if (FlavorOneFeatureUtils(hostClassLoader!!).isFlavorOneDevice() == true) return@after
-                        val context = firstArg().get<Context>() ?: return@after
+                        val context = args().first().cast<Context>() ?: return@after
                         val manuallyLockCanBeSeen =
                             firstMethod { name = "manuallyLockCanBeSeen" }.of(instance)
                                 .invoke<Boolean>(context) ?: return@after
@@ -213,7 +207,7 @@ object ShowManualLockButtonPowerMenu : YukiBaseHooker() {
                     before {
                         if (FlavorOneFeatureUtils(hostClassLoader!!).isFlavorOneDevice() == true) return@before
                         val isManuallyLockedOn = getManuallyLockedStatus() ?: return@before
-                        val bool = firstArg().get<Boolean>() ?: false
+                        val bool = args().first().cast<Boolean>() ?: false
                         if (bool && isManuallyLockedOn) setManuallyLockedStatus(false)
                     }
                 }

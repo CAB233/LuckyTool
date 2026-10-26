@@ -4,16 +4,12 @@ import android.os.CountDownTimer
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
 import com.highcapable.kavaref.extension.isSubclassOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
-import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.result.MethodData
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-class RemoveCountdownAddVirusAppWhitelist(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+class RemoveCountdownAddVirusAppWhitelist(val dexKitBridge: DexKitBridge) : Hooker {
     override fun onHook() {
         //Source DialogCrossActivity
         dexKitBridge.findClass {

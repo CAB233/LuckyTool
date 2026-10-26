@@ -2,22 +2,18 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.yukihookapi.extension.kavaref.intercept
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
 import java.util.concurrent.atomic.AtomicBoolean
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object ForceDisplayOfDeviceControlsTiles : YukiBaseHooker() {
+object ForceDisplayOfDeviceControlsTiles : Hooker {
     override fun onHook() {
         //Source ControlsModule
         //设备控制器磁贴的总开关是 ControlsComponent.featureEnabled，由 Dagger 在这里注入，
         //构造期定死并连带决定 controlsController 等 Optional 是否存在；
         //只拦 OplusDeviceControlsTile.isAvailable 会得到灰磁贴（状态位 state = 0，点击直接 return）
         "com.android.systemui.controls.dagger.ControlsModule".toClass().resolve().apply {
-            firstMethod { name = "providesControlsFeatureEnabled" }.intercept {
+            firstMethod { name = "providesControlsFeatureEnabled" }.replaceAny {
                 true
             }
         }
@@ -29,7 +25,7 @@ object ForceDisplayOfDeviceControlsTiles : YukiBaseHooker() {
                 "com.android.systemui.qs.tiles.DeviceControlsTile", //C13
                 "com.oplus.systemui.qs.tiles.OplusDeviceControlsTile"
             ).toClass().resolve().apply {
-                firstMethod { name = "isAvailable" }.intercept {
+                firstMethod { name = "isAvailable" }.replaceAny {
                     true
                 }
             }
@@ -38,7 +34,7 @@ object ForceDisplayOfDeviceControlsTiles : YukiBaseHooker() {
         //磁贴还要求「本机存在提供设备控制器的应用」（getHasControlsApps），一个都没有时同样是灰磁贴；
         //每次返回新的 AtomicBoolean，避免 onServicesUpdated 里的 compareAndSet 把它改回 false
         "com.android.systemui.qs.tiles.DeviceControlsTile".toClass().resolve().apply {
-            firstMethod { name = "getHasControlsApps" }.intercept {
+            firstMethod { name = "getHasControlsApps" }.replaceAny {
                 AtomicBoolean(true)
             }
         }

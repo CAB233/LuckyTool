@@ -2,19 +2,14 @@ package com.luckyzyx.luckytool.hook.scopes.android
 
 import android.util.SparseArray
 import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.extension.kavaref.hook
-import com.highcapable.yukihookapi.extension.kavaref.hookAll
-import com.highcapable.yukihookapi.extension.kavaref.toClass
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import org.lsposed.lsparanoid.Obfuscate
+import com.luckyzyx.luckytool.hook.core.*
 
-@Obfuscate
-object HookGMSRestrict : YukiBaseHooker() {
+object HookGMSRestrict : Hooker {
     override fun onHook() {
         val osCode = getOSVersionCode
-        val isEnable = preferences(ModulePrefs).getBoolean("remove_gms_usage_restrictions", false)
+        val isEnable = prefs(ModulePrefs).getBoolean("remove_gms_usage_restrictions", false)
         if (!isEnable) return
 
         loadHooker(GMSRestrictCommon)
@@ -23,14 +18,13 @@ object HookGMSRestrict : YukiBaseHooker() {
         else loadHooker(GMSRestrictV13)
     }
 
-    @Obfuscate
-    object GMSRestrictCommon : YukiBaseHooker() {
+    object GMSRestrictCommon : Hooker {
         override fun onHook() {
             //Source OplusAppStartupManager -> OplusStartupStrategy -> google_restric_info
             "com.android.server.am.OplusAppStartupManager\$OplusStartupStrategy".toClass().resolve()
                 .apply {
                     firstMethod { name = "isGoogleRestricInfoOn" }.hook {
-                        intercept(false)
+                        replaceTo(false)
                     }
                 }
 
@@ -52,18 +46,17 @@ object HookGMSRestrict : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object GMSRestrict : YukiBaseHooker() {
+    object GMSRestrict : Hooker {
         override fun onHook() {
             //Source OplusBgSceneManager -> google_restric_info
             "com.android.server.hans.scene.OplusBgSceneManager".toClass().resolve().apply {
                 firstMethod { name = "setGmsRestricted" }.hook {
                     before {
-                        firstArg().set(false)
+                        args().first().set(false)
                     }
                 }
                 firstMethod { name = "isGmsRestricted" }.hook {
-                    intercept(false)
+                    replaceTo(false)
                 }
                 firstMethod { name = "registerGmsRestrictObserver" }.hook {
                     intercept()
@@ -72,18 +65,17 @@ object HookGMSRestrict : YukiBaseHooker() {
         }
     }
 
-    @Obfuscate
-    object GMSRestrictV13 : YukiBaseHooker() {
+    object GMSRestrictV13 : Hooker {
         override fun onHook() {
             //Source OplusHansManager -> HansConfig -> google_restric_info
             "com.android.server.am.OplusHansManager\$HansConfig".toClass().resolve().apply {
                 firstMethod { name = "setGmsRestricted" }.hook {
                     before {
-                        firstArg().set(false)
+                        args().first().set(false)
                     }
                 }
                 firstMethod { name = "isGmsRestricted" }.hook {
-                    intercept(false)
+                    replaceTo(false)
                 }
             }
             //Source OplusHansManager -> HansTrigger -> google_restric_info
