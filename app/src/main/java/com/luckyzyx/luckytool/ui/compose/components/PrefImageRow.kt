@@ -35,6 +35,12 @@ import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 /**
+ * 行尾缩略图的默认行高：图片与视频共用，改这一个数两行一起变；
+ * 需要单独调整时在调用点传 [PrefImageRow] / [PrefVideoRow] 的 `previewHeight`。
+ */
+private val DefaultPreviewHeight = 40.dp
+
+/**
  * 图片路径预览缩略图：把本地绝对路径解码成一张圆角缩略图，用在 [PrefRow] 的 trailing 槽位（行尾）；
  * 行首留给条目标题/图标。
  *
@@ -46,7 +52,7 @@ import kotlin.math.roundToInt
 fun PrefImagePreview(
     path: String,
     modifier: Modifier = Modifier,
-    height: Dp = 40.dp,
+    height: Dp = DefaultPreviewHeight,
     shape: Shape = RoundedCornerShape(6.dp),
 ) {
     val targetPx = with(LocalDensity.current) { height.roundToPx() }.coerceAtLeast(1)
@@ -79,7 +85,7 @@ fun PrefImageRow(
     modifier: Modifier = Modifier,
     summary: String? = null,
     enabled: Boolean = true,
-    previewHeight: Dp = 40.dp,
+    previewHeight: Dp = DefaultPreviewHeight,
     onClick: (() -> Unit)? = null,
 ) {
     PrefRowInset(modifier) {
@@ -140,21 +146,17 @@ private fun decodePreviewImage(path: String, targetPx: Int): ImageBitmap? {
 }
 
 /**
- * 视频缩略图的行高：40dp 的 16:9 只有 71dp 宽，画面细节看不清；视频行单独放大到 64dp（16:9 约 114dp 宽）。
- */
-private val VideoPreviewHeight = 64.dp
-
-/**
  * 视频路径预览缩略图：取第一帧画成圆角缩略图，中间叠一个播放标记，让这一行一眼能看出是视频而不是图片。
  *
- * 尺寸策略与 [PrefImagePreview] 一致：高度固定为 [height]、宽度按视频（算上 rotation 元数据后）的比例算，
+ * 尺寸策略与 [PrefImagePreview] 一致：高度取 [height]（默认与图片预览同为 [DefaultPreviewHeight]，需要时可从调用点传大），
+ * 宽度按视频（算上 rotation 元数据后）的比例算，
  * 路径为空或取帧失败时什么都不画（槽位宽度为 0，行退化成纯文本行）。
  */
 @Composable
 fun PrefVideoPreview(
     path: String,
     modifier: Modifier = Modifier,
-    height: Dp = VideoPreviewHeight,
+    height: Dp = DefaultPreviewHeight,
     shape: Shape = RoundedCornerShape(6.dp),
 ) {
     val targetPx = with(LocalDensity.current) { height.roundToPx() }.coerceAtLeast(1)
@@ -199,7 +201,7 @@ fun PrefVideoRow(
     modifier: Modifier = Modifier,
     summary: String? = null,
     enabled: Boolean = true,
-    previewHeight: Dp = VideoPreviewHeight,
+    previewHeight: Dp = DefaultPreviewHeight,
     onClick: (() -> Unit)? = null,
 ) {
     PrefRowInset(modifier) {
