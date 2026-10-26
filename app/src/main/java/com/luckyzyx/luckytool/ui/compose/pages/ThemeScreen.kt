@@ -243,6 +243,13 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
         )
     }
 
+    var enableBlur by remember {
+        mutableStateOf(context.getBoolean(SettingsPrefs, KeyEnableBlur, false))
+    }
+    var enableFloatingBottomBar by remember {
+        mutableStateOf(context.getBoolean(SettingsPrefs, KeyEnableFloatingBottomBar, false))
+    }
+
     // 主题页中与配色无关的外壳行为设置。
     var navigationBadge by remember {
         mutableStateOf(
@@ -516,6 +523,34 @@ private fun ThemeScreenMaterial(onBack: () -> Unit) {
                 MaterialGroup(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     content = buildList<@Composable () -> Unit> {
+                        if (isRenderEffectSupported()) {
+                            add {
+                                MaterialSwitchItem(
+                                    icon = Icons.Rounded.BlurOn,
+                                    title = stringResource(R.string.settings_enable_blur),
+                                    summary = stringResource(R.string.settings_enable_blur_summary),
+                                    checked = enableBlur,
+                                    onCheckedChange = {
+                                        enableBlur = it
+                                        context.putBoolean(SettingsPrefs, KeyEnableBlur, it)
+                                        ThemePrefs.notifyChanged()
+                                    },
+                                )
+                            }
+                        }
+                        add {
+                            MaterialSwitchItem(
+                                icon = Icons.Rounded.CallToAction,
+                                title = stringResource(R.string.settings_floating_bottom_bar),
+                                summary = stringResource(R.string.settings_floating_bottom_bar_summary),
+                                checked = enableFloatingBottomBar,
+                                onCheckedChange = {
+                                    enableFloatingBottomBar = it
+                                    context.putBoolean(SettingsPrefs, KeyEnableFloatingBottomBar, it)
+                                    ThemePrefs.notifyChanged()
+                                },
+                            )
+                        }
                         add {
                             MaterialSwitchItem(
                                 icon = Icons.Rounded.Palette,
@@ -1705,7 +1740,7 @@ private fun ThemePreviewCardMiuix(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 MiuixIcon(
-                                    imageVector = tab.miuixIcon,
+                                    imageVector = tab.icon,
                                     contentDescription = null,
                                     modifier = Modifier.size(13.dp),
                                     tint = if (selected && ios) iconColor else textColor.copy(alpha = if (selected) 1f else 0.6f),

@@ -69,6 +69,8 @@ class MainPagerTest {
     fun `all bottom bars coordinate rapid navigation without an obsolete target winning`() {
         for ((mode, floating, style) in listOf(
             Triple(UiMode.Material, false, FloatingBottomBarStyle.Miuix),
+            Triple(UiMode.Material, true, FloatingBottomBarStyle.Miuix),
+            Triple(UiMode.Material, true, FloatingBottomBarStyle.IosLike),
             Triple(UiMode.Miuix, false, FloatingBottomBarStyle.Miuix),
             Triple(UiMode.Miuix, true, FloatingBottomBarStyle.Miuix),
             Triple(UiMode.Miuix, true, FloatingBottomBarStyle.IosLike),
@@ -273,12 +275,17 @@ class MainPagerTest {
     }
 
     @Test
-    fun `both floating styles keep five accessible targets at maximum scale on narrow screens`() {
-        for (style in FloatingBottomBarStyle.entries) {
+    fun `floating bars keep five accessible targets at maximum scale on narrow screens`() {
+        for ((appearance, style) in listOf(
+            UiMode.Material to FloatingBottomBarStyle.Miuix,
+            UiMode.Material to FloatingBottomBarStyle.IosLike,
+            UiMode.Miuix to FloatingBottomBarStyle.Miuix,
+            UiMode.Miuix to FloatingBottomBarStyle.IosLike,
+        )) {
             for (direction in LayoutDirection.entries) {
                 for (color in listOf(ColorMode.LIGHT, ColorMode.DARK)) {
                     PagerHost(
-                        UiMode.Miuix, floating = true, floatingStyle = style,
+                        appearance, floating = true, floatingStyle = style,
                         width = 720, density = 2.2f, direction = direction, color = color,
                     ).use { h ->
                         val tabs = h.ui.nodes().filter { it.config.getOrNull(SemanticsProperties.Role) == Role.Tab &&
@@ -301,7 +308,7 @@ class MainPagerTest {
                                     it.config.getOrNull(SemanticsActions.OnClick)?.action != null
                             })
                         }
-                        h.ui.snapshot("floating-${style.name}-${direction.name}-${color.name}-110")
+                        h.ui.snapshot("floating-${appearance.name}-${style.name}-${direction.name}-${color.name}-110")
                     }
                 }
             }
@@ -344,8 +351,13 @@ class MainPagerTest {
     @Test
     @Config(sdk = [30, 32, 35])
     fun `floating pointer taps and iOS drag selection work across effect support levels`() {
-        for (style in FloatingBottomBarStyle.entries) {
-            PagerHost(UiMode.Miuix, floating = true, floatingStyle = style, blur = true).use { h ->
+        for ((mode, style) in listOf(
+            UiMode.Material to FloatingBottomBarStyle.Miuix,
+            UiMode.Material to FloatingBottomBarStyle.IosLike,
+            UiMode.Miuix to FloatingBottomBarStyle.Miuix,
+            UiMode.Miuix to FloatingBottomBarStyle.IosLike,
+        )) {
+            PagerHost(mode, floating = true, floatingStyle = style, blur = true).use { h ->
                 fun center(label: String) = h.ui.nodes().first {
                     it.config.getOrNull(SemanticsProperties.ContentDescription)?.contains(label) == true &&
                         it.boundsInRoot.width > 0
@@ -353,13 +365,43 @@ class MainPagerTest {
                 val settings = center("设置")
                 h.ui.drag(settings.x, settings.y, settings.x, settings.y)
                 h.assertSettled(4)
-                if (style == FloatingBottomBarStyle.IosLike) {
+                if (mode == UiMode.Material || style == FloatingBottomBarStyle.IosLike) {
                     val other = center("其他")
                     h.ui.drag(settings.x, settings.y, other.x, other.y)
                     h.assertSettled(0)
                     h.ui.drag(other.x, other.y, settings.x, settings.y, cancel = true)
                     h.assertSettled(0)
                 }
+            }
+        }
+    }
+
+    @Test
+    fun `Material slider travels between tabs and follows pointer selection in both layout directions`() {
+        for (direction in LayoutDirection.entries) {
+            PagerHost(floating = true, direction = direction).use { h ->
+                fun sliderX() = h.ui.nodes().first {
+                    it.config.getOrNull(SemanticsProperties.TestTag) == "materialFloatingIndicator"
+                }.boundsInRoot.center.x
+                fun tabCenter(label: String) = h.ui.nodes().first {
+                    it.config.getOrNull(SemanticsProperties.ContentDescription)?.contains(label) == true &&
+                        it.boundsInRoot.width > 0
+                }.boundsInRoot.center
+                val startX = sliderX()
+                h.ui.clickLabel("设置")
+                h.ui.advance(48)
+                val movingX = sliderX()
+                h.ui.snapshot("material-slider-${direction.name}-moving")
+                h.ui.advance()
+                val endX = sliderX()
+                assertTrue("Slider must animate through intermediate positions: $startX -> $movingX -> $endX", movingX > minOf(startX, endX) && movingX < maxOf(startX, endX))
+                val settings = tabCenter("设置")
+                val other = tabCenter("其他")
+                h.ui.drag(settings.x, settings.y, other.x, other.y)
+                h.assertSettled(0)
+                h.ui.drag(other.x, other.y, settings.x, settings.y, cancel = true)
+                h.assertSettled(0)
+                h.ui.snapshot("material-slider-${direction.name}-cancelled")
             }
         }
     }
