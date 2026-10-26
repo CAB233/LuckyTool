@@ -5,9 +5,12 @@ import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.MediaPlayer
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
+import android.view.TextureView
 import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -34,7 +37,11 @@ import org.lsposed.lsparanoid.Obfuscate
 @Obfuscate
 object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
 
+    //拦截 MediaPlayer.setOnCompletionListener 时，内部还要再调一次真注册，用它挡住自递归
+    private var installingCompletionListener = false
+
     private var backgroundPath = ""
+    private var videoPath = ""
 
     //解码大图很贵，按路径与文件修改时间缓存，避免每次 bind 都在主线程重复解码
     private var cachedBitmapPath = ""
@@ -44,12 +51,16 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
     //官方视频/彩蛋的回调里拿不到 itemView，这里记住最近一次 bind 出来的顶部视图
     private var topBgView: WeakReference<ImageView>? = null
     private var topMaskView: WeakReference<ImageView>? = null
+    //视频播完的收尾要在监听器回调里调官方方法，回调里拿不到 preference 实例，bind 时记下来
+    private var topPreference: WeakReference<Any>? = null
 
     @SuppressLint("DiscouragedApi")
     override fun onHook() {
         val osCode = getOSVersionCode
         backgroundPath = preferences(ModulePrefs)
             .getString("customize_device_ota_card_background_path", "")
+        videoPath =
+            preferences(ModulePrefs).getString("customize_device_ota_card_video_path", "")
         val hideText = preferences(ModulePrefs).getBoolean("hide_ota_card_top_text", false)
         val applySharePage =
             preferences(ModulePrefs).getBoolean("apply_device_parameter_sharing_page", false)
@@ -73,8 +84,10 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
                                 this@CustomizeDeviceOTACardBackground.packageName
                             )
                             //引用要先记下来再决定要不要画图：没设背景图时下面会提前 return，
+                            //但视频播完的收尾还要靠这些引用调官方实现
                             val bgView = itemView.findViewById<ImageView>(topId)
                             val maskView = itemView.findViewById<ImageView>(maskId)
+                            topPreference = WeakReference(instance<Any>())
                             if (bgView != null) topBgView = WeakReference(bgView)
                             if (maskView != null) topMaskView = WeakReference(maskView)
 
@@ -137,6 +150,59 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
                     proceed()
                     restoreTopBackground(!show)
                     null
+                }
+                if (backgroundPath.isNotEmpty() || videoPath.isNotEmpty()) {
+                    //播放结束官方只把状态置 COMPLETED、不动视图，收敛时机拿到官方回调里最稳；
+                    //而官方的 OnCompletionListener 是 R8 生成的匿名类，类名不可靠，
+                    //所以拦框架注册点 MediaPlayer.setOnCompletionListener，用组合监听器包住官方回调
+                    "android.media.MediaPlayer".toClass().resolve().apply {
+                        firstMethod {
+                            name = "setOnCompletionListener"
+                            parameterCount = 1
+                        }.intercept {
+                            val official = arg<MediaPlayer.OnCompletionListener>(0)
+                            //官方的 clearListenersQuietly 会注册 null，直接放过
+                            if (official == null) return@intercept proceed()
+                            //替换注册要再调一次真方法，重入时直通，别自己包自己
+                            if (installingCompletionListener) return@intercept proceed()
+                            val mediaPlayer = instance as? MediaPlayer
+                                ?: return@intercept proceed()
+                            installingCompletionListener = true
+                            try {
+                                mediaPlayer.setOnCompletionListener { player ->
+                                    //先让官方跑（它负责把 mVideoState 置 COMPLETED，后续分支依赖它）
+                                    official.onCompletion(player)
+                                    //有自定义背景图就换回自定义图；没有就交给官方收敛，免得冻在最后一帧
+                                    if (!restoreTopBackground(true)) {
+                                        topPreference?.get()?.let { preference ->
+                                            runCatching {
+                                                showTopVideoLastFrame?.copy()?.of(preference)
+                                                    ?.invoke<Any>()
+                                            }
+                                        }
+                                    }
+                                }
+                            } finally {
+                                installingCompletionListener = false
+                            }
+                            null
+                        }
+                    }
+                }
+                if (videoPath.isNotEmpty()) {
+                    //原实现会顺带置位 mTopVideoIsWithMask，这里直接给路径并跳过原实现
+                    firstMethodOrNull { name = "getColorOSVideoPath" }?.intercept {
+                        videoPath
+                    }
+                    //官方在 onPrepared 里 start() 之前调用它，正好用来静音，并用自己算的 centerCrop 换掉官方 Matrix
+                    firstMethodOrNull { name = "applyTopVideoDisplayTransform" }?.intercept {
+                        val textureView = arg<TextureView>(0) ?: return@intercept null
+                        val player = firstFieldOrNull { name = "mAboutDeviceTopMediaPlayer" }
+                            ?.of(instance)?.get<MediaPlayer>()
+                        runCatching { player?.setVolume(0F, 0F) }
+                        textureView.setTransform(createCenterCropMatrix(textureView, player))
+                        null
+                    }
                 }
                 if (false) {
                     firstMethod { name = "isSupportTopVideo" }.hook {
@@ -269,5 +335,26 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
         topMaskView?.get()?.visibility = View.GONE
         bgView.visibility = View.VISIBLE
         return true
+    }
+
+    //官方那套 Matrix 只适配官方素材，自定义视频自己按 centerCrop 铺满
+    private fun createCenterCropMatrix(textureView: TextureView, player: MediaPlayer?): Matrix {
+        val matrix = Matrix()
+        val videoWidth = runCatching { player?.videoWidth ?: 0 }.getOrDefault(0)
+        val videoHeight = runCatching { player?.videoHeight ?: 0 }.getOrDefault(0)
+        val viewWidth = textureView.width
+        val viewHeight = textureView.height
+        //尺寸还没就绪时用单位矩阵，等同于把视频按 view 宽高铺满
+        if (videoWidth <= 0 || videoHeight <= 0 || viewWidth <= 0 || viewHeight <= 0) {
+            return matrix
+        }
+        val scale = maxOf(
+            viewWidth.toFloat() / videoWidth, viewHeight.toFloat() / videoHeight
+        )
+        matrix.setScale(scale, scale)
+        matrix.postTranslate(
+            (viewWidth - videoWidth * scale) / 2F, (viewHeight - videoHeight * scale) / 2F
+        )
+        return matrix
     }
 }

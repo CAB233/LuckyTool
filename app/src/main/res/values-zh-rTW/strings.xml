@@ -750,6 +750,9 @@
     <string name="customize_device_ota_card_background">自定义设备 OTA 卡片背景</string>
     <string name="customize_device_ota_card_background_summary">建议尺寸：328x124的倍数</string>
     <string name="customize_device_ota_card_background_path">背景图片路径</string>
+    <string name="customize_device_ota_card_video">自定义设备 OTA 卡片视频</string>
+    <string name="customize_device_ota_card_video_summary">先播放自定义视频，播放完毕后显示自定义背景</string>
+    <string name="customize_device_ota_card_video_path">自定义视频路径</string>
     <string name="hide_ota_card_top_text">隐藏卡片顶部文本</string>
     <string name="apply_device_parameter_sharing_page">应用到设备参数分享页面</string>
     <string name="settings_developer_preference">开发者选项</string>

@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import com.canhub.cropper.CropImageOptions
 import com.canhub.cropper.CropImageView
@@ -397,6 +398,55 @@ object OplusSettingsPage {
                         key = "apply_device_parameter_sharing_page",
                         title = c.getString(R.string.apply_device_parameter_sharing_page),
                     )
+                }
+            }
+            // 自定义 OTA 卡片视频（仅 ColorOS 17 及以上）
+            if (osCode >= 40) {
+                switch(
+                    key = "customize_device_ota_card_video",
+                    title = c.getString(R.string.customize_device_ota_card_video),
+                    summary = c.getString(R.string.customize_device_ota_card_video_summary),
+                )
+                if (state.getBoolean("customize_device_ota_card_video")) {
+                    val videoTitle = c.getString(R.string.customize_device_ota_card_video_path)
+                    val videoPath =
+                        state.getString("customize_device_ota_card_video_path", "").orEmpty()
+                    val videoSummary = videoPath.ifBlank { "Null" }
+                    custom(
+                        key = "customize_device_ota_card_video_path",
+                        title = videoTitle,
+                        summary = videoSummary,
+                    ) {
+                        val videoLauncher = rememberLauncherForActivityResult(
+                            ActivityResultContracts.GetContent()
+                        ) { uri ->
+                            // 取消选择时 uri 为 null
+                            if (uri == null || uri == Uri.EMPTY) {
+                                return@rememberLauncherForActivityResult
+                            }
+                            // hook 侧只认缓存目录内的绝对路径：先落盘再写 pref
+                            val copied = FileUtils.copyUriToFile(
+                                c, uri, FileUtils.createCacheFile(c, "mp4")
+                            )
+                            if (copied == null) {
+                                LogUtils.e("OtaCardVideo", "copyUriToFile", uri.toString(), true)
+                                return@rememberLauncherForActivityResult
+                            }
+                            c.showToast(copied.absolutePath)
+                            c.putString(
+                                ModulePrefs,
+                                "customize_device_ota_card_video_path",
+                                copied.absolutePath
+                            )
+                        }
+                        PrefRowInset {
+                            PrefRow(
+                                title = videoTitle,
+                                summary = videoSummary,
+                                onClick = { videoLauncher.launch("video/*") },
+                            )
+                        }
+                    }
                 }
             }
             switch(

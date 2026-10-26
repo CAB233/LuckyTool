@@ -772,6 +772,9 @@
     <string name="customize_device_ota_card_background">Cihaz güncelleme (OTA) kartı arka planını özelleştir</string>
     <string name="customize_device_ota_card_background_summary">Önerilen boyut: 328x124 pikselin katları</string>
     <string name="customize_device_ota_card_background_path">Arka plan resmi yolu</string>
+    <string name="customize_device_ota_card_video">Cihaz güncelleme (OTA) kartı videosunu özelleştir</string>
+    <string name="customize_device_ota_card_video_summary">Önce özel bir video oynatır, ardından özel arka planınızı gösterir</string>
+    <string name="customize_device_ota_card_video_path">Video yolu</string>
     <string name="hide_ota_card_top_text">OTA Kart üst metnini gizle</string>
     <string name="apply_device_parameter_sharing_page">Cihaz paylaşım parametreleri sayfasına uygula</string>
     <string name="settings_developer_preference">Geliştirici Seçenekleri</string>

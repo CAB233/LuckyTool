@@ -892,6 +892,9 @@
     <string name="customize_device_ota_card_background">Customize device OTA card background</string>
     <string name="customize_device_ota_card_background_summary">Recommended size: Multiples of 328x124</string>
     <string name="customize_device_ota_card_background_path">Background image path</string>
+    <string name="customize_device_ota_card_video">Customize device OTA card video</string>
+    <string name="customize_device_ota_card_video_summary">Plays a custom video first, then shows your custom background</string>
+    <string name="customize_device_ota_card_video_path">Custom video path</string>
     <string name="hide_ota_card_top_text">Hide card top text</string>
     <string name="apply_device_parameter_sharing_page">Apply to device parameter sharing page</string>
     

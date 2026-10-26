@@ -661,6 +661,9 @@
     <string name="customize_device_ota_card_background">Tùy chỉnh nền thẻ OTA của thiết bị</string>
     <string name="customize_device_ota_card_background_summary">Kích thước đề xuất: 328x124</string>
     <string name="customize_device_ota_card_background_path">Đường dẫn ảnh nền</string>
+    <string name="customize_device_ota_card_video">Tùy chỉnh video thẻ OTA của thiết bị</string>
+    <string name="customize_device_ota_card_video_summary">Phát video tùy chỉnh trước, sau đó hiển thị nền tùy chỉnh</string>
+    <string name="customize_device_ota_card_video_path">Đường dẫn video</string>
     <string name="hide_ota_card_top_text">Ẩn văn bản trên cùng của thẻ</string>
     <string name="apply_device_parameter_sharing_page">Áp dụng cho trang chia sẻ thông số thiết bị</string>
     <string name="settings_developer_preference">Tuỳ chọn nhà phát triển</string>

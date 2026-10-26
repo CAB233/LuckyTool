@@ -35,6 +35,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Desktop layout backup and restore — from the launcher-related page, back up and restore icon positions, folders, the hotseat and the hidden-app state; periodic auto snapshots are written as .ltbackup files (a zip container holding meta.json and layout.json) to Download/LuckyTool/launcher_backup with the newest 20 kept; any snapshot in the history list can be deleted on its own (trailing button or long press)
 - Classic Control Center tile rows and columns on ColorOS 17 — fixes the feature failing on ColorOS 17; the portrait row count and the column counts for both orientations stay freely configurable
 - Control Center HDR/SDR ratio tile — mirrors the developer options switch of the same name and overlays the current HDR/SDR ratio on the top-right corner of the screen; A15+
+- Custom video on the OTA card C17 — the card plays the selected video first and then returns to the custom background image; the video is muted and center-cropped to fill the card
 
 #### Optimized
 

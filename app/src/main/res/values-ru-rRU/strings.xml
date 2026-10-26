@@ -660,6 +660,9 @@
     <string name="customize_device_ota_card_background">Настройка фона карты OTA устройства</string>
     <string name="customize_device_ota_card_background_summary">Рекомендуемый размер: 328x124</string>
     <string name="customize_device_ota_card_background_path">Путь к фоновому изображению</string>
+    <string name="customize_device_ota_card_video">Настройка видео карты OTA устройства</string>
+    <string name="customize_device_ota_card_video_summary">Сначала воспроизводит пользовательское видео, затем показывает пользовательский фон</string>
+    <string name="customize_device_ota_card_video_path">Путь к видеофайлу</string>
     <string name="hide_ota_card_top_text">Скрыть верхний текст карты</string>
     <string name="apply_device_parameter_sharing_page">Применить к странице обмена параметрами устройства</string>
     <string name="settings_developer_preference">Параметры разработчика</string>

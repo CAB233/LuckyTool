@@ -658,6 +658,9 @@
     <string name="customize_device_ota_card_background">Personalizza lo sfondo della scheda OTA del dispositivo</string>
     <string name="customize_device_ota_card_background_summary">Dimensioni consigliate: Multipli di 328x124</string>
     <string name="customize_device_ota_card_background_path">Percorso immagine sfondo</string>
+    <string name="customize_device_ota_card_video">Personalizza il video della scheda OTA del dispositivo</string>
+    <string name="customize_device_ota_card_video_summary">Riproduce prima un video personalizzato, poi mostra lo sfondo personalizzato</string>
+    <string name="customize_device_ota_card_video_path">Percorso video</string>
     <string name="hide_ota_card_top_text">Nascondi il testo superiore della card</string>
     <string name="apply_device_parameter_sharing_page">Applica alla pagina di condivisione dei parametri del dispositivo</string>
     <string name="settings_developer_preference">Opzioni sviluppatore</string>

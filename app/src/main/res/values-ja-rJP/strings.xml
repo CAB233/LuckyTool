@@ -658,6 +658,9 @@
     <string name="customize_device_ota_card_background">デバイス OTA カードの背景をカスタマイズ</string>
     <string name="customize_device_ota_card_background_summary">Recommended size: Multiples of 328x124</string>
     <string name="customize_device_ota_card_background_path">背景画像のパス</string>
+    <string name="customize_device_ota_card_video">デバイス OTA カードの動画をカスタマイズ</string>
+    <string name="customize_device_ota_card_video_summary">カスタム動画を先に再生し、再生後にカスタム背景を表示します</string>
+    <string name="customize_device_ota_card_video_path">動画のパス</string>
     <string name="hide_ota_card_top_text">Hide card top text</string>
     <string name="apply_device_parameter_sharing_page">デバイスのパラメータ共有ページに適用</string>
     <string name="settings_developer_preference">開発者向けオプション</string>

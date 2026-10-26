@@ -659,6 +659,9 @@
     <string name="customize_device_ota_card_background">Přizpůsobit OTA pozadí karty zařízení</string>
     <string name="customize_device_ota_card_background_summary">Doporučená velikost: Násobky 328x124</string>
     <string name="customize_device_ota_card_background_path">Cesta k obrázku pozadí</string>
+    <string name="customize_device_ota_card_video">Přizpůsobit OTA video karty zařízení</string>
+    <string name="customize_device_ota_card_video_summary">Nejprve přehraje vlastní video, poté zobrazí vlastní pozadí</string>
+    <string name="customize_device_ota_card_video_path">Cesta k videu</string>
     <string name="hide_ota_card_top_text">Skrýt text v horní části karty</string>
     <string name="apply_device_parameter_sharing_page">Použít na stránku sdílení parametrů zařízení</string>
     <string name="settings_developer_preference">Možnosti pro vývojáře</string>
