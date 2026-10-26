@@ -2,7 +2,6 @@ package com.luckyzyx.luckytool.ui.compose.scopes.statusbar
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -14,8 +13,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
-import com.luckyzyx.luckytool.ui.compose.components.ColorDot
 import com.luckyzyx.luckytool.ui.compose.components.ColorPickerDialog
+import com.luckyzyx.luckytool.ui.compose.components.PrefColorPreview
 import com.luckyzyx.luckytool.ui.compose.components.PrefRow
 import com.luckyzyx.luckytool.ui.compose.components.PrefRowInset
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
@@ -216,10 +215,7 @@ object StatusBarControlCenterPage {
                         title = stringResource(R.string.custom_control_center_progress_percent_color),
                         summary = stringResource(R.string.current_color, hex),
                         trailing = {
-                            ColorDot(
-                                color = color,
-                                modifier = Modifier.size(24.dp),
-                            )
+                            PrefColorPreview(color = color)
                         },
                         onClick = { showPicker = true },
                     )

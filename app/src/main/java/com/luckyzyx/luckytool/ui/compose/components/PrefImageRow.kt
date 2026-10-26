@@ -20,7 +20,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * 图片路径预览缩略图：把本地绝对路径解码成一张圆角缩略图，用在 [PrefRow] 的 leading 槽位。
+ * 图片路径预览缩略图：把本地绝对路径解码成一张圆角缩略图，用在 [PrefRow] 的 trailing 槽位（行尾）；
+ * 行首留给条目标题/图标。
  *
  * 高度固定为 [height]、宽度按原图比例算，所以同一行既能显示 1.4:1 的宽图，也能显示 2.65:1 的窄图，
  * 都不会把行高撑起来。路径为空或解码失败时什么都不画（槽位宽度为 0，行退化成纯文本行）。
@@ -54,9 +55,9 @@ fun PrefImagePreview(
 }
 
 /**
- * 图片路径条目：整行可点，行首是 [PrefImagePreview] 缩略图，摘要默认显示路径（空路径显示 `Null`）。
+ * 图片路径条目：整行可点，行尾是 [PrefImagePreview] 缩略图，摘要默认显示路径（空路径显示 `Null`）。
  *
- * 与颜色预览圆点（[ColorDot]）同一定位：`custom()` 逃生舱里的行渲染原语，只管「标题 + 预览 + 点击」；
+ * 与颜色预览色块（[PrefColorPreview]）同一定位：`custom()` 逃生舱里的行渲染原语，只管「标题 + 预览 + 点击」；
  * 选图 / 裁剪这些依赖 Activity Result launcher 的逻辑留在页面侧，本文件不引入 activity 依赖。
  */
 @Composable
@@ -74,7 +75,7 @@ fun PrefImageRow(
             title = title,
             summary = summary ?: path.ifBlank { "Null" },
             enabled = enabled,
-            leading = { PrefImagePreview(path = path, height = previewHeight) },
+            trailing = { PrefImagePreview(path = path, height = previewHeight) },
             onClick = onClick,
         )
     }
