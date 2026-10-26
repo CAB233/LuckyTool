@@ -1,6 +1,7 @@
 package com.luckyzyx.luckytool.ui.compose.components
 
 import android.graphics.BitmapFactory
+import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
@@ -8,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,6 +21,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * 图片路径预览缩略图：把本地绝对路径解码成一张圆角缩略图，用在 [PrefRow] 的 trailing 槽位（行尾）；
@@ -34,19 +39,16 @@ fun PrefImagePreview(
     height: Dp = 40.dp,
     shape: Shape = RoundedCornerShape(6.dp),
 ) {
-    val density = LocalDensity.current
-    val targetPx = with(density) { height.roundToPx() }.coerceAtLeast(1)
-    // 只在路径或目标高度变化时重新解码，重组不重复读盘
-    val image = remember(path, targetPx) { decodePreviewImage(path, targetPx) }
-    if (image == null) return
+    val targetPx = with(LocalDensity.current) { height.roundToPx() }.coerceAtLeast(1)
+    val bitmap = previewImage(path, targetPx).value ?: return
     Box(
         modifier = modifier
             .height(height)
-            .aspectRatio(image.width.toFloat() / image.height)
+            .aspectRatio(bitmap.width.toFloat() / bitmap.height)
             .clip(shape)
     ) {
         Image(
-            bitmap = image,
+            bitmap = bitmap,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
@@ -78,6 +80,33 @@ fun PrefImageRow(
             trailing = { PrefImagePreview(path = path, height = previewHeight) },
             onClick = onClick,
         )
+    }
+}
+
+/** 缩略图解码结果缓存：滑出/滑回视口、或行重组都不会重新读盘解码。24 张 40dp 缩略图的量级。 */
+private val previewCache = LruCache<String, ImageBitmap>(24)
+
+/**
+ * 缩略图的解码状态。
+ *
+ * 命中缓存时首帧就拿到位图；未命中时在 [Dispatchers.IO] 上解码，主线程只做一次 map 查询。
+ * 原先用 remember { decodePreviewImage(...) } 在组合期同步解码（一次 bounds 读 + 一次整图解码，
+ * PNG 还是整张解出来再降采样），行第一次进入视口的那一帧被这段读盘+解码占住 ——
+ * 快速滑动滑到自定义 OTA 卡片时的那一下停顿就来自这里。
+ */
+@Composable
+private fun previewImage(path: String, targetPx: Int): State<ImageBitmap?> {
+    val key = if (path.isBlank()) null else "$targetPx@$path"
+    val cached = remember(key) { key?.let { previewCache.get(it) } }
+    return produceState<ImageBitmap?>(initialValue = cached, path, targetPx) {
+        if (key == null) {
+            value = null
+            return@produceState
+        }
+        value = previewCache.get(key)
+        if (value != null) return@produceState
+        value = withContext(Dispatchers.IO) { decodePreviewImage(path, targetPx) }
+            ?.also { previewCache.put(key, it) }
     }
 }
 
