@@ -140,6 +140,11 @@ private fun decodePreviewImage(path: String, targetPx: Int): ImageBitmap? {
 }
 
 /**
+ * 视频缩略图的行高：40dp 的 16:9 只有 71dp 宽，画面细节看不清；视频行单独放大到 64dp（16:9 约 114dp 宽）。
+ */
+private val VideoPreviewHeight = 64.dp
+
+/**
  * 视频路径预览缩略图：取第一帧画成圆角缩略图，中间叠一个播放标记，让这一行一眼能看出是视频而不是图片。
  *
  * 尺寸策略与 [PrefImagePreview] 一致：高度固定为 [height]、宽度按视频（算上 rotation 元数据后）的比例算，
@@ -149,7 +154,7 @@ private fun decodePreviewImage(path: String, targetPx: Int): ImageBitmap? {
 fun PrefVideoPreview(
     path: String,
     modifier: Modifier = Modifier,
-    height: Dp = 40.dp,
+    height: Dp = VideoPreviewHeight,
     shape: Shape = RoundedCornerShape(6.dp),
 ) {
     val targetPx = with(LocalDensity.current) { height.roundToPx() }.coerceAtLeast(1)
@@ -194,7 +199,7 @@ fun PrefVideoRow(
     modifier: Modifier = Modifier,
     summary: String? = null,
     enabled: Boolean = true,
-    previewHeight: Dp = 40.dp,
+    previewHeight: Dp = VideoPreviewHeight,
     onClick: (() -> Unit)? = null,
 ) {
     PrefRowInset(modifier) {
