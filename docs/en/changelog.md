@@ -90,6 +90,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Remove the battery restriction plugin C17
 - Fix the clock disappearing behind the fluid cloud when the double-row layout or a custom format containing a line break is used — measure by the widest line and report that width to the fluid cloud; a “Clock minimum width” value is now honored as-is and re-applied whenever the fluid cloud capsule appears
 - Fixed several customize options in the “About phone” group only appearing after the processor click page was set to a custom page
+- Fixed the custom OTA card background being overwritten whenever the card refreshed, an easter egg video was shown or a video ended
 
 #### Changed
 

@@ -3,6 +3,7 @@ package com.luckyzyx.luckytool.hook.scopes.settings
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.view.Menu
 import android.view.MenuInflater
@@ -19,22 +20,36 @@ import com.highcapable.betterandroid.ui.extension.view.parentOrNull
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.intercept
 import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.dp
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.safeOfNull
+import java.io.File
+import java.lang.ref.WeakReference
 import org.lsposed.lsparanoid.Obfuscate
 
 @Obfuscate
 object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
 
+    private var backgroundPath = ""
+
+    //解码大图很贵，按路径与文件修改时间缓存，避免每次 bind 都在主线程重复解码
+    private var cachedBitmapPath = ""
+    private var cachedBitmapModifiedTime = 0L
+    private var cachedBitmap: Bitmap? = null
+
+    //官方视频/彩蛋的回调里拿不到 itemView，这里记住最近一次 bind 出来的顶部视图
+    private var topBgView: WeakReference<ImageView>? = null
+    private var topMaskView: WeakReference<ImageView>? = null
+
     @SuppressLint("DiscouragedApi")
     override fun onHook() {
         val osCode = getOSVersionCode
-        val backgroundPath =
-            preferences(ModulePrefs).getString("customize_device_ota_card_background_path", "")
+        backgroundPath = preferences(ModulePrefs)
+            .getString("customize_device_ota_card_background_path", "")
         val hideText = preferences(ModulePrefs).getBoolean("hide_ota_card_top_text", false)
         val applySharePage =
             preferences(ModulePrefs).getBoolean("apply_device_parameter_sharing_page", false)
@@ -57,14 +72,26 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
                                 "about_device_top_video_mask", "id",
                                 this@CustomizeDeviceOTACardBackground.packageName
                             )
-                            val bitmap = BitmapFactory.decodeFile(backgroundPath) ?: return@after
+                            //引用要先记下来再决定要不要画图：没设背景图时下面会提前 return，
+                            val bgView = itemView.findViewById<ImageView>(topId)
+                            val maskView = itemView.findViewById<ImageView>(maskId)
+                            if (bgView != null) topBgView = WeakReference(bgView)
+                            if (maskView != null) topMaskView = WeakReference(maskView)
+
+                            val bitmap = loadBackgroundBitmap(backgroundPath) ?: return@after
                             val drawable = RoundedBitmapDrawableFactory.create(
                                 itemView.resources, bitmap
                             )
                             drawable.cornerRadius = 12F.dp
-
-                            itemView.findViewById<ImageView>(topId)?.setImageDrawable(drawable)
-                            itemView.findViewById<ImageView>(maskId)?.setImageDrawable(drawable)
+                            bgView?.apply {
+                                setImageDrawable(drawable)
+                                visibility = View.VISIBLE
+                            }
+                            //遮罩是压在背景上的半透明纱，用自定义图时直接隐藏
+                            maskView?.apply {
+                                setImageDrawable(null)
+                                visibility = View.GONE
+                            }
 
                             if (hideText) itemView.children.forEach {
                                 val id = safeOfNull { it.resources.getResourceEntryName(it.id) }
@@ -88,6 +115,28 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
                             }
                         }
                     }
+                }
+
+                //官方在彩蛋/视频收敛时会把封面写回 bg，这三个方法都是 void 且自己写视图，
+                //所以用拦截器表达 after 语义：先跑官方实现，再把自定义图补回去
+                firstMethodOrNull { name = "getTopDrawableBg" }?.intercept {
+                    proceed()
+                    //此处官方可能刚把 bg 置 GONE 去露彩蛋视频，可见性按现状判断，不能硬顶上来
+                    restoreTopBackground(false)
+                    null
+                }
+                val showTopVideoLastFrame = firstMethodOrNull { name = "showTopVideoLastFrame" }
+                showTopVideoLastFrame?.intercept {
+                    proceed()
+                    restoreTopBackground(true)
+                    null
+                }
+                firstMethodOrNull { name = "showEasterEggVideo" }?.intercept {
+                    //show=true 是刚露出彩蛋视频，show=false 才是收回静态背景
+                    val show = arg<Boolean>(0) ?: false
+                    proceed()
+                    restoreTopBackground(!show)
+                    null
                 }
                 if (false) {
                     firstMethod { name = "isSupportTopVideo" }.hook {
@@ -193,5 +242,32 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
                     }
                 }
             }
+    }
+
+    private fun loadBackgroundBitmap(path: String): Bitmap? {
+        if (path.isEmpty()) return null
+        val modifiedTime = runCatching { File(path).lastModified() }.getOrDefault(0L)
+        if (path == cachedBitmapPath && modifiedTime == cachedBitmapModifiedTime) {
+            cachedBitmap?.let { return it }
+        }
+        val bitmap = runCatching { BitmapFactory.decodeFile(path) }.getOrNull() ?: return null
+        cachedBitmapPath = path
+        cachedBitmapModifiedTime = modifiedTime
+        cachedBitmap = bitmap
+        return bitmap
+    }
+
+    //forceVisible=false 时只预置图不改可见性；可见时顺手把遮罩藏掉，免得半透明纱压暗自定义图
+    //返回值表示是否真的写了自定义图，false 说明没有图可画，调用方可以退回官方收尾
+    private fun restoreTopBackground(forceVisible: Boolean): Boolean {
+        val bgView = topBgView?.get() ?: return false
+        val bitmap = loadBackgroundBitmap(backgroundPath) ?: return false
+        val drawable = RoundedBitmapDrawableFactory.create(bgView.resources, bitmap)
+        drawable.cornerRadius = 12F.dp
+        bgView.setImageDrawable(drawable)
+        if (!forceVisible && bgView.visibility != View.VISIBLE) return true
+        topMaskView?.get()?.visibility = View.GONE
+        bgView.visibility = View.VISIBLE
+        return true
     }
 }
