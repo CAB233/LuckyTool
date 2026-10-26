@@ -1,0 +1,13 @@
+# META-INF/xposed/java_init.list 使用的原生 API 101 入口。
+-keep class com.luckyzyx.luckytool.hook.MainHook { *; }
+
+# BetterAndroid 通过组件泛型信息和静态方法创建 ViewBinding。
+-keep class * extends android.app.Activity
+-keep class * extends androidx.fragment.app.Fragment
+-keep class * implements androidx.viewbinding.ViewBinding {
+    *** bind(***);
+    *** inflate(...);
+}
+
+# SpiderMan 崩溃界面涉及反射调用。
+-keep class com.simple.spiderman.** { *; }

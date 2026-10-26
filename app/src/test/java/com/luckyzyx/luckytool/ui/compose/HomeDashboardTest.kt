@@ -69,16 +69,11 @@ class HomeDashboardTest {
     @Test
     fun `home actions remain available and expansion survives theme changes and recreation`() {
         val saved: Bundle
-        HomeHost(UiMode.Miuix, ColorMode.LIGHT, update = true).use { h ->
+        HomeHost(UiMode.Miuix, ColorMode.LIGHT).use { h ->
             h.ui.clickLabel(h.ui.activity.getString(R.string.menu_reboot))
             h.ui.clickLabel(h.ui.activity.getString(R.string.about_title))
             assertEquals(1, h.restart)
             assertEquals(1, h.about)
-            h.longClick("模块已激活")
-            assertEquals(1, h.status)
-            h.scrollTo("检测到新版本!")
-            h.ui.clickText("检测到新版本!")
-            assertEquals(1, h.update)
             h.scrollTo(model)
             h.longClick(model)
             assertEquals(1, h.copy)
@@ -103,7 +98,7 @@ class HomeDashboardTest {
             h.ui.advance()
             saved = h.ui.saveAndClose()
         }
-        HomeHost(UiMode.Material, ColorMode.LIGHT, saved = saved, update = true).use { h ->
+        HomeHost(UiMode.Material, ColorMode.LIGHT, saved = saved).use { h ->
             h.scrollTo("收起详细信息")
             assertNotNull(h.ui.textNode("收起详细信息"))
         }
@@ -142,8 +137,6 @@ class HomeDashboardTest {
                 assertFalse(h.layout(version).hasVisualOverflow)
                 assertFalse(h.layout(framework).hasVisualOverflow)
                 assertTrue(h.ui.textNode(version)!!.boundsInRoot.bottom <= h.ui.textNode(framework)!!.boundsInRoot.top)
-                h.longClick("模块已激活")
-                assertEquals(1, h.status)
                 h.ui.snapshot("home-status-${color.name.lowercase()}-large-rtl")
             }
         }
@@ -156,15 +149,12 @@ class HomeDashboardTest {
         width: Int = 822,
         fontScale: Float = 1f,
         rtl: Boolean = false,
-        update: Boolean = false,
     ) : AutoCloseable {
         val ui = ComposeGestureHost(saved, width)
         var mode by mutableStateOf(mode)
-        var data by mutableStateOf(sample.copy(updateVersion = if (update) "1.3.6 (22900)" else null))
+        var data by mutableStateOf(sample)
         var restart = 0
         var about = 0
-        var status = 0
-        var update = 0
         var copy = 0
         var donate = 0
         var donateMethods = 0
@@ -184,9 +174,9 @@ class HomeDashboardTest {
                             if (tab == MainTab.Home) {
                                 HomeDashboard(
                                     state = data,
-                                    onRestart = { restart++ }, onAbout = { about++ }, onUpdate = { this.update++ },
-                                    onStatusLongClick = { status++ }, onCopyDeviceInfo = { copy++ },
-                                    onDonate = { donate++ }, onDonateMethods = { donateMethods++ }, onOpenNotice = {},
+                                    onRestart = { restart++ }, onAbout = { about++ },
+                                    onCopyDeviceInfo = { copy++ },
+                                    onDonate = { donate++ }, onDonateMethods = { donateMethods++ },
                                 )
                             } else Text(tab.name)
                         }
@@ -230,7 +220,6 @@ class HomeDashboardTest {
         private val sample = HomeDashboardState(
             moduleActive = true, moduleVersion = "1.3.5_beta (22848)",
             rootVersion = "Root 来源：3.3.1 (32680)", frameworkVersion = "框架版本：LSPosed v2.2.1 (7912)",
-            showNotice = true,
             deviceInfo = listOf(
                 DeviceInfoEntry(R.string.model, model),
                 DeviceInfoEntry(R.string.system, "Android 17 (37) · OS V17.0.0 (40)"),
