@@ -248,7 +248,7 @@ object OplusSettingsPage {
                 if (state.getBoolean("custom_processor_image_path_switch")) {
                     val processorTitle = c.getString(R.string.customize_device_ota_card_background_path)
                     val processorPath = state.getString("customize_processor_image_path", "") ?: ""
-                    val processorSummary = if (processorPath.isBlank()) "Null" else processorPath
+                    val processorSummary = processorPath.ifBlank { "Null" }
                     custom(
                         key = "customize_processor_image_path",
                         title = processorTitle,
@@ -303,106 +303,106 @@ object OplusSettingsPage {
                     title = c.getString(R.string.custom_processor_introduction_text),
                     summary = c.getString(R.string.custom_processor_introduction_text_summary),
                 )
-                if (osCode >= 27) {
-                    switch(
-                        key = "enable_mariana_npu_introduction_page",
-                        title = c.getString(R.string.enable_mariana_npu_introduction_page),
-                    )
-                    switch(
-                        key = "enable_hasselblad_camera_introduction_page",
-                        title = c.getString(R.string.enable_hasselblad_camera_introduction_page),
-                    )
-                }
-                if (osCode >= 34) {
-                    switch(
-                        key = "enable_game_architecture_display",
-                        title = c.getString(R.string.enable_game_architecture_display),
-                    )
-                }
-                if (osCode >= 27) {
-                    switch(
-                        key = "screen_physics_size_shown_cm",
-                        title = c.getString(R.string.screen_physics_size_shown_cm),
-                    )
-                }
+            }
+            if (osCode >= 27) {
                 switch(
-                    key = "customize_device_ota_card_background",
-                    title = c.getString(R.string.customize_device_ota_card_background),
-                    summary = c.getString(R.string.customize_device_ota_card_background_summary),
+                    key = "enable_mariana_npu_introduction_page",
+                    title = c.getString(R.string.enable_mariana_npu_introduction_page),
                 )
-                if (state.getBoolean("customize_device_ota_card_background")) {
-                    val otaTitle = c.getString(R.string.customize_device_ota_card_background_path)
-                    val otaPath = state.getString("customize_device_ota_card_background_path", "") ?: ""
-                    val otaSummary = if (otaPath.isBlank()) "Null" else otaPath
-                    custom(
-                        key = "customize_device_ota_card_background_path",
-                        title = otaTitle,
-                        summary = otaSummary,
-                    ) {
-                        val launcher = rememberLauncherForActivityResult(CropImageContract()) {
-                            if (it.second.isSuccessful) {
-                                val uri = it.second.uriContent
-                                val path = uri?.path ?: ""
-                                if (uri == null || uri == Uri.EMPTY) {
-                                    return@rememberLauncherForActivityResult
-                                }
-                                if (path.isNotBlank()) {
-                                    c.showToast(path)
-                                    c.putString(ModulePrefs, it.first, path)
-                                }
-                            } else {
-                                LogUtils.e("CropImage", it.first, it.second.error.toString(), true)
+                switch(
+                    key = "enable_hasselblad_camera_introduction_page",
+                    title = c.getString(R.string.enable_hasselblad_camera_introduction_page),
+                )
+            }
+            if (osCode >= 34) {
+                switch(
+                    key = "enable_game_architecture_display",
+                    title = c.getString(R.string.enable_game_architecture_display),
+                )
+            }
+            if (osCode >= 27) {
+                switch(
+                    key = "screen_physics_size_shown_cm",
+                    title = c.getString(R.string.screen_physics_size_shown_cm),
+                )
+            }
+            switch(
+                key = "customize_device_ota_card_background",
+                title = c.getString(R.string.customize_device_ota_card_background),
+                summary = c.getString(R.string.customize_device_ota_card_background_summary),
+            )
+            if (state.getBoolean("customize_device_ota_card_background")) {
+                val otaTitle = c.getString(R.string.customize_device_ota_card_background_path)
+                val otaPath = state.getString("customize_device_ota_card_background_path", "") ?: ""
+                val otaSummary = otaPath.ifBlank { "Null" }
+                custom(
+                    key = "customize_device_ota_card_background_path",
+                    title = otaTitle,
+                    summary = otaSummary,
+                ) {
+                    val launcher = rememberLauncherForActivityResult(CropImageContract()) {
+                        if (it.second.isSuccessful) {
+                            val uri = it.second.uriContent
+                            val path = uri?.path ?: ""
+                            if (uri == null || uri == Uri.EMPTY) {
+                                return@rememberLauncherForActivityResult
                             }
+                            if (path.isNotBlank()) {
+                                c.showToast(path)
+                                c.putString(ModulePrefs, it.first, path)
+                            }
+                        } else {
+                            LogUtils.e("CropImage", it.first, it.second.error.toString(), true)
                         }
-                        PrefRowInset {
-                            PrefRow(
-                                title = otaTitle,
-                                summary = otaSummary,
-                                onClick = {
-                                    val cacheImageFile = FileUtils.createCacheFile(c, "png")
-                                    val cacheImageUri = FileProvider.getUriForFile(
-                                        c, "${BuildConfig.APPLICATION_ID}.FileProvider", cacheImageFile
-                                    )
-                                    launcher.launch(
-                                        "customize_device_ota_card_background_path" to CropImageContractOptions(
-                                            null, CropImageOptions().apply {
-                                                activityTitle = otaTitle
-                                                cropShape = CropImageView.CropShape.RECTANGLE
-                                                guidelines = CropImageView.Guidelines.ON_TOUCH
-                                                if (osCode >= 34) {
-                                                    aspectRatioX = 984
-                                                    aspectRatioY = 702
-                                                } else {
-                                                    aspectRatioX = 328
-                                                    aspectRatioY = 124
-                                                }
-                                                fixAspectRatio = true
-                                                customOutputUri = cacheImageUri
-                                                outputCompressFormat = Bitmap.CompressFormat.PNG
-                                                outputCompressQuality = 100
+                    }
+                    PrefRowInset {
+                        PrefRow(
+                            title = otaTitle,
+                            summary = otaSummary,
+                            onClick = {
+                                val cacheImageFile = FileUtils.createCacheFile(c, "png")
+                                val cacheImageUri = FileProvider.getUriForFile(
+                                    c, "${BuildConfig.APPLICATION_ID}.FileProvider", cacheImageFile
+                                )
+                                launcher.launch(
+                                    "customize_device_ota_card_background_path" to CropImageContractOptions(
+                                        null, CropImageOptions().apply {
+                                            activityTitle = otaTitle
+                                            cropShape = CropImageView.CropShape.RECTANGLE
+                                            guidelines = CropImageView.Guidelines.ON_TOUCH
+                                            if (osCode >= 34) {
+                                                aspectRatioX = 984
+                                                aspectRatioY = 702
+                                            } else {
+                                                aspectRatioX = 328
+                                                aspectRatioY = 124
                                             }
-                                        )
+                                            fixAspectRatio = true
+                                            customOutputUri = cacheImageUri
+                                            outputCompressFormat = Bitmap.CompressFormat.PNG
+                                            outputCompressQuality = 100
+                                        }
                                     )
+                                )
                                 },
                             )
                         }
-                    }
-                    switch(
-                        key = "hide_ota_card_top_text",
-                        title = c.getString(R.string.hide_ota_card_top_text),
-                    )
-                    if (osCode >= 34) {
-                        switch(
-                            key = "apply_device_parameter_sharing_page",
-                            title = c.getString(R.string.apply_device_parameter_sharing_page),
-                        )
-                    }
                 }
                 switch(
-                    key = "customize_device_sharing_page_parameters",
-                    title = c.getString(R.string.customize_device_sharing_page_parameters),
+                    key = "hide_ota_card_top_text",
+                    title = c.getString(R.string.hide_ota_card_top_text),
                 )
+                if (osCode >= 34) {
+                    switch(
+                        key = "apply_device_parameter_sharing_page",
+                        title = c.getString(R.string.apply_device_parameter_sharing_page),
+                    )
+                }
             }
+            switch(
+                key = "customize_device_sharing_page_parameters",
+                title = c.getString(R.string.customize_device_sharing_page_parameters),
+            )
         }
         // 其他首选项
         category(c.getString(R.string.settings_other_preference))
