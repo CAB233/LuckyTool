@@ -36,6 +36,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Classic Control Center tile rows and columns on ColorOS 17 — fixes the feature failing on ColorOS 17; the portrait row count and the column counts for both orientations stay freely configurable
 - Control Center HDR/SDR ratio tile — mirrors the developer options switch of the same name and overlays the current HDR/SDR ratio on the top-right corner of the screen; A15+
 - Custom video on the OTA card C17 — the card plays the selected video first and then returns to the custom background image; the video is muted and center-cropped to fill the card
+- The custom OTA card background row previews the selected image
 
 #### Optimized
 

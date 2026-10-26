@@ -12,6 +12,7 @@ import com.luckyzyx.luckytool.BuildConfig
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.contract.CropImageContract
 import com.luckyzyx.luckytool.data.CropImageContractOptions
+import com.luckyzyx.luckytool.ui.compose.components.PrefImageRow
 import com.luckyzyx.luckytool.ui.compose.components.PrefRow
 import com.luckyzyx.luckytool.ui.compose.components.PrefRowInset
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
@@ -356,38 +357,36 @@ object OplusSettingsPage {
                             LogUtils.e("CropImage", it.first, it.second.error.toString(), true)
                         }
                     }
-                    PrefRowInset {
-                        PrefRow(
-                            title = otaTitle,
-                            summary = otaSummary,
-                            onClick = {
-                                val cacheImageFile = FileUtils.createCacheFile(c, "png")
-                                val cacheImageUri = FileProvider.getUriForFile(
-                                    c, "${BuildConfig.APPLICATION_ID}.FileProvider", cacheImageFile
-                                )
-                                launcher.launch(
-                                    "customize_device_ota_card_background_path" to CropImageContractOptions(
-                                        null, CropImageOptions().apply {
-                                            activityTitle = otaTitle
-                                            cropShape = CropImageView.CropShape.RECTANGLE
-                                            guidelines = CropImageView.Guidelines.ON_TOUCH
-                                            if (osCode >= 34) {
-                                                aspectRatioX = 984
-                                                aspectRatioY = 702
-                                            } else {
-                                                aspectRatioX = 328
-                                                aspectRatioY = 124
-                                            }
-                                            fixAspectRatio = true
-                                            customOutputUri = cacheImageUri
-                                            outputCompressFormat = Bitmap.CompressFormat.PNG
-                                            outputCompressQuality = 100
-                                        }
-                                    )
-                                )
-                                },
+                    PrefImageRow(
+                        title = otaTitle,
+                        path = otaPath,
+                        onClick = {
+                            val cacheImageFile = FileUtils.createCacheFile(c, "png")
+                            val cacheImageUri = FileProvider.getUriForFile(
+                                c, "${BuildConfig.APPLICATION_ID}.FileProvider", cacheImageFile
                             )
-                        }
+                            launcher.launch(
+                                "customize_device_ota_card_background_path" to CropImageContractOptions(
+                                    null, CropImageOptions().apply {
+                                        activityTitle = otaTitle
+                                        cropShape = CropImageView.CropShape.RECTANGLE
+                                        guidelines = CropImageView.Guidelines.ON_TOUCH
+                                        if (osCode >= 34) {
+                                            aspectRatioX = 984
+                                            aspectRatioY = 702
+                                        } else {
+                                            aspectRatioX = 328
+                                            aspectRatioY = 124
+                                        }
+                                        fixAspectRatio = true
+                                        customOutputUri = cacheImageUri
+                                        outputCompressFormat = Bitmap.CompressFormat.PNG
+                                        outputCompressQuality = 100
+                                    }
+                                )
+                            )
+                        },
+                    )
                 }
                 switch(
                     key = "hide_ota_card_top_text",

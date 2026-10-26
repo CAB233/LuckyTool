@@ -36,6 +36,7 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 - 经典控制中心磁贴行列数适配 ColorOS 17
 - 控制中心 HDR/SDR 比率磁贴
 - 自定义 OTA 卡片视频 C17 —— 卡片先播放所选视频，播放结束后回到自定义背景图；视频静音并按中心裁剪铺满
+- 自定义 OTA 卡片背景行显示所选图片的缩略图预览
 
 #### 优化
 
