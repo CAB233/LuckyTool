@@ -63,6 +63,12 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import top.yukonga.miuix.kmp.basic.Card as MiuixCard
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
 
+/**
+ * 功能行摘要最多两行：摘要是「该页前三个功能标题」，一行装不下三个就已截断成省略号，
+ * 两行能完整露出前三个标题；再长也没有信息增量，仍按省略号收尾。
+ */
+private const val FUNCTION_SUMMARY_MAX_LINES = 2
+
 @Immutable
 internal data class FunctionRow(
     val pageKey: String,
@@ -72,7 +78,7 @@ internal data class FunctionRow(
     val packName: String?,
 )
 
-/** 应用式功能列表：稳定行标识、48dp 图标，以及单行标题和摘要。 */
+/** 应用式功能列表：稳定行标识、48dp 图标，单行标题与最多两行摘要。 */
 @Composable
 internal fun FunctionList(
     rows: List<FunctionRow>,
@@ -130,7 +136,7 @@ internal fun FunctionList(
                                 Text(
                                     text = summary,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
+                                    maxLines = FUNCTION_SUMMARY_MAX_LINES,
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
@@ -172,7 +178,7 @@ private fun MiuixFunctionRow(row: FunctionRow, onClick: () -> Unit) {
                         text = summary,
                         fontSize = 12.sp,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        maxLines = 1,
+                        maxLines = FUNCTION_SUMMARY_MAX_LINES,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
