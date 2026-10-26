@@ -37,6 +37,7 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 - 控制中心 HDR/SDR 比率磁贴
 - 自定义 OTA 卡片视频 C17 —— 卡片先播放所选视频，播放结束后回到自定义背景图；视频静音并按中心裁剪铺满
 - 自定义 OTA 卡片背景行显示所选图片的缩略图预览
+- 自定义 OTA 卡片视频行显示所选视频首帧的缩略图预览
 
 #### 优化
 

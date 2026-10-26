@@ -37,6 +37,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Control Center HDR/SDR ratio tile — mirrors the developer options switch of the same name and overlays the current HDR/SDR ratio on the top-right corner of the screen; A15+
 - Custom video on the OTA card C17 — the card plays the selected video first and then returns to the custom background image; the video is muted and center-cropped to fill the card
 - The custom OTA card background row previews the selected image
+- The custom OTA card video row previews the first frame of the selected video
 
 #### Optimized
 

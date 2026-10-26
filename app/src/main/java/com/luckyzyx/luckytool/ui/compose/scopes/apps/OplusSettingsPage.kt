@@ -15,6 +15,7 @@ import com.luckyzyx.luckytool.data.CropImageContractOptions
 import com.luckyzyx.luckytool.ui.compose.components.PrefImageRow
 import com.luckyzyx.luckytool.ui.compose.components.PrefRow
 import com.luckyzyx.luckytool.ui.compose.components.PrefRowInset
+import com.luckyzyx.luckytool.ui.compose.components.PrefVideoRow
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
 import com.luckyzyx.luckytool.utils.A13
 import com.luckyzyx.luckytool.utils.A14
@@ -438,13 +439,12 @@ object OplusSettingsPage {
                                 copied.absolutePath
                             )
                         }
-                        PrefRowInset {
-                            PrefRow(
-                                title = videoTitle,
-                                summary = videoSummary,
-                                onClick = { videoLauncher.launch("video/*") },
-                            )
-                        }
+                        PrefVideoRow(
+                            title = videoTitle,
+                            path = videoPath,
+                            summary = videoSummary,
+                            onClick = { videoLauncher.launch("video/*") },
+                        )
                     }
                 }
             }
