@@ -853,7 +853,7 @@ fun ScopeScreen(
     }
 
     // 唯一的 LazyColumn item 缝：条目描述（槽位/分段/元数据）只构建一次，主题差异只在这里分派
-    val listItems: LazyListScope.() -> Unit = {
+    val buildEntries: LazyListScope.() -> Unit = {
         // 条目重建必须在 LazyColumn 的 content lambda 内执行（而不是 ScopeScreen 函数体）：
         // 本 lambda 由 LazyList 的 derivedStateOf 包裹，builder.content() 里对页面级状态
         // （systemInfo / rows / entries / filtered 等 mutableStateOf）的读取因此进入快照订阅，
@@ -928,6 +928,13 @@ fun ScopeScreen(
             }
         }
     }
+
+    // 条目 lambda 必须记住：页面骨架的大标题折叠会把 innerPadding 每帧换一遍，
+    // ScopeScreen 因此随滚动每帧重组；若列表内容 lambda 也跟着每帧新建，LazyList 的
+    // LazyListIntervalContent 会失效，所有可见条目的内容 lambda 一起换新实例 —— 每帧重组 +
+    // 重测量全部可见行。记住后页面重组只影响 ScopeScreen 自身，列表内容不再跟着重建。
+    // （行内主线程解码见 PrefImageRow.kt 的 previewImage，那才是滑到 OTA 卡片时的停顿来源。）
+    val listItems: LazyListScope.() -> Unit = remember(builder, fullContent) { buildEntries }
 
     val list: @Composable (Modifier) -> Unit = { listModifier ->
         if (LocalUiMode.current == UiMode.Miuix) {
