@@ -29,7 +29,8 @@ class RemoveRootDetection(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
 
         //Source Recruitment Welcome z3.i(Context)Z
         //Root 检测: anim.v.c() || flash.locked==0 || vbmeta==unlocked || verifiedbootstate==orange
-        //返回 true 表示设备正常，false 会在 AccessViewModel 中被映射成 AccessFailReason.Rooted 并拦截功能
+        //返回值语义是「设备已失陷(compromised)」: true 会被 BetaDeviceAccessPolicy 记成 Compromised，
+        //再由 AccessViewModel 映射成 AccessFailReason.Rooted 拦截功能，故放行时必须返回 false
         val modern = dexKitBridge.findMethod {
             matcher {
                 paramTypes(classOf<Context>())
@@ -55,7 +56,7 @@ class RemoveRootDetection(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                 returnType = Boolean::class
             }?.intercept {
                 if (!isEnable) return@intercept proceed()
-                true
+                false
             }
 
             legacy != null -> legacy.className.toClass().resolve().firstMethodOrNull {
