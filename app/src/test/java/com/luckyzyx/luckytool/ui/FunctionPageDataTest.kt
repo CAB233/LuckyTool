@@ -7,6 +7,7 @@ import com.luckyzyx.luckytool.ui.compose.FunctionPageData
 import com.luckyzyx.luckytool.ui.compose.categoryBadges
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -52,6 +53,17 @@ class FunctionPageDataTest {
                 row.pageKey in categoryBadges,
                 row.packName == null,
             )
+        }
+    }
+
+    @Test
+    fun `app page summaries show function titles instead of the package name`() {
+        // 摘要取该页前三个功能标题；16b0c07cf 曾让应用页摘要改显示包名，功能页整屏就只剩包名
+        val appRows = FunctionPageData.buildSnapshot(context).rows
+            .filter { it.packName != null && it.summary != null }
+        assertTrue("应有带包名的应用页行可供校验", appRows.isNotEmpty())
+        appRows.forEach { row ->
+            assertNotEquals("应用页摘要不得是自身的包名：${row.pageKey}", row.packName, row.summary)
         }
     }
 

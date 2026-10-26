@@ -128,11 +128,7 @@ private fun FunctionTreeScreen(
                     // 空索引不代表不可见；判据与 ScopePageRegistry.hasVisibleContent 一致
                     if (index.isEmpty() && !spec.selfRendered) return@mapNotNull null
                     val packName = rowIconPackName(key, spec)
-                    val summary = if (key == "android_related" || key in ScopePageRegistry.treeTitleRes) {
-                        index.mapNotNull { it.title }.take(3).joinToString(" · ").ifEmpty { null }
-                    } else {
-                        packName
-                    }
+                    val summary = rowSummary(index)
                     FunctionRow(key, pageTitle(context, spec), summary, packName)
                 }
             }
